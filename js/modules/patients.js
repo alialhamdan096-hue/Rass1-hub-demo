@@ -12,18 +12,36 @@ export const PatientsModule = {
             newForm.addEventListener('submit', (e) => this.save(e));
         }
 
-        // ربط الدوال بالشاشة
+        // ربط الأزرار (بما فيها الواتساب)
         window.setEntryType = (type) => this.setEntryType(type);
         window.resetForm = () => this.resetForm();
+        
         window.PatientActions = {
             edit: (id) => this.loadForEdit(id),
             delete: (id) => UI.confirmDelete(id),
-            whatsapp: (id) => Utils.openWhatsapp(id),
+            
+            // ✅ كود الواتساب رجع هنا
+            whatsapp: (id) => {
+                const p = State.patients.find(x => x.id === id);
+                if (!p) return;
+                
+                let msg = '';
+                if (p.type === 'refill') {
+                    msg = `أهلاً ${p.name || 'بك'}،\nمعك صيدلية الرازي. نود تذكيرك بموعد إعادة صرف دواء ${p.med}.\nهل تود تجهيزه لك؟`;
+                } else {
+                    msg = `أهلاً ${p.name || 'بك'}،\nالطلب الخاص بك (${p.med}) وصل للصيدلية وجاهز للاستلام.`;
+                }
+                
+                let phone = p.phone.replace(/\D/g, '');
+                if (phone.startsWith('05')) phone = '966' + phone.substring(1);
+                
+                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+            },
+
             confirmArrived: (id) => UI.confirmArrived(id),
             markDelivered: (id) => UI.markDelivered(id)
         };
 
-        // مستمعات البحث والفلتر
         const searchInput = document.getElementById('search');
         if(searchInput) {
             searchInput.addEventListener('input', (e) => {
@@ -84,7 +102,6 @@ export const PatientsModule = {
         const d = new Date().toISOString().split('T')[0];
         const dateInput = document.getElementById('date');
         if(dateInput) dateInput.value = d;
-        
         const daysInput = document.getElementById('days');
         if(daysInput) daysInput.value = 30;
     },
@@ -98,7 +115,6 @@ export const PatientsModule = {
         if (!phone || phone.length < 8) { UI.showToast('رقم الجوال مطلوب', 'error'); return; }
         if (!med) { UI.showToast('اسم الدواء مطلوب', 'error'); return; }
 
-        // حساب التاريخ يدوياً هنا لتجاوز مشكلة Utils
         let reminderDateVal = '';
         if(t === 'refill') {
             const dVal = document.getElementById('date').value;
@@ -114,20 +130,17 @@ export const PatientsModule = {
             id: State.editId || Date.now().toString(),
             type: t,
             name: document.getElementById('name').value,
-            phone: phone, // إرسال الرقم كما هو لتجنب مشاكل التنسيق حالياً
+            phone: phone,
             med: med,
             notes: document.getElementById('notes').value,
             addedDate: new Date().toISOString().split('T')[0],
-            // Refill
             date: t === 'refill' ? document.getElementById('date').value : '',
             days: t === 'refill' ? document.getElementById('days').value : '',
-            // Order
             branch: t === 'order' ? document.getElementById('branch').value : '',
             pickupDate: t === 'order' ? document.getElementById('pickupDate').value : '',
             orderStatus: t === 'order' ? 'waiting' : '',
-            // System
             reminderSent: 'no',
-            reminderDate: reminderDateVal, // استخدام القيمة المحسوبة محلياً
+            reminderDate: reminderDateVal,
             converted: 'no',
             history: State.editId ? undefined : []
         };
@@ -180,12 +193,26 @@ export const PatientsModule = {
         }
 
         tbody.innerHTML = list.slice(0, Config.ITEMS_PER_PAGE).map(p => {
-            // محاولة استخدام Utils.getStatus، وإذا فشلت نستخدم قيمة افتراضية لتجنب الانهيار
             let status = { text: 'Unknown', color: 'status-info' };
             try { if(Utils && Utils.getStatus) status = Utils.getStatus(p); } catch(e) {}
 
             const isOrder = p.type === 'order';
-            let btns = `<button class="edit" onclick="PatientActions.edit('${p.id}')">✏️</button><button class="del" onclick="PatientActions.delete('${p.id}')">🗑️</button>`;
+            
+            // ✅ هنا رجعنا زر الواتساب
+            let btns = '';
+            
+            if (isOrder) {
+                // أزرار الطلبات
+                if(p.orderStatus === 'waiting') btns += `<button class="arrived" onclick="PatientActions.confirmArrived('${p.id}')">📥</button>`;
+                else if(p.orderStatus === 'pending') btns += `<button class="done" onclick="PatientActions.markDelivered('${p.id}')">✅</button>`;
+            } else {
+                // زر الواتساب للرفيل 💬
+                btns += `<button class="wa" onclick="PatientActions.whatsapp('${p.id}')">💬</button>`; 
+            }
+            
+            // أزرار التعديل والحذف للكل
+            btns += `<button class="edit" onclick="PatientActions.edit('${p.id}')">✏️</button>`;
+            btns += `<button class="del" onclick="PatientActions.delete('${p.id}')">🗑️</button>`;
 
             return `
                 <tr class="${isOrder ? 'order-row' : ''}">
