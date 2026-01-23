@@ -3,7 +3,7 @@ CONFIG - Settings & Constants
 ══════════════════════════════════════════════════════════════ */
 
 const CONFIG = {
-API_URL: ‘https://script.google.com/macros/s/AKfycbzScqUsOESP_1EQZBqYvXLbkoOkNsDm2_o5twRHbU078-1e5HI7uSgmhDy_mkAmfLv-ig/exec’,
+API_URL: ‘https:https://script.google.com/macros/s/AKfycbxf4M4QRfiF1v1hz3btShJBC0k7VGCkXcoZ7LoNmPyVc04QdcZXsdVHgWInf7Spda3orQ/exec’,
 ITEMS_PER_PAGE: 10,
 SEARCH_DELAY: 300,
 TOAST_DURATION: 3000,
