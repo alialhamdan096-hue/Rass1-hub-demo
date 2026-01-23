@@ -12,7 +12,7 @@ export const State = {
 
 export const Config = {
     // ⚠️ هذا هو الرابط الذي أرسلته لي مؤخراً
-    API_URL: 'https://script.google.com/macros/s/AKfycbzU5-3QXezrqOu4sCHjsqP4lvV1-2AgRSB5xa4waGe4Og2ZXHzsWwkD9s2PU-ciexThGw/exec',
+    API_URL: 'https://script.google.com/macros/s/AKfycbzc1pwzBZgkc-FjfCTAcOSCBDKKbK2gwYhvm4bjSZcRVFl03PuXPa8vxPHd9Yk2nENpUw/exec',
     
     ITEMS_PER_PAGE: 10,
     SEARCH_DELAY: 300,
