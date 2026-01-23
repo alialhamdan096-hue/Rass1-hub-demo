@@ -48,7 +48,9 @@ const State = {
     typeFilter: 'all',
     entryType: 'refill',
     searchTimeout: null,
-    orderItems: []
+    orderItems: [],
+    ratingPatientId: null,
+    ratingValue: 0
 };
 
 // ==================== UTILITIES ====================
@@ -240,6 +242,8 @@ const API = {
                 reminderDate: Utils.formatDate(p.reminderDate),
                 converted: p.converted || 'no',
                 convertedDate: Utils.formatDate(p.convertedDate),
+                rating: parseInt(p.rating) || 0,
+                ratingComment: p.ratingComment || '',
                 history: Utils.parseHistory(p.history)
             }));
             localStorage.setItem('patients_rass1', JSON.stringify(State.patients));
@@ -524,6 +528,8 @@ const PatientActions = {
         UI.showToast('Delivered!', 'success');
         renderPatients();
         UI.updateOrdersBadge();
+        // Show rating modal
+        RatingModule.show(id);
     },
 
     async markConverted(id) {
@@ -534,6 +540,8 @@ const PatientActions = {
         UI.showToast('Converted!', 'success');
         renderPatients();
         renderTracking();
+        // Show rating modal
+        RatingModule.show(id);
     },
 
     async undoConverted(id) {
@@ -548,16 +556,95 @@ const PatientActions = {
     async renewPatient(id) {
         const p = State.patients.find(x => x.id === id);
         if (!p.history) p.history = [];
-        p.history.push({ date: p.date, reminderDate: p.reminderDate, convertedDate: p.convertedDate });
+        p.history.push({ date: p.date, reminderDate: p.reminderDate, convertedDate: p.convertedDate, rating: p.rating, ratingComment: p.ratingComment });
         p.date = Utils.getToday();
         p.reminderSent = 'no';
         p.reminderDate = '';
         p.converted = 'no';
         p.convertedDate = '';
+        p.rating = 0;
+        p.ratingComment = '';
         await API.savePatient(p, 'update');
         UI.showToast('Renewed!', 'success');
         renderPatients();
         renderTracking();
+    }
+};
+
+// ==================== RATING MODULE ====================
+const RatingModule = {
+    labels: ['', 'سيء جداً', 'سيء', 'مقبول', 'جيد', 'ممتاز'],
+
+    show(patientId) {
+        const p = State.patients.find(x => x.id === patientId);
+        if (!p) return;
+
+        State.ratingPatientId = patientId;
+        State.ratingValue = 0;
+
+        document.getElementById('ratingPatientName').textContent = p.name || p.phone;
+        document.getElementById('ratingComment').value = '';
+        document.getElementById('ratingLabel').textContent = 'اختر التقييم';
+        document.getElementById('ratingSubmitBtn').disabled = true;
+
+        document.querySelectorAll('#ratingStars .star').forEach(s => s.classList.remove('active', 'hovered'));
+        document.getElementById('ratingModal').classList.add('active');
+    },
+
+    close() {
+        document.getElementById('ratingModal').classList.remove('active');
+        State.ratingPatientId = null;
+        State.ratingValue = 0;
+    },
+
+    setRating(value) {
+        State.ratingValue = value;
+        document.querySelectorAll('#ratingStars .star').forEach((s, i) => {
+            s.classList.toggle('active', i < value);
+        });
+        document.getElementById('ratingLabel').textContent = this.labels[value];
+        document.getElementById('ratingSubmitBtn').disabled = false;
+    },
+
+    async submit() {
+        if (!State.ratingPatientId || State.ratingValue === 0) return;
+
+        const p = State.patients.find(x => x.id === State.ratingPatientId);
+        if (!p) return;
+
+        p.rating = State.ratingValue;
+        p.ratingComment = document.getElementById('ratingComment').value.trim();
+
+        await API.savePatient(p, 'update');
+        UI.showToast('تم حفظ التقييم!', 'success');
+        this.close();
+        renderTracking();
+    },
+
+    renderStars(rating) {
+        const r = parseInt(rating) || 0;
+        let stars = '';
+        for (let i = 1; i <= 5; i++) {
+            stars += i <= r ? '★' : '☆';
+        }
+        return stars;
+    },
+
+    getAverageRating() {
+        let total = 0, count = 0;
+        State.patients.forEach(p => {
+            if (p.rating && p.rating > 0) {
+                total += parseInt(p.rating);
+                count++;
+            }
+            (p.history || []).forEach(h => {
+                if (h.rating && h.rating > 0) {
+                    total += parseInt(h.rating);
+                    count++;
+                }
+            });
+        });
+        return count > 0 ? { avg: (total / count).toFixed(1), count } : { avg: 0, count: 0 };
     }
 };
 
@@ -763,11 +850,30 @@ function renderTracking() {
 
     const g = document.getElementById('trackGrid');
     if (l.length === 0) { g.innerHTML = '<div class="empty" style="grid-column:1/-1">No records</div>'; return; }
-    g.innerHTML = l.map(p => {
+
+    // Show average rating
+    const avgData = RatingModule.getAverageRating();
+    let avgHtml = '';
+    if (avgData.count > 0) {
+        avgHtml = `<div class="avg-rating" style="grid-column:1/-1">
+            <div class="avg-rating-value">${avgData.avg}</div>
+            <div class="avg-rating-stars">${RatingModule.renderStars(Math.round(avgData.avg))}</div>
+            <div class="avg-rating-count">متوسط التقييم (${avgData.count} تقييم)</div>
+        </div>`;
+    }
+
+    g.innerHTML = avgHtml + l.map(p => {
         const hc = (p.history || []).length;
         const hb = hc > 0 ? '<div class="history-badge">🔄 ' + hc + '</div>' : '';
+        const ratingInfo = p.rating && p.rating > 0
+            ? `<div class="rating-info"><span class="rating-badge">${RatingModule.renderStars(p.rating)} ${p.rating}/5</span>${p.ratingComment ? '<div class="rating-comment">"' + Utils.sanitize(p.ratingComment) + '"</div>' : ''}</div>`
+            : '';
+        const ratingBtn = p.converted === 'yes' && (!p.rating || p.rating === 0)
+            ? `<button class="track-btn" onclick="RatingModule.show('${p.id}')" style="background:#fbbf24;color:#78350f">⭐ أضف تقييم</button>`
+            : '';
+
         if (p.converted === 'yes') {
-            return `<div class="track-card converted">${hb}<div class="name">${Utils.sanitize(p.name)}</div><div class="phone">${Utils.sanitize(p.phone)}</div><div class="med">${Utils.sanitize(p.med)}</div><div class="info">📤 ${p.reminderDate}<br>✅ ${p.convertedDate}</div><button class="track-btn done" onclick="PatientActions.undoConverted('${p.id}')">✅ Converted (Undo)</button><button class="track-btn renew" onclick="PatientActions.renewPatient('${p.id}')">🔄 Renew</button></div>`;
+            return `<div class="track-card converted">${hb}<div class="name">${Utils.sanitize(p.name)}</div><div class="phone">${Utils.sanitize(p.phone)}</div><div class="med">${Utils.sanitize(p.med)}</div><div class="info">📤 ${p.reminderDate}<br>✅ ${p.convertedDate}</div>${ratingInfo}${ratingBtn}<button class="track-btn done" onclick="PatientActions.undoConverted('${p.id}')">✅ Converted (Undo)</button><button class="track-btn renew" onclick="PatientActions.renewPatient('${p.id}')">🔄 Renew</button></div>`;
         } else {
             return `<div class="track-card">${hb}<div class="name">${Utils.sanitize(p.name)}</div><div class="phone">${Utils.sanitize(p.phone)}</div><div class="med">${Utils.sanitize(p.med)}</div><div class="info">📤 ${p.reminderDate}</div><button class="track-btn" onclick="PatientActions.markConverted('${p.id}')">✅ Mark Converted</button></div>`;
         }
@@ -844,6 +950,7 @@ function generateOrdersReport(m, y) {
 // ==================== GLOBAL EXPORTS ====================
 window.PatientActions = PatientActions;
 window.OrdersModule = OrdersModule;
+window.RatingModule = RatingModule;
 window.Utils = Utils;
 window.UI = UI;
 window.changePage = changePage;
@@ -894,6 +1001,26 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('trackFilter').addEventListener('change', renderTracking);
     document.getElementById('reportMonth').addEventListener('change', generateReport);
     document.getElementById('reportYear').addEventListener('change', generateReport);
+
+    // Rating modal event listeners
+    document.querySelectorAll('#ratingStars .star').forEach(star => {
+        star.addEventListener('click', () => RatingModule.setRating(parseInt(star.dataset.value)));
+        star.addEventListener('mouseenter', () => {
+            const val = parseInt(star.dataset.value);
+            document.querySelectorAll('#ratingStars .star').forEach((s, i) => {
+                s.classList.toggle('hovered', i < val);
+            });
+            document.getElementById('ratingLabel').textContent = RatingModule.labels[val];
+        });
+    });
+
+    document.getElementById('ratingStars').addEventListener('mouseleave', () => {
+        document.querySelectorAll('#ratingStars .star').forEach(s => s.classList.remove('hovered'));
+        document.getElementById('ratingLabel').textContent = State.ratingValue > 0 ? RatingModule.labels[State.ratingValue] : 'اختر التقييم';
+    });
+
+    document.getElementById('ratingSkipBtn').addEventListener('click', () => RatingModule.close());
+    document.getElementById('ratingSubmitBtn').addEventListener('click', () => RatingModule.submit());
 
     // Load data
     API.loadPatients();
