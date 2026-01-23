@@ -2,7 +2,7 @@ import { Config, State, Events } from './core.js';
 import { UI } from './modules/ui.js';
 
 export const API = {
-    // جلب البيانات من الشيت
+    // جلب البيانات
     async loadPatients() {
         UI.showLoading(true);
         try {
@@ -12,13 +12,33 @@ export const API = {
             
             const data = await response.json();
             
-            // ترتيب البيانات: الأحدث في الأعلى
-            State.patients = data.reverse();
+            // 🛠️ الإصلاح السحري: تحويل النصوص إلى مصفوفات
+            State.patients = data.reverse().map(p => {
+                // معالجة الهيستوري (تحويل من نص إلى قائمة)
+                let parsedHistory = [];
+                try {
+                    if (typeof p.history === 'string' && p.history.trim() !== '') {
+                        parsedHistory = JSON.parse(p.history);
+                    } else if (Array.isArray(p.history)) {
+                        parsedHistory = p.history;
+                    }
+                } catch (e) {
+                    console.warn('History parse error', p.history);
+                }
+
+                return {
+                    ...p,
+                    // التأكد أن هذه القيم موجودة دائماً
+                    history: parsedHistory,
+                    converted: p.converted || 'no',
+                    reminderSent: p.reminderSent || 'no'
+                };
+            });
             
-            // تبليغ النظام أن البيانات وصلت
+            // تبليغ النظام أن البيانات وصلت جاهزة ونظيفة
             Events.emit('data:loaded', State.patients);
             
-            // تحديث عداد الطلبات المعلقة
+            // تحديث عداد الطلبات
             const pendingOrders = State.patients.filter(p => p.type === 'order' && p.orderStatus !== 'delivered').length;
             Events.emit('orders:badge', pendingOrders);
 
@@ -30,18 +50,17 @@ export const API = {
         }
     },
 
-    // حفظ، تعديل، أو حذف
+    // حفظ البيانات
     async savePatient(patientData, action = 'add') {
         UI.showLoading(true);
         
-        // تجهيز البيانات للإرسال
+        // تجهيز البيانات
         const payload = {
             action: action,
             data: JSON.stringify(patientData),
-            id: action === 'delete' ? patientData : undefined
+            id: action === 'delete' ? patientData.id : undefined // إصلاح صغير هنا أيضاً
         };
 
-        // تحويل البيانات لشكل يقبله قوقل سكربت
         const formData = new FormData();
         for (const key in payload) {
             if (payload[key] !== undefined) {
@@ -57,9 +76,8 @@ export const API = {
             
             const result = await response.json();
             
-            if (result.status === 'success' || result.status === 'updated' || result.status === 'deleted') {
-                // تحديث ناجح، نعيد تحميل البيانات لنرى التغيير
-                await this.loadPatients();
+            if (result.status === 'success' || result.status === 'updated' || result.status === 'deleted' || result.status === 'updated (new)') {
+                await this.loadPatients(); // إعادة التحميل لرؤية التغيير
                 return true;
             } else {
                 throw new Error(result.error || 'Unknown error');
