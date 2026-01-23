@@ -7,11 +7,11 @@ export const State = {
     typeFilter: 'all',
     entryType: 'refill',
     searchTimeout: null,
-    orderItems: [] // For local orders list
+    orderItems: [] // قائمة الطلبات المحلية للتحويل
 };
 
 export const Config = {
-    // تم تحديث الرابط الجديد الخاص بك هنا 👇
+    // ✅ هذا هو الرابط الصحيح المستخرج من كودك الشغال
     API_URL: 'https://script.google.com/macros/s/AKfycbzU5-3QXezrqOu4sCHjsqP4lvV1-2AgRSB5xa4waGe4Og2ZXHzsWwkD9s2PU-ciexThGw/exec',
     
     ITEMS_PER_PAGE: 10,
@@ -20,7 +20,7 @@ export const Config = {
     PHONE_REGEX: /^(966|0)?5\d{8}$/,
     MONTHS: ['January','February','March','April','May','June','July','August','September','October','November','December'],
     
-    // جميع الإيميلات كاملة هنا 👇
+    // ✅ قائمة الإيميلات الكاملة
     BRANCH_EMAILS: {
         'RASS2': 'rass2@alraziksa.com',
         'RASS5': 'rass5@alraziksa.com',
