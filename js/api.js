@@ -1,53 +1,76 @@
 import { Config, State, Events } from './core.js';
-import { Utils } from './utils.js';
 import { UI } from './modules/ui.js';
 
 export const API = {
-    async request(a,d=null){try{let u=Config.API_URL+'?action='+a;if(d)u+='&data='+encodeURIComponent(JSON.stringify(d));const r=await fetch(u);UI.setSyncStatus(true);return await r.json()}catch(e){console.error('API Error:',e);UI.setSyncStatus(false);throw e}},
-    
-    async loadPatients(){
-        UI.setLoading(true,'Loading...');
-        try{
-            const d=await this.request('get');
-            State.patients=d.map(p=>({
-                id:String(p.id||''),
-                type:p.type||'refill',
-                name:p.name||'',
-                phone:String(p.phone||''),
-                med:p.med||'',
-                date:Utils.formatDate(p.date),
-                days:String(p.days||'30'),
-                notes:p.notes||'',
-                addedDate:Utils.formatDate(p.addedDate)||Utils.formatDate(p.date),
-                branch:p.branch||'',
-                pickupDate:p.pickupDate||'',
-                orderStatus:p.orderStatus||'waiting',
-                arrivedDate:Utils.formatDate(p.arrivedDate),
-                deliveredDate:Utils.formatDate(p.deliveredDate),
-                reminderSent:p.reminderSent||'no',
-                reminderDate:Utils.formatDate(p.reminderDate),
-                converted:p.converted||'no',
-                convertedDate:Utils.formatDate(p.convertedDate),
-                history:Utils.parseHistory(p.history)
-            }));
-            localStorage.setItem('patients_rass1',JSON.stringify(State.patients));
-            Events.emit('data:loaded');
-        }catch(e){
-            State.patients=JSON.parse(localStorage.getItem('patients_rass1'))||[];
-            UI.showToast('Loaded from cache','warning');
-            Events.emit('data:loaded');
-        }finally{
-            UI.setLoading(false);
+    // جلب البيانات من الشيت
+    async loadPatients() {
+        UI.showLoading(true);
+        try {
+            // إضافة وقت عشوائي لمنع الكاش
+            const response = await fetch(`${Config.API_URL}?action=get&t=${new Date().getTime()}`);
+            if (!response.ok) throw new Error('Network response was not ok');
+            
+            const data = await response.json();
+            
+            // ترتيب البيانات: الأحدث في الأعلى
+            State.patients = data.reverse();
+            
+            // تبليغ النظام أن البيانات وصلت
+            Events.emit('data:loaded', State.patients);
+            
+            // تحديث عداد الطلبات المعلقة
+            const pendingOrders = State.patients.filter(p => p.type === 'order' && p.orderStatus !== 'delivered').length;
+            Events.emit('orders:badge', pendingOrders);
+
+        } catch (error) {
+            console.error('Error loading data:', error);
+            UI.showToast('فشل في جلب البيانات: ' + error.message, 'error');
+        } finally {
+            UI.showLoading(false);
         }
     },
-    
-    async savePatient(p,a){
-        const d={...p,history:JSON.stringify(p.history||[])};
-        try{
-            if(a==='delete')await fetch(Config.API_URL+'?action=delete&id='+p.id);
-            else await this.request(a,d);
-            UI.setSyncStatus(true);
-        }catch(e){UI.setSyncStatus(false)}
-        localStorage.setItem('patients_rass1',JSON.stringify(State.patients));
+
+    // حفظ، تعديل، أو حذف
+    async savePatient(patientData, action = 'add') {
+        UI.showLoading(true);
+        
+        // تجهيز البيانات للإرسال
+        const payload = {
+            action: action,
+            data: JSON.stringify(patientData),
+            id: action === 'delete' ? patientData : undefined
+        };
+
+        // تحويل البيانات لشكل يقبله قوقل سكربت
+        const formData = new FormData();
+        for (const key in payload) {
+            if (payload[key] !== undefined) {
+                formData.append(key, payload[key]);
+            }
+        }
+
+        try {
+            const response = await fetch(Config.API_URL, {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.status === 'success' || result.status === 'updated' || result.status === 'deleted') {
+                // تحديث ناجح، نعيد تحميل البيانات لنرى التغيير
+                await this.loadPatients();
+                return true;
+            } else {
+                throw new Error(result.error || 'Unknown error');
+            }
+            
+        } catch (error) {
+            console.error('Save error:', error);
+            UI.showToast('حدث خطأ أثناء الحفظ', 'error');
+            return false;
+        } finally {
+            UI.showLoading(false);
+        }
     }
 };
