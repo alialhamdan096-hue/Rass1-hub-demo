@@ -5,31 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rass 1 Hub</title>
     <link rel="icon" href="logo.png" type="image/png">
-    <link rel="stylesheet" href="css/style.css?v=3">
-
-    <script>
-        window.onerror = function(message, source, lineno, colno, error) {
-            var fileName = source ? source.split('/').pop() : 'Unknown';
-            alert("🚨 كفشنا خطأ!\n\n" + 
-                  "الرسالة: " + message + "\n" +
-                  "الملف: " + fileName + "\n" +
-                  "السطر: " + lineno);
-            return false;
-        };
-        window.addEventListener('unhandledrejection', function(event) {
-            alert("🚨 خطأ في الاتصال (Promise)!\n\n" + event.reason);
-        });
-        window.addEventListener('error', function(e) {
-            if (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK') {
-                alert("🚨 ملف مفقود أو رابط خطأ!\n\n" + (e.target.src || e.target.href));
-            }
-        }, true);
-    </script>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <div class="toast-container" id="toastContainer"></div>
-    <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><div class="loading-text">Loading...</div></div>
-    
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading...</div>
+    </div>
+
     <div class="modal-overlay" id="confirmModal">
         <div class="modal">
             <div class="modal-icon" id="modalIcon">⚠️</div>
@@ -47,17 +31,22 @@
             <img src="logo.png" alt="Rass 1" class="logo-img" onerror="this.style.display='none'">
             <h1>Rass 1 Hub</h1>
         </div>
-        
+
         <div class="tabs">
             <button class="tab active" data-page="patients">💊 Records</button>
             <button class="tab" data-page="orders">📦 Transfer Requests</button>
             <button class="tab" data-page="tracking">📊 Tracking</button>
             <button class="tab" data-page="reports">📈 Reports</button>
         </div>
-        
+
         <div id="sync" class="sync sync-ok">✓ Connected to Google Sheets</div>
-        <div class="alert-banner hidden" id="alertBanner"><span class="alert-banner-icon">🔔</span><span class="alert-banner-text" id="alertText"></span><button class="alert-banner-close" onclick="document.getElementById('alertBanner').classList.add('hidden')">×</button></div>
-        
+        <div class="alert-banner hidden" id="alertBanner">
+            <span class="alert-banner-icon">🔔</span>
+            <span class="alert-banner-text" id="alertText"></span>
+            <button class="alert-banner-close" onclick="document.getElementById('alertBanner').classList.add('hidden')">×</button>
+        </div>
+
+        <!-- Patients Page -->
         <div id="patientsPage" class="page active">
             <div class="stats">
                 <div class="stat total"><div class="stat-num" id="total">0</div><div class="stat-label">Records</div></div>
@@ -130,7 +119,8 @@
                 </div>
             </div>
         </div>
-    
+
+        <!-- Orders Page -->
         <div id="ordersPage" class="page">
             <div class="grid">
                 <div class="card">
@@ -167,7 +157,8 @@
                 </div>
             </div>
         </div>
-    
+
+        <!-- Tracking Page -->
         <div id="trackingPage" class="page">
             <div class="stats">
                 <div class="stat total"><div class="stat-num" id="tSent">0</div><div class="stat-label">Sent</div></div>
@@ -182,7 +173,8 @@
                 <div class="track-grid" id="trackGrid"></div>
             </div>
         </div>
-    
+
+        <!-- Reports Page -->
         <div id="reportsPage" class="page">
             <div class="card">
                 <div class="header-row">
@@ -225,7 +217,7 @@
             </div>
         </div>
     </div>
-    
-    <script type="module" src="js/main.js?v=3"></script>
+
+    <script src="js/app.js"></script>
 </body>
 </html>
