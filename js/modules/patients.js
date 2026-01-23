@@ -5,6 +5,9 @@ import { UI } from './ui.js';
 
 export const PatientsModule = {
     init() {
+        // حفظ مرجع للموديول عشان ما يضيع
+        const self = this;
+
         const form = document.getElementById('patientForm');
         if (form) {
             const newForm = form.cloneNode(true);
@@ -12,18 +15,22 @@ export const PatientsModule = {
             newForm.addEventListener('submit', (e) => this.save(e));
         }
 
-        // ربط الأزرار (بما فيها الواتساب)
-        window.setEntryType = (type) => this.setEntryType(type);
-        window.resetForm = () => this.resetForm();
-        
+        // ✅ ربط الأزرار بشكل قوي (window binding)
         window.PatientActions = {
-            edit: (id) => this.loadForEdit(id),
-            delete: (id) => UI.confirmDelete(id),
+            // استخدام self لضمان استدعاء الدوال الصحيحة
+            edit: (id) => self.loadForEdit(String(id)),
+            delete: (id) => UI.confirmDelete(String(id)),
             
-            // ✅ كود الواتساب رجع هنا
             whatsapp: (id) => {
-                const p = State.patients.find(x => x.id === id);
-                if (!p) return;
+                // تحويل الـ id لنص عشان المقارنة تنجح
+                const strId = String(id);
+                // البحث باستخدام == بدلاً من === عشان يتجاهل الفرق بين النص والرقم
+                const p = State.patients.find(x => String(x.id) === strId);
+                
+                if (!p) {
+                    UI.showToast('خطأ: لم يتم العثور على بيانات المريض', 'error');
+                    return;
+                }
                 
                 let msg = '';
                 if (p.type === 'refill') {
@@ -38,9 +45,13 @@ export const PatientsModule = {
                 window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
             },
 
-            confirmArrived: (id) => UI.confirmArrived(id),
-            markDelivered: (id) => UI.markDelivered(id)
+            confirmArrived: (id) => UI.confirmArrived(String(id)),
+            markDelivered: (id) => UI.markDelivered(String(id))
         };
+        
+        // بقية الكود كما هو...
+        window.setEntryType = (type) => this.setEntryType(type);
+        window.resetForm = () => this.resetForm();
 
         const searchInput = document.getElementById('search');
         if(searchInput) {
@@ -153,10 +164,16 @@ export const PatientsModule = {
     },
 
     loadForEdit(id) {
-        const p = State.patients.find(x => x.id === id);
-        if (!p) return;
+        // تحويل id لنص لضمان المطابقة
+        const strId = String(id);
+        const p = State.patients.find(x => String(x.id) === strId);
         
-        State.editId = id;
+        if (!p) {
+            UI.showToast('عفواً، السجل غير موجود', 'error');
+            return;
+        }
+        
+        State.editId = strId; // نحفظه كنص
         this.setEntryType(p.type);
         
         document.getElementById('name').value = p.name;
@@ -172,7 +189,10 @@ export const PatientsModule = {
             document.getElementById('branch').value = p.branch;
             document.getElementById('pickupDate').value = p.pickupDate || '';
         }
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        // التمرير للأعلى عشان تشوف الفورم
+        const formTitle = document.getElementById('formTitle');
+        if(formTitle) formTitle.scrollIntoView({ behavior: 'smooth', block: 'center' });
     },
 
     render() {
@@ -198,19 +218,14 @@ export const PatientsModule = {
 
             const isOrder = p.type === 'order';
             
-            // ✅ هنا رجعنا زر الواتساب
             let btns = '';
-            
             if (isOrder) {
-                // أزرار الطلبات
                 if(p.orderStatus === 'waiting') btns += `<button class="arrived" onclick="PatientActions.confirmArrived('${p.id}')">📥</button>`;
                 else if(p.orderStatus === 'pending') btns += `<button class="done" onclick="PatientActions.markDelivered('${p.id}')">✅</button>`;
             } else {
-                // زر الواتساب للرفيل 💬
                 btns += `<button class="wa" onclick="PatientActions.whatsapp('${p.id}')">💬</button>`; 
             }
             
-            // أزرار التعديل والحذف للكل
             btns += `<button class="edit" onclick="PatientActions.edit('${p.id}')">✏️</button>`;
             btns += `<button class="del" onclick="PatientActions.delete('${p.id}')">🗑️</button>`;
 
