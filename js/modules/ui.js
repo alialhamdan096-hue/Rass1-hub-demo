@@ -1,44 +1,63 @@
-import { Config } from '../core.js';
+import { State, Events } from '../core.js';
 
 export const UI = {
-    showToast(m,t='info'){const c=document.getElementById('toastContainer');const e=document.createElement('div');e.className='toast toast-'+t;const i={success:'✅',error:'❌',warning:'⚠️',info:'ℹ️'};e.innerHTML='<span>'+i[t]+'</span><span>'+m+'</span>';c.appendChild(e);setTimeout(()=>{e.classList.add('hiding');setTimeout(()=>e.remove(),300)},Config.TOAST_DURATION)},
-    setLoading(s,t='Loading...'){const o=document.getElementById('loadingOverlay');o.querySelector('.loading-text').textContent=t;o.classList.toggle('active',s)},
-    setSyncStatus(c){const e=document.getElementById('sync');e.className=c?'sync sync-ok':'sync sync-err';e.textContent=c?'✓ Connected to Google Sheets':'⚠ Offline Mode'},
-    
-    showModal(o){
-        const{icon='⚠️',title,message,confirmText='Confirm',confirmClass='',onConfirm}=o;
-        document.getElementById('modalIcon').textContent=icon;
-        document.getElementById('modalTitle').textContent=title;
-        document.getElementById('modalMessage').textContent=message;
-        const b=document.getElementById('modalConfirm');
-        b.textContent=confirmText;
-        b.className='modal-confirm '+confirmClass;
-        // Remove old listeners to prevent multiple clicks
-        const newB = b.cloneNode(true);
-        b.parentNode.replaceChild(newB, b);
-        
-        newB.addEventListener('click', () => {
-            onConfirm();
-            this.closeModal();
-        });
-        document.getElementById('confirmModal').classList.add('active');
-    },
-    closeModal(){document.getElementById('confirmModal').classList.remove('active')},
-    
-    showFieldError(f,s){const e=document.getElementById(f);const m=document.getElementById(f+'Error');if(e)e.classList.toggle('error',s);if(m)m.classList.toggle('show',s)},
-    clearFieldErrors(){['phone','med','date','days','orderMed','orderBranch','branch'].forEach(f=>this.showFieldError(f,false))},
-    showAlert(m){document.getElementById('alertText').textContent=m;document.getElementById('alertBanner').classList.remove('hidden')},
-    
     initTabs() {
-        document.querySelectorAll('.tab').forEach(t=>{
-            t.addEventListener('click',()=> {
-                document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-                document.querySelectorAll('.tab').forEach(tb=>tb.classList.remove('active'));
-                document.getElementById(t.dataset.page+'Page').classList.add('active');
-                t.classList.add('active');
-            });
+        // ⚠️ الجسر: دالة تغيير الصفحة
+        window.changePage = (pageName) => {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            
+            document.getElementById(pageName + 'Page').classList.add('active');
+            const tab = document.querySelector(`[data-page="${pageName}"]`);
+            if(tab) tab.classList.add('active');
+            
+            if(pageName === 'tracking') Events.emit('tracking:update');
+        };
+
+        // ربط أزرار التبويبات
+        document.querySelectorAll('.tab').forEach(btn => {
+            btn.addEventListener('click', () => window.changePage(btn.dataset.page));
         });
-        // Cancel modal
-        document.getElementById('modalCancelBtn').addEventListener('click', () => this.closeModal());
+        
+        // ⚠️ الجسر: دالة التبويبات الداخلية للتقارير
+        window.showReportTab = (type) => {
+            document.querySelectorAll('.report-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.report-section').forEach(s => s.classList.remove('active'));
+            
+            document.querySelector(`[data-report="${type}"]`).classList.add('active');
+            document.getElementById(type === 'refill' ? 'refillReport' : 'ordersReport').classList.add('active');
+        };
+    },
+
+    showToast(msg, type='info') {
+        const c = document.getElementById('toastContainer');
+        const d = document.createElement('div');
+        d.className = `toast toast-${type}`;
+        d.innerText = msg;
+        c.appendChild(d);
+        setTimeout(() => d.remove(), 3000);
+    },
+
+    showLoading(show) {
+        const el = document.getElementById('loadingOverlay');
+        if(el) el.style.display = show ? 'flex' : 'none';
+    },
+
+    confirmDelete(id) {
+        if(confirm('Are you sure you want to delete?')) {
+            import('../api.js').then(mod => mod.API.savePatient({id}, 'delete'));
+        }
+    },
+    
+    confirmArrived(id) {
+        if(confirm('Notify patient that order arrived?')) {
+           // Logic to notify
+        }
+    },
+    
+    markDelivered(id) {
+         import('../api.js').then(mod => {
+             // Logic to update status
+         });
     }
 };
