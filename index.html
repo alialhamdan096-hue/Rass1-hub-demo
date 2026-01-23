@@ -6,6 +6,25 @@
     <title>Rass 1 Hub</title>
     <link rel="icon" href="logo.png" type="image/png">
     <link rel="stylesheet" href="css/style.css">
+
+    <script>
+        window.onerror = function(message, source, lineno, colno, error) {
+            var fileName = source ? source.split('/').pop() : 'Unknown';
+            alert("🚨 كفشنا خطأ!\n\n" + 
+                  "الرسالة: " + message + "\n" +
+                  "الملف: " + fileName + "\n" +
+                  "السطر: " + lineno);
+            return false;
+        };
+        window.addEventListener('unhandledrejection', function(event) {
+            alert("🚨 خطأ في الاتصال (Promise)!\n\n" + event.reason);
+        });
+        window.addEventListener('error', function(e) {
+            if (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK') {
+                alert("🚨 ملف مفقود أو رابط خطأ!\n\n" + (e.target.src || e.target.href));
+            }
+        }, true);
+    </script>
 </head>
 <body>
     <div class="toast-container" id="toastContainer"></div>
@@ -207,5 +226,6 @@
         </div>
     </div>
     
-<script type="module" src="js/main.js"></script>
-
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
