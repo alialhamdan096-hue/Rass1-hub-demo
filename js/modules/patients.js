@@ -5,9 +5,7 @@ import { UI } from './ui.js';
 
 export const PatientsModule = {
     init() {
-        // حفظ مرجع للموديول عشان ما يضيع
-        const self = this;
-
+        // 1. ربط فورم الإضافة
         const form = document.getElementById('patientForm');
         if (form) {
             const newForm = form.cloneNode(true);
@@ -15,44 +13,33 @@ export const PatientsModule = {
             newForm.addEventListener('submit', (e) => this.save(e));
         }
 
-        // ✅ ربط الأزرار بشكل قوي (window binding)
-        window.PatientActions = {
-            // استخدام self لضمان استدعاء الدوال الصحيحة
-            edit: (id) => self.loadForEdit(String(id)),
-            delete: (id) => UI.confirmDelete(String(id)),
+        // 2. الحارس الذكي (يحل مشكلة الأزرار اللي ما تنضغط) 🛡️
+        const tbody = document.getElementById('patientsTbody');
+        if (tbody) {
+            const newTbody = tbody.cloneNode(true); // استنساخ نظيف
+            tbody.parentNode.replaceChild(newTbody, tbody);
             
-            whatsapp: (id) => {
-                // تحويل الـ id لنص عشان المقارنة تنجح
-                const strId = String(id);
-                // البحث باستخدام == بدلاً من === عشان يتجاهل الفرق بين النص والرقم
-                const p = State.patients.find(x => String(x.id) === strId);
-                
-                if (!p) {
-                    UI.showToast('خطأ: لم يتم العثور على بيانات المريض', 'error');
-                    return;
-                }
-                
-                let msg = '';
-                if (p.type === 'refill') {
-                    msg = `أهلاً ${p.name || 'بك'}،\nمعك صيدلية الرازي. نود تذكيرك بموعد إعادة صرف دواء ${p.med}.\nهل تود تجهيزه لك؟`;
-                } else {
-                    msg = `أهلاً ${p.name || 'بك'}،\nالطلب الخاص بك (${p.med}) وصل للصيدلية وجاهز للاستلام.`;
-                }
-                
-                let phone = p.phone.replace(/\D/g, '');
-                if (phone.startsWith('05')) phone = '966' + phone.substring(1);
-                
-                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
-            },
+            // مراقبة أي ضغطة داخل الجدول
+            newTbody.addEventListener('click', (e) => {
+                const btn = e.target.closest('button');
+                if (!btn) return;
 
-            confirmArrived: (id) => UI.confirmArrived(String(id)),
-            markDelivered: (id) => UI.markDelivered(String(id))
-        };
-        
-        // بقية الكود كما هو...
+                const action = btn.dataset.action;
+                const id = btn.dataset.id;
+
+                if (action === 'edit') this.loadForEdit(id);
+                else if (action === 'delete') UI.confirmDelete(id);
+                else if (action === 'whatsapp') this.openWhatsapp(id); // 👈 هنا استدعاء الواتس
+                else if (action === 'arrived') UI.confirmArrived(id);
+                else if (action === 'delivered') UI.markDelivered(id);
+            });
+        }
+
+        // 3. دوال مساعدة
         window.setEntryType = (type) => this.setEntryType(type);
         window.resetForm = () => this.resetForm();
 
+        // 4. البحث والفلتر
         const searchInput = document.getElementById('search');
         if(searchInput) {
             searchInput.addEventListener('input', (e) => {
@@ -71,7 +58,28 @@ export const PatientsModule = {
             }
         });
 
+        // 5. الاستماع لوصول البيانات
         Events.on('data:loaded', () => this.render());
+    },
+
+    // ✅ دالة الواتساب (تم إصلاح خطأ p.phone.replace) 🔧
+    openWhatsapp(id) {
+        // تحويل id لنص للمقارنة الآمنة
+        const p = State.patients.find(x => String(x.id) === String(id));
+        if (!p) { UI.showToast('لم يتم العثور على البيانات', 'error'); return; }
+        
+        let msg = '';
+        if (p.type === 'refill') {
+            msg = `أهلاً ${p.name || 'بك'}،\nمعك صيدلية الرازي. نود تذكيرك بموعد إعادة صرف دواء ${p.med}.\nهل تود تجهيزه لك؟`;
+        } else {
+            msg = `أهلاً ${p.name || 'بك'}،\nالطلب الخاص بك (${p.med}) وصل للصيدلية وجاهز للاستلام.`;
+        }
+        
+        // ⚠️ هنا الإصلاح: String(p.phone) يجبر الرقم يصير نص
+        let phone = String(p.phone).replace(/\D/g, '');
+        if (phone.startsWith('05')) phone = '966' + phone.substring(1);
+        
+        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
     },
 
     setEntryType(t) {
@@ -109,12 +117,9 @@ export const PatientsModule = {
         const ft = document.getElementById('formTitle');
         if(ft) ft.textContent = '➕ Add New';
         this.setEntryType('refill');
-        
         const d = new Date().toISOString().split('T')[0];
-        const dateInput = document.getElementById('date');
-        if(dateInput) dateInput.value = d;
-        const daysInput = document.getElementById('days');
-        if(daysInput) daysInput.value = 30;
+        const di = document.getElementById('date'); if(di) di.value = d;
+        const dy = document.getElementById('days'); if(dy) dy.value = 30;
     },
 
     async save(e) {
@@ -164,16 +169,10 @@ export const PatientsModule = {
     },
 
     loadForEdit(id) {
-        // تحويل id لنص لضمان المطابقة
-        const strId = String(id);
-        const p = State.patients.find(x => String(x.id) === strId);
+        const p = State.patients.find(x => String(x.id) === String(id));
+        if (!p) { UI.showToast('السجل غير موجود', 'error'); return; }
         
-        if (!p) {
-            UI.showToast('عفواً، السجل غير موجود', 'error');
-            return;
-        }
-        
-        State.editId = strId; // نحفظه كنص
+        State.editId = String(id);
         this.setEntryType(p.type);
         
         document.getElementById('name').value = p.name;
@@ -190,15 +189,31 @@ export const PatientsModule = {
             document.getElementById('pickupDate').value = p.pickupDate || '';
         }
         
-        // التمرير للأعلى عشان تشوف الفورم
-        const formTitle = document.getElementById('formTitle');
-        if(formTitle) formTitle.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const ft = document.getElementById('formTitle');
+        if(ft) ft.scrollIntoView({ behavior: 'smooth', block: 'center' });
     },
 
     render() {
         const tbody = document.getElementById('patientsTbody');
         if (!tbody) return;
         
+        // إعادة ربط الحارس (مهم جداً عند إعادة الرسم)
+        const newTbody = tbody.cloneNode(false);
+        tbody.parentNode.replaceChild(newTbody, tbody);
+        newTbody.id = 'patientsTbody';
+        
+        newTbody.addEventListener('click', (e) => {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+            const action = btn.dataset.action;
+            const id = btn.dataset.id;
+            if (action === 'edit') this.loadForEdit(id);
+            else if (action === 'delete') UI.confirmDelete(id);
+            else if (action === 'whatsapp') this.openWhatsapp(id);
+            else if (action === 'arrived') UI.confirmArrived(id);
+            else if (action === 'delivered') UI.markDelivered(id);
+        });
+
         const list = State.patients.filter(p => {
             const matchSearch = (p.name+p.phone+p.med).toLowerCase().includes(State.searchQuery || '');
             const matchType = State.typeFilter === 'all' || p.type === State.typeFilter;
@@ -206,28 +221,27 @@ export const PatientsModule = {
         });
 
         if (list.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="empty">No records found</td></tr>';
+            newTbody.innerHTML = '<tr><td colspan="7" class="empty">No records found</td></tr>';
             const totalEl = document.getElementById('total');
             if(totalEl) totalEl.textContent = 0;
             return;
         }
 
-        tbody.innerHTML = list.slice(0, Config.ITEMS_PER_PAGE).map(p => {
+        newTbody.innerHTML = list.slice(0, Config.ITEMS_PER_PAGE).map(p => {
             let status = { text: 'Unknown', color: 'status-info' };
             try { if(Utils && Utils.getStatus) status = Utils.getStatus(p); } catch(e) {}
-
             const isOrder = p.type === 'order';
             
             let btns = '';
+            // استخدام data-action و data-id هو الحل السحري للأزرار
             if (isOrder) {
-                if(p.orderStatus === 'waiting') btns += `<button class="arrived" onclick="PatientActions.confirmArrived('${p.id}')">📥</button>`;
-                else if(p.orderStatus === 'pending') btns += `<button class="done" onclick="PatientActions.markDelivered('${p.id}')">✅</button>`;
+                if(p.orderStatus === 'waiting') btns += `<button class="arrived" data-action="arrived" data-id="${p.id}">📥</button>`;
+                else if(p.orderStatus === 'pending') btns += `<button class="done" data-action="delivered" data-id="${p.id}">✅</button>`;
             } else {
-                btns += `<button class="wa" onclick="PatientActions.whatsapp('${p.id}')">💬</button>`; 
+                btns += `<button class="wa" data-action="whatsapp" data-id="${p.id}">💬</button>`; 
             }
-            
-            btns += `<button class="edit" onclick="PatientActions.edit('${p.id}')">✏️</button>`;
-            btns += `<button class="del" onclick="PatientActions.delete('${p.id}')">🗑️</button>`;
+            btns += `<button class="edit" data-action="edit" data-id="${p.id}">✏️</button>`;
+            btns += `<button class="del" data-action="delete" data-id="${p.id}">🗑️</button>`;
 
             return `
                 <tr class="${isOrder ? 'order-row' : ''}">
