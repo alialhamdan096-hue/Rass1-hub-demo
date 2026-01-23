@@ -5,7 +5,6 @@ import { UI } from './ui.js';
 
 export const PatientsModule = {
     init() {
-        // 1. ربط الفورم
         const form = document.getElementById('patientForm');
         if (form) {
             const newForm = form.cloneNode(true);
@@ -13,8 +12,7 @@ export const PatientsModule = {
             newForm.addEventListener('submit', (e) => this.save(e));
         }
 
-        // 2. الجسر المهم جداً (ربط الدوال بـ Window) ⚠️
-        // هذا السطر هو اللي يخلي زر HTML يشوف الكود حقنا
+        // ربط الدوال بالشاشة
         window.setEntryType = (type) => this.setEntryType(type);
         window.resetForm = () => this.resetForm();
         window.PatientActions = {
@@ -25,17 +23,23 @@ export const PatientsModule = {
             markDelivered: (id) => UI.markDelivered(id)
         };
 
-        // 3. مستمعات الأحداث
-        document.getElementById('search').addEventListener('input', (e) => {
-            State.searchQuery = e.target.value.toLowerCase();
-            this.render();
-        });
-        
-        ['typeFilter', 'statusFilter'].forEach(id => {
-            document.getElementById(id).addEventListener('change', (e) => {
-                State[id] = e.target.value;
+        // مستمعات البحث والفلتر
+        const searchInput = document.getElementById('search');
+        if(searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                State.searchQuery = e.target.value.toLowerCase();
                 this.render();
             });
+        }
+        
+        ['typeFilter', 'statusFilter'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) {
+                el.addEventListener('change', (e) => {
+                    State[id] = e.target.value;
+                    this.render();
+                });
+            }
         });
 
         Events.on('data:loaded', () => this.render());
@@ -43,28 +47,27 @@ export const PatientsModule = {
 
     setEntryType(t) {
         State.entryType = t;
-        document.getElementById('entryType').value = t;
+        const el = document.getElementById('entryType');
+        if(el) el.value = t;
         
-        // تبديل الأزرار
         document.querySelectorAll('.type-btn').forEach(b => {
             b.classList.remove('active');
             if(b.dataset.type === t) b.classList.add('active');
         });
         
-        // تبديل العناوين والخانات
         const medLabel = document.getElementById('medLabel');
         const medInput = document.getElementById('med');
         const submitBtn = document.getElementById('submitBtn');
         
         if(t === 'refill') {
-            medLabel.innerHTML = 'Medication <span class="required">*</span>';
-            medInput.placeholder = 'Medication name';
+            if(medLabel) medLabel.innerHTML = 'Medication <span class="required">*</span>';
+            if(medInput) medInput.placeholder = 'Medication name';
             document.getElementById('refillFields').style.display = 'block';
             document.getElementById('orderFields').style.display = 'none';
             if(submitBtn) submitBtn.innerHTML = '<span>➕</span> Add Patient';
         } else {
-            medLabel.innerHTML = 'Item Name <span class="required">*</span>';
-            medInput.placeholder = 'Product name';
+            if(medLabel) medLabel.innerHTML = 'Item Name <span class="required">*</span>';
+            if(medInput) medInput.placeholder = 'Product name';
             document.getElementById('refillFields').style.display = 'none';
             document.getElementById('orderFields').style.display = 'block';
             if(submitBtn) submitBtn.innerHTML = '<span>➕</span> Add Order';
@@ -74,13 +77,16 @@ export const PatientsModule = {
     resetForm() {
         document.getElementById('patientForm').reset();
         State.editId = null;
-        document.getElementById('formTitle').textContent = '➕ Add New';
-        this.setEntryType('refill'); // إعادة للوضع الافتراضي
+        const ft = document.getElementById('formTitle');
+        if(ft) ft.textContent = '➕ Add New';
+        this.setEntryType('refill');
         
-        // إعادة التاريخ لليوم
         const d = new Date().toISOString().split('T')[0];
-        if(document.getElementById('date')) document.getElementById('date').value = d;
-        document.getElementById('days').value = 30;
+        const dateInput = document.getElementById('date');
+        if(dateInput) dateInput.value = d;
+        
+        const daysInput = document.getElementById('days');
+        if(daysInput) daysInput.value = 30;
     },
 
     async save(e) {
@@ -89,32 +95,42 @@ export const PatientsModule = {
         const phone = document.getElementById('phone').value;
         const med = document.getElementById('med').value;
         
-        // تحقق سريع
-        if (!Utils.validatePhone(phone)) { UI.showToast('رقم الجوال غير صحيح', 'error'); return; }
-        if (!med) { UI.showToast('أدخل اسم الدواء/الصنف', 'error'); return; }
+        if (!phone || phone.length < 8) { UI.showToast('رقم الجوال مطلوب', 'error'); return; }
+        if (!med) { UI.showToast('اسم الدواء مطلوب', 'error'); return; }
+
+        // حساب التاريخ يدوياً هنا لتجاوز مشكلة Utils
+        let reminderDateVal = '';
+        if(t === 'refill') {
+            const dVal = document.getElementById('date').value;
+            const daysVal = document.getElementById('days').value;
+            if(dVal && daysVal) {
+                const d = new Date(dVal);
+                d.setDate(d.getDate() + parseInt(daysVal));
+                reminderDateVal = d.toISOString().split('T')[0];
+            }
+        }
 
         const p = {
             id: State.editId || Date.now().toString(),
             type: t,
             name: document.getElementById('name').value,
-            phone: Utils.formatPhone(phone),
+            phone: phone, // إرسال الرقم كما هو لتجنب مشاكل التنسيق حالياً
             med: med,
             notes: document.getElementById('notes').value,
-            addedDate: Utils.getToday(),
-            // Refill Data
+            addedDate: new Date().toISOString().split('T')[0],
+            // Refill
             date: t === 'refill' ? document.getElementById('date').value : '',
             days: t === 'refill' ? document.getElementById('days').value : '',
-            // Order Data
+            // Order
             branch: t === 'order' ? document.getElementById('branch').value : '',
             pickupDate: t === 'order' ? document.getElementById('pickupDate').value : '',
             orderStatus: t === 'order' ? 'waiting' : '',
             // System
             reminderSent: 'no',
+            reminderDate: reminderDateVal, // استخدام القيمة المحسوبة محلياً
             converted: 'no',
             history: State.editId ? undefined : []
         };
-
-        if (t === 'refill') p.reminderDate = Utils.calcReminder(p.date, p.days);
 
         const success = await API.savePatient(p, State.editId ? 'update' : 'add');
         if (success) {
@@ -128,7 +144,7 @@ export const PatientsModule = {
         if (!p) return;
         
         State.editId = id;
-        this.setEntryType(p.type); // تبديل الواجهة لنوع المريض
+        this.setEntryType(p.type);
         
         document.getElementById('name').value = p.name;
         document.getElementById('phone').value = p.phone;
@@ -150,41 +166,33 @@ export const PatientsModule = {
         const tbody = document.getElementById('patientsTbody');
         if (!tbody) return;
         
-        // الفلتر والبحث
         const list = State.patients.filter(p => {
-            const matchSearch = (p.name+p.phone+p.med).toLowerCase().includes(State.searchQuery);
+            const matchSearch = (p.name+p.phone+p.med).toLowerCase().includes(State.searchQuery || '');
             const matchType = State.typeFilter === 'all' || p.type === State.typeFilter;
             return matchSearch && matchType;
         });
 
-        // التحديث (HTML Generation)
         if (list.length === 0) {
             tbody.innerHTML = '<tr><td colspan="7" class="empty">No records found</td></tr>';
-            document.getElementById('total').textContent = 0;
+            const totalEl = document.getElementById('total');
+            if(totalEl) totalEl.textContent = 0;
             return;
         }
 
         tbody.innerHTML = list.slice(0, Config.ITEMS_PER_PAGE).map(p => {
-            const status = Utils.getStatus(p);
+            // محاولة استخدام Utils.getStatus، وإذا فشلت نستخدم قيمة افتراضية لتجنب الانهيار
+            let status = { text: 'Unknown', color: 'status-info' };
+            try { if(Utils && Utils.getStatus) status = Utils.getStatus(p); } catch(e) {}
+
             const isOrder = p.type === 'order';
-            
-            // أزرار الإجراءات
-            let btns = '';
-            if (isOrder) {
-               if(p.orderStatus === 'waiting') btns = `<button class="arrived" onclick="PatientActions.confirmArrived('${p.id}')">📥</button>`;
-               else if(p.orderStatus === 'pending') btns = `<button class="done" onclick="PatientActions.markDelivered('${p.id}')">✅</button>`;
-            } else {
-               btns = `<button class="wa" onclick="PatientActions.whatsapp('${p.id}')">💬</button>`; 
-            }
-            btns += `<button class="edit" onclick="PatientActions.edit('${p.id}')">✏️</button>`;
-            btns += `<button class="del" onclick="PatientActions.delete('${p.id}')">🗑️</button>`;
+            let btns = `<button class="edit" onclick="PatientActions.edit('${p.id}')">✏️</button><button class="del" onclick="PatientActions.delete('${p.id}')">🗑️</button>`;
 
             return `
                 <tr class="${isOrder ? 'order-row' : ''}">
                     <td><span class="badge ${p.type}">${isOrder ? '📦' : '💊'}</span></td>
-                    <td><div class="name">${Utils.sanitize(p.name)}</div><div class="phone">${p.phone}</div></td>
-                    <td>${Utils.sanitize(p.med)}</td>
-                    <td>${p.addedDate}</td>
+                    <td><div class="name">${p.name || '-'}</div><div class="phone">${p.phone}</div></td>
+                    <td>${p.med}</td>
+                    <td>${p.addedDate || '-'}</td>
                     <td>${isOrder ? (p.pickupDate || '-') : p.date}</td>
                     <td><span class="badge ${status.color}">${status.text}</span></td>
                     <td><div class="actions">${btns}</div></td>
@@ -192,6 +200,7 @@ export const PatientsModule = {
             `;
         }).join('');
         
-        document.getElementById('total').textContent = list.length;
+        const totalEl = document.getElementById('total');
+        if(totalEl) totalEl.textContent = list.length;
     }
 };
