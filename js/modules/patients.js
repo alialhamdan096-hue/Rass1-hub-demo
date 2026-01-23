@@ -1,4 +1,4 @@
-import { State, Config, Events } from '../core.js';
+import { State, Config, Events, WA_ICON } from '../core.js';
 import { API } from '../api.js';
 import { Utils } from '../utils.js';
 import { UI } from './ui.js';
@@ -238,7 +238,7 @@ export const PatientsModule = {
                 if(p.orderStatus === 'waiting') btns += `<button class="arrived" data-action="arrived" data-id="${p.id}">📥</button>`;
                 else if(p.orderStatus === 'pending') btns += `<button class="done" data-action="delivered" data-id="${p.id}">✅</button>`;
             } else {
-                btns += `<button class="wa" data-action="whatsapp" data-id="${p.id}"></button>`; 
+                btns += `<button class="wa" data-action="whatsapp" data-id="${p.id}">${WA_ICON}</button>`; 
             }
             btns += `<button class="edit" data-action="edit" data-id="${p.id}">✏️</button>`;
             btns += `<button class="del" data-action="delete" data-id="${p.id}">🗑️</button>`;
