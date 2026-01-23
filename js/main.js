@@ -1,41 +1,30 @@
-import { API } from './api.js';
 import { UI } from './modules/ui.js';
 import { PatientsModule } from './modules/patients.js';
 import { OrdersModule } from './modules/orders.js';
 import { TrackingModule } from './modules/tracking.js';
 import { ReportsModule } from './modules/reports.js';
+import { API } from './api.js';
 import { Events } from './core.js';
 
+console.log('🚀 Main script loaded');
+
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 Rass1 Hub Starting...');
+    console.log('✅ DOM Ready, initializing modules...');
     
-    // 1. تهيئة التبويبات والواجهة
+    // 1. تشغيل الواجهة
     UI.initTabs();
 
-    // 2. تشغيل الموديولات (المهمة جداً لعمل الأزرار)
+    // 2. تشغيل الموديولات (هنا يتم ربط الأزرار بـ window)
     PatientsModule.init();
     OrdersModule.init();
     TrackingModule.init();
     ReportsModule.init();
     
-    // 3. ضبط التاريخ الافتراضي
+    // 3. ضبط التاريخ
     const dateInput = document.getElementById('date');
     if(dateInput) dateInput.valueAsDate = new Date();
 
-    // 4. الاستماع لتحديث عداد الطلبات
-    Events.on('orders:badge', (count) => {
-        const t = document.querySelector('[data-page="patients"]');
-        if(t) {
-            let b = t.querySelector('.tab-badge');
-            if(count > 0){
-                if(!b){ b = document.createElement('span'); b.className = 'tab-badge'; t.appendChild(b); }
-                b.textContent = count;
-            } else if(b) {
-                b.remove();
-            }
-        }
-    });
-
-    // 5. جلب البيانات من قوقل شيت
+    // 4. تحميل البيانات
+    console.log('📡 Fetching data...');
     API.loadPatients();
 });
