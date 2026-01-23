@@ -31,7 +31,8 @@ export const API = {
                     // التأكد أن هذه القيم موجودة دائماً
                     history: parsedHistory,
                     converted: p.converted || 'no',
-                    reminderSent: p.reminderSent || 'no'
+                    reminderSent: p.reminderSent || 'no',
+                    rating: parseInt(p.rating) || 0
                 };
             });
             

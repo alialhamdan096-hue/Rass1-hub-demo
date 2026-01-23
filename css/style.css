@@ -134,6 +134,19 @@ tr.order-row { background: var(--order-bg); } tr.order-row:hover { background: #
 .actions button:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
 .empty { text-align: center; padding: 40px; color: #aaa; font-style: italic; }
 
+/* Rating Stars */
+.rating-container { display: flex; align-items: center; gap: 8px; }
+.rating-stars { display: flex; gap: 2px; cursor: pointer; }
+.rating-stars.readonly { cursor: default; }
+.star { font-size: 16px; color: #ddd; transition: var(--transition); cursor: pointer; user-select: none; }
+.star.filled { color: #fbbf24; }
+.star:hover:not(.readonly) { transform: scale(1.2); }
+.rating-value { font-size: 11px; color: var(--gray); font-weight: 600; margin-left: 4px; }
+.rating-btn { background: rgba(251, 191, 36, 0.1); color: #d97706; font-size: 12px; }
+.rating-btn:hover { background: #fbbf24; color: white; }
+.rating-display { display: flex; align-items: center; gap: 4px; }
+.rating-stat { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); }
+
 /* Stats & Tracking */
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 20px; }
 .stat { background: white; padding: 15px; border-radius: var(--radius-md); box-shadow: var(--shadow-md); position: relative; overflow: hidden; }

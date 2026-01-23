@@ -32,6 +32,7 @@ export const PatientsModule = {
                 else if (action === 'whatsapp') this.openWhatsapp(id); // 👈 هنا استدعاء الواتس
                 else if (action === 'arrived') UI.confirmArrived(id);
                 else if (action === 'delivered') UI.markDelivered(id);
+                else if (action === 'rate') this.showRatingModal(id);
             });
         }
 
@@ -67,19 +68,78 @@ export const PatientsModule = {
         // تحويل id لنص للمقارنة الآمنة
         const p = State.patients.find(x => String(x.id) === String(id));
         if (!p) { UI.showToast('لم يتم العثور على البيانات', 'error'); return; }
-        
+
         let msg = '';
         if (p.type === 'refill') {
             msg = `أهلاً ${p.name || 'بك'}،\nمعك صيدلية الرازي. نود تذكيرك بموعد إعادة صرف دواء ${p.med}.\nهل تود تجهيزه لك؟`;
         } else {
             msg = `أهلاً ${p.name || 'بك'}،\nالطلب الخاص بك (${p.med}) وصل للصيدلية وجاهز للاستلام.`;
         }
-        
+
         // ⚠️ هنا الإصلاح: String(p.phone) يجبر الرقم يصير نص
         let phone = String(p.phone).replace(/\D/g, '');
         if (phone.startsWith('05')) phone = '966' + phone.substring(1);
-        
+
         window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+    },
+
+    // ⭐ دالة التقييم
+    async showRatingModal(id) {
+        const p = State.patients.find(x => String(x.id) === String(id));
+        if (!p) { UI.showToast('لم يتم العثور على البيانات', 'error'); return; }
+
+        // إنشاء نافذة التقييم
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay active';
+        modal.innerHTML = `
+            <div class="modal">
+                <div class="modal-icon">⭐</div>
+                <div class="modal-title">تقييم الخدمة</div>
+                <div class="modal-message">كيف كانت تجربتك مع ${p.name || 'العميل'}؟</div>
+                <div class="rating-stars" id="modalRatingStars" style="justify-content: center; margin: 20px 0; font-size: 32px;">
+                    ${[1,2,3,4,5].map(i => `<span class="star ${p.rating >= i ? 'filled' : ''}" data-rating="${i}">⭐</span>`).join('')}
+                </div>
+                <div class="modal-actions">
+                    <button class="modal-cancel" id="cancelRating">إلغاء</button>
+                    <button class="modal-confirm success" id="confirmRating">تأكيد</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        let selectedRating = p.rating || 0;
+
+        // التعامل مع النجوم
+        const stars = modal.querySelectorAll('.star');
+        stars.forEach(star => {
+            star.addEventListener('click', () => {
+                selectedRating = parseInt(star.dataset.rating);
+                stars.forEach((s, idx) => {
+                    s.classList.toggle('filled', idx < selectedRating);
+                });
+            });
+        });
+
+        // زر الإلغاء
+        modal.querySelector('#cancelRating').addEventListener('click', () => {
+            modal.remove();
+        });
+
+        // زر التأكيد
+        modal.querySelector('#confirmRating').addEventListener('click', async () => {
+            if (selectedRating === 0) {
+                UI.showToast('الرجاء اختيار تقييم', 'warning');
+                return;
+            }
+
+            p.rating = selectedRating;
+            const success = await API.savePatient(p, 'update');
+            if (success) {
+                UI.showToast(`تم التقييم بـ ${selectedRating} نجوم!`, 'success');
+                modal.remove();
+            }
+        });
     },
 
     setEntryType(t) {
@@ -158,6 +218,7 @@ export const PatientsModule = {
             reminderSent: 'no',
             reminderDate: reminderDateVal,
             converted: 'no',
+            rating: 0,
             history: State.editId ? undefined : []
         };
 
@@ -212,6 +273,7 @@ export const PatientsModule = {
             else if (action === 'whatsapp') this.openWhatsapp(id);
             else if (action === 'arrived') UI.confirmArrived(id);
             else if (action === 'delivered') UI.markDelivered(id);
+            else if (action === 'rate') this.showRatingModal(id);
         });
 
         const list = State.patients.filter(p => {
@@ -221,9 +283,11 @@ export const PatientsModule = {
         });
 
         if (list.length === 0) {
-            newTbody.innerHTML = '<tr><td colspan="7" class="empty">No records found</td></tr>';
+            newTbody.innerHTML = '<tr><td colspan="8" class="empty">No records found</td></tr>';
             const totalEl = document.getElementById('total');
             if(totalEl) totalEl.textContent = 0;
+            const avgRatingEl = document.getElementById('avgRating');
+            if (avgRatingEl) avgRatingEl.textContent = '-';
             return;
         }
 
@@ -232,14 +296,20 @@ export const PatientsModule = {
             try { if(Utils && Utils.getStatus) status = Utils.getStatus(p); } catch(e) {}
             const isOrder = p.type === 'order';
             
+            // عرض التقييم
+            const ratingDisplay = p.rating > 0
+                ? `<div class="rating-display">${'⭐'.repeat(p.rating)}<span class="rating-value">${p.rating}/5</span></div>`
+                : '<span style="color:#999;font-size:11px;">لم يتم التقييم</span>';
+
             let btns = '';
             // استخدام data-action و data-id هو الحل السحري للأزرار
             if (isOrder) {
                 if(p.orderStatus === 'waiting') btns += `<button class="arrived" data-action="arrived" data-id="${p.id}">📥</button>`;
                 else if(p.orderStatus === 'pending') btns += `<button class="done" data-action="delivered" data-id="${p.id}">✅</button>`;
             } else {
-                btns += `<button class="wa" data-action="whatsapp" data-id="${p.id}">💬</button>`; 
+                btns += `<button class="wa" data-action="whatsapp" data-id="${p.id}">💬</button>`;
             }
+            btns += `<button class="rating-btn" data-action="rate" data-id="${p.id}" title="تقييم الخدمة">⭐</button>`;
             btns += `<button class="edit" data-action="edit" data-id="${p.id}">✏️</button>`;
             btns += `<button class="del" data-action="delete" data-id="${p.id}">🗑️</button>`;
 
@@ -251,12 +321,24 @@ export const PatientsModule = {
                     <td>${p.addedDate || '-'}</td>
                     <td>${isOrder ? (p.pickupDate || '-') : p.date}</td>
                     <td><span class="badge ${status.color}">${status.text}</span></td>
+                    <td>${ratingDisplay}</td>
                     <td><div class="actions">${btns}</div></td>
                 </tr>
             `;
         }).join('');
-        
+
         const totalEl = document.getElementById('total');
         if(totalEl) totalEl.textContent = list.length;
+
+        // حساب متوسط التقييم
+        const ratedPatients = State.patients.filter(p => p.rating > 0);
+        if (ratedPatients.length > 0) {
+            const avgRating = (ratedPatients.reduce((sum, p) => sum + (p.rating || 0), 0) / ratedPatients.length).toFixed(1);
+            const avgRatingEl = document.getElementById('avgRating');
+            if (avgRatingEl) avgRatingEl.textContent = avgRating;
+        } else {
+            const avgRatingEl = document.getElementById('avgRating');
+            if (avgRatingEl) avgRatingEl.textContent = '-';
+        }
     }
 };
