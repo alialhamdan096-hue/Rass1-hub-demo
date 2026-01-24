@@ -128,6 +128,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('sendAllBtn').addEventListener('click', () => OrdersModule.sendAllEmails());
     document.getElementById('modalCancelBtn').addEventListener('click', () => UI.closeModal());
     document.getElementById('historyCloseBtn').addEventListener('click', () => PatientHistory.close());
+    document.getElementById('labelCloseBtn').addEventListener('click', () => LabelPrint.close());
+    document.getElementById('labelCancelBtn').addEventListener('click', () => LabelPrint.close());
+    document.getElementById('labelPrintBtn').addEventListener('click', () => LabelPrint.print());
 
     document.getElementById('search').addEventListener('input', Utils.debounce(e => {
         State.searchQuery = e.target.value;

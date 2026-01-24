@@ -3,10 +3,13 @@ import { Utils } from '../utils/helpers.js';
 
 // ==================== LABEL PRINTING MODULE ====================
 export const LabelPrint = {
+    currentPatientId: null,
+
     show(id) {
         const p = State.patients.find(x => x.id === id);
         if (!p) return;
 
+        this.currentPatientId = id;
         const isOrder = p.type === 'order';
         const today = new Date().toLocaleDateString('ar-SA', {
             year: 'numeric',
@@ -14,7 +17,64 @@ export const LabelPrint = {
             day: 'numeric'
         });
 
-        // Create print window
+        const preview = document.getElementById('labelPreview');
+        preview.innerHTML = `
+            <div class="label-card" id="labelContent">
+                <div class="label-pharmacy">
+                    <div class="label-pharmacy-name">صيدلية الرازي</div>
+                    <div class="label-pharmacy-branch">الرس 1</div>
+                </div>
+                <div class="label-type ${isOrder ? 'order' : 'refill'}">
+                    ${isOrder ? '📦 طلب تحويل' : '💊 إعادة صرف'}
+                </div>
+                <div class="label-info">
+                    <div class="label-row">
+                        <span class="label-key">العميل:</span>
+                        <span class="label-value">${Utils.sanitize(p.name) || '-'}</span>
+                    </div>
+                    <div class="label-row">
+                        <span class="label-key">الجوال:</span>
+                        <span class="label-value ltr">${p.phone}</span>
+                    </div>
+                </div>
+                <div class="label-med">
+                    <div class="label-med-title">${isOrder ? 'الصنف' : 'الدواء'}</div>
+                    <div class="label-med-name">${Utils.sanitize(p.med)}</div>
+                </div>
+                ${isOrder && p.branch ? `
+                <div class="label-row">
+                    <span class="label-key">من فرع:</span>
+                    <span class="label-value">${p.branch}</span>
+                </div>
+                ` : ''}
+                ${!isOrder && p.days ? `
+                <div class="label-row">
+                    <span class="label-key">المدة:</span>
+                    <span class="label-value">${p.days} يوم</span>
+                </div>
+                ` : ''}
+                ${p.notes ? `
+                <div class="label-notes">📝 ${Utils.sanitize(p.notes)}</div>
+                ` : ''}
+                <div class="label-footer">
+                    <div class="label-id">#${p.id.slice(-6)}</div>
+                    <div class="label-date">${today}</div>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('labelModal').classList.add('active');
+    },
+
+    close() {
+        document.getElementById('labelModal').classList.remove('active');
+        this.currentPatientId = null;
+    },
+
+    print() {
+        const content = document.getElementById('labelContent');
+        if (!content) return;
+
         const printWindow = window.open('', '_blank', 'width=400,height=600');
 
         printWindow.document.write(`
@@ -22,209 +82,112 @@ export const LabelPrint = {
 <html dir="rtl" lang="ar">
 <head>
     <meta charset="UTF-8">
-    <title>ملصق - ${p.name || p.phone}</title>
+    <title>طباعة ملصق</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
-            padding: 10mm;
-            background: white;
+            padding: 5mm;
+            display: flex;
+            justify-content: center;
         }
-        .label {
+        .label-card {
             border: 2px solid #333;
             border-radius: 8px;
-            padding: 15px;
-            max-width: 80mm;
-            margin: 0 auto;
+            padding: 12px;
+            width: 75mm;
+            background: white;
         }
-        .header {
+        .label-pharmacy {
             text-align: center;
+            padding-bottom: 8px;
             border-bottom: 2px dashed #333;
-            padding-bottom: 10px;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
-        .pharmacy-name {
-            font-size: 18px;
+        .label-pharmacy-name {
+            font-size: 16px;
             font-weight: bold;
-            color: #1a1a1a;
         }
-        .pharmacy-branch {
-            font-size: 12px;
-            color: #666;
-            margin-top: 3px;
-        }
-        .type-badge {
-            display: inline-block;
-            background: ${isOrder ? '#3b82f6' : '#10b981'};
-            color: white;
-            padding: 3px 12px;
-            border-radius: 15px;
+        .label-pharmacy-branch {
             font-size: 11px;
-            margin-top: 8px;
+            color: #666;
         }
-        .content {
-            padding: 10px 0;
+        .label-type {
+            text-align: center;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin: 8px auto;
+            display: inline-block;
+            width: 100%;
         }
-        .row {
+        .label-type.refill {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .label-type.order {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .label-info {
+            margin: 8px 0;
+        }
+        .label-row {
             display: flex;
             justify-content: space-between;
-            padding: 8px 0;
+            padding: 4px 0;
+            font-size: 11px;
             border-bottom: 1px dotted #ddd;
         }
-        .row:last-child {
-            border-bottom: none;
-        }
-        .label-text {
-            font-size: 11px;
-            color: #666;
-        }
-        .value-text {
-            font-size: 13px;
-            font-weight: 600;
-            color: #1a1a1a;
-            text-align: left;
-            direction: ltr;
-        }
-        .med-name {
-            text-align: center;
+        .label-key { color: #666; }
+        .label-value { font-weight: 600; }
+        .label-value.ltr { direction: ltr; }
+        .label-med {
             background: #f3f4f6;
-            padding: 12px;
-            border-radius: 8px;
+            padding: 10px;
+            border-radius: 6px;
             margin: 10px 0;
-        }
-        .med-name .label-text {
-            margin-bottom: 5px;
-        }
-        .med-name .value-text {
-            font-size: 16px;
-            color: #7c3aed;
             text-align: center;
-            direction: rtl;
         }
-        .footer {
-            text-align: center;
-            border-top: 2px dashed #333;
-            padding-top: 10px;
-            margin-top: 10px;
-        }
-        .date {
+        .label-med-title {
             font-size: 10px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        .label-med-name {
+            font-size: 14px;
+            font-weight: bold;
+            color: #7c3aed;
+        }
+        .label-notes {
+            background: #fef3c7;
+            padding: 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            text-align: center;
+            margin: 8px 0;
+        }
+        .label-footer {
+            display: flex;
+            justify-content: space-between;
+            padding-top: 8px;
+            border-top: 2px dashed #333;
+            margin-top: 8px;
+            font-size: 9px;
             color: #888;
         }
-        .barcode {
-            font-family: 'Libre Barcode 39', monospace;
-            font-size: 36px;
-            text-align: center;
-            margin: 10px 0;
-            letter-spacing: 5px;
-        }
-        .id-number {
-            font-size: 10px;
-            color: #999;
-            text-align: center;
-        }
-        .notes {
-            background: #fef3c7;
-            padding: 8px;
-            border-radius: 5px;
-            font-size: 11px;
-            margin-top: 10px;
-            text-align: center;
-        }
-        .print-btn {
-            display: block;
-            width: 100%;
-            padding: 12px;
-            margin-top: 20px;
-            background: #7c3aed;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            cursor: pointer;
-        }
-        .print-btn:hover {
-            background: #6d28d9;
-        }
         @media print {
-            .print-btn {
-                display: none;
-            }
-            body {
-                padding: 0;
-            }
-            .label {
-                border: 2px solid #000;
-            }
+            body { padding: 0; }
         }
     </style>
 </head>
 <body>
-    <div class="label">
-        <div class="header">
-            <div class="pharmacy-name">صيدلية الرازي</div>
-            <div class="pharmacy-branch">الرس 1</div>
-            <span class="type-badge">${isOrder ? '📦 طلب تحويل' : '💊 إعادة صرف'}</span>
-        </div>
-
-        <div class="content">
-            <div class="row">
-                <span class="label-text">اسم العميل:</span>
-                <span class="value-text">${Utils.sanitize(p.name) || '-'}</span>
-            </div>
-            <div class="row">
-                <span class="label-text">رقم الجوال:</span>
-                <span class="value-text">${p.phone}</span>
-            </div>
-
-            <div class="med-name">
-                <div class="label-text">${isOrder ? 'الصنف:' : 'الدواء:'}</div>
-                <div class="value-text">${Utils.sanitize(p.med)}</div>
-            </div>
-
-            ${isOrder && p.branch ? `
-            <div class="row">
-                <span class="label-text">من فرع:</span>
-                <span class="value-text">${p.branch}</span>
-            </div>
-            ` : ''}
-
-            ${isOrder && p.pickupDate ? `
-            <div class="row">
-                <span class="label-text">تاريخ الاستلام:</span>
-                <span class="value-text">${p.pickupDate}</span>
-            </div>
-            ` : ''}
-
-            ${!isOrder && p.days ? `
-            <div class="row">
-                <span class="label-text">المدة:</span>
-                <span class="value-text">${p.days} يوم</span>
-            </div>
-            ` : ''}
-
-            ${p.notes ? `
-            <div class="notes">📝 ${Utils.sanitize(p.notes)}</div>
-            ` : ''}
-        </div>
-
-        <div class="footer">
-            <div class="id-number">#${p.id.slice(-6)}</div>
-            <div class="date">${today}</div>
-        </div>
-    </div>
-
-    <button class="print-btn" onclick="window.print()">🖨️ طباعة</button>
-
+    ${content.outerHTML}
     <script>
-        // Auto print after a short delay
-        setTimeout(() => {
-            // window.print();
-        }, 500);
+        window.onload = function() {
+            window.print();
+            setTimeout(function() { window.close(); }, 500);
+        }
     </script>
 </body>
 </html>
