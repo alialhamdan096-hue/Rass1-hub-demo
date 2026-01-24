@@ -6,6 +6,7 @@ import { Utils } from './utils/helpers.js';
 import { API } from './api/sheets.js';
 import { PatientActions } from './modules/patients.js';
 import { OrdersModule } from './modules/orders.js';
+import { PatientHistory } from './modules/history.js';
 import { renderTracking } from './modules/tracking.js';
 import { generateReport } from './modules/reports.js';
 import { renderPatients, changePage } from './modules/render.js';
@@ -81,6 +82,7 @@ function checkTodayAlerts() {
 // ==================== GLOBAL EXPORTS ====================
 window.PatientActions = PatientActions;
 window.OrdersModule = OrdersModule;
+window.PatientHistory = PatientHistory;
 window.Utils = Utils;
 window.UI = UI;
 window.changePage = changePage;
@@ -123,6 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('clearAllBtn').addEventListener('click', () => OrdersModule.clearAll());
     document.getElementById('sendAllBtn').addEventListener('click', () => OrdersModule.sendAllEmails());
     document.getElementById('modalCancelBtn').addEventListener('click', () => UI.closeModal());
+    document.getElementById('historyCloseBtn').addEventListener('click', () => PatientHistory.close());
 
     document.getElementById('search').addEventListener('input', Utils.debounce(e => {
         State.searchQuery = e.target.value;
