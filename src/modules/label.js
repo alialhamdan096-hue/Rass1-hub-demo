@@ -75,9 +75,11 @@ export const LabelPrint = {
         const content = document.getElementById('labelContent');
         if (!content) return;
 
-        const printWindow = window.open('', '_blank', 'width=400,height=600');
+        const printFrame = document.getElementById('printFrame');
+        const printDoc = printFrame.contentWindow.document;
 
-        printWindow.document.write(`
+        printDoc.open();
+        printDoc.write(`
 <!DOCTYPE html>
 <html dir="rtl" lang="ar">
 <head>
@@ -183,16 +185,15 @@ export const LabelPrint = {
 </head>
 <body>
     ${content.outerHTML}
-    <script>
-        window.onload = function() {
-            window.print();
-            setTimeout(function() { window.close(); }, 500);
-        }
-    </script>
 </body>
 </html>
         `);
+        printDoc.close();
 
-        printWindow.document.close();
+        // Wait for content to load then print
+        setTimeout(() => {
+            printFrame.contentWindow.focus();
+            printFrame.contentWindow.print();
+        }, 100);
     }
 };
