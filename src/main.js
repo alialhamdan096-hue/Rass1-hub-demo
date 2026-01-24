@@ -8,6 +8,7 @@ import { PatientActions } from './modules/patients.js';
 import { OrdersModule } from './modules/orders.js';
 import { PatientHistory } from './modules/history.js';
 import { LabelPrint } from './modules/label.js';
+import { ExcelExport } from './modules/export.js';
 import { renderTracking } from './modules/tracking.js';
 import { generateReport } from './modules/reports.js';
 import { renderPatients, changePage } from './modules/render.js';
@@ -85,6 +86,7 @@ window.PatientActions = PatientActions;
 window.OrdersModule = OrdersModule;
 window.PatientHistory = PatientHistory;
 window.LabelPrint = LabelPrint;
+window.ExcelExport = ExcelExport;
 window.Utils = Utils;
 window.UI = UI;
 window.changePage = changePage;
@@ -131,6 +133,20 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('labelCloseBtn').addEventListener('click', () => LabelPrint.close());
     document.getElementById('labelCancelBtn').addEventListener('click', () => LabelPrint.close());
     document.getElementById('labelPrintBtn').addEventListener('click', () => LabelPrint.print());
+
+    // Export modal events
+    document.getElementById('exportBtn').addEventListener('click', () => ExcelExport.showExportModal());
+    document.getElementById('exportCloseBtn').addEventListener('click', () => ExcelExport.closeExportModal());
+    document.getElementById('exportAllBtn').addEventListener('click', () => { ExcelExport.exportAll(); ExcelExport.closeExportModal(); });
+    document.getElementById('exportRefillsBtn').addEventListener('click', () => { ExcelExport.exportRefills(); ExcelExport.closeExportModal(); });
+    document.getElementById('exportOrdersBtn').addEventListener('click', () => { ExcelExport.exportOrders(); ExcelExport.closeExportModal(); });
+    document.getElementById('exportFilteredBtn').addEventListener('click', () => { ExcelExport.exportFiltered(); ExcelExport.closeExportModal(); });
+    document.getElementById('exportReportBtn').addEventListener('click', () => {
+        const month = parseInt(document.getElementById('reportMonth').value);
+        const year = parseInt(document.getElementById('reportYear').value);
+        ExcelExport.exportMonthlyReport(month, year);
+        ExcelExport.closeExportModal();
+    });
 
     document.getElementById('search').addEventListener('input', Utils.debounce(e => {
         State.searchQuery = e.target.value;

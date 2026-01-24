@@ -54,6 +54,42 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="exportModal">
+        <div class="modal export-modal">
+            <div class="export-header">
+                <div class="export-title">📊 تصدير Excel</div>
+                <button class="export-close" id="exportCloseBtn">×</button>
+            </div>
+            <div class="export-options">
+                <button class="export-option" id="exportAllBtn">
+                    <span class="export-icon">📋</span>
+                    <span class="export-label">تصدير الكل</span>
+                    <span class="export-desc">جميع البيانات</span>
+                </button>
+                <button class="export-option" id="exportRefillsBtn">
+                    <span class="export-icon">💊</span>
+                    <span class="export-label">إعادة التعبئة</span>
+                    <span class="export-desc">Refills فقط</span>
+                </button>
+                <button class="export-option" id="exportOrdersBtn">
+                    <span class="export-icon">📦</span>
+                    <span class="export-label">الطلبات</span>
+                    <span class="export-desc">Orders فقط</span>
+                </button>
+                <button class="export-option" id="exportFilteredBtn">
+                    <span class="export-icon">🔍</span>
+                    <span class="export-label">البيانات المفلترة</span>
+                    <span class="export-desc">حسب الفلتر الحالي</span>
+                </button>
+                <button class="export-option" id="exportReportBtn">
+                    <span class="export-icon">📈</span>
+                    <span class="export-label">التقرير الشهري</span>
+                    <span class="export-desc">الشهر المحدد</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <div class="header-container">
             <img src="logo.png" alt="Rass 1" class="logo-img" onerror="this.style.display='none'">
@@ -131,7 +167,10 @@
                     </form>
                 </div>
                 <div class="card">
-                    <h3 class="card-title">📋 Records</h3>
+                    <div class="header-row">
+                        <h3 class="card-title" style="margin:0">📋 Records</h3>
+                        <button class="btn btn-secondary btn-sm" id="exportBtn">📊 Excel</button>
+                    </div>
                     <div class="filters-row">
                         <input type="text" id="search" placeholder="🔍 Search...">
                         <select id="typeFilter"><option value="all">All Types</option><option value="refill">💊 Refill</option><option value="order">📦 Orders</option></select>

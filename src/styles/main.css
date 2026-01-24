@@ -924,6 +924,94 @@ tr:hover { background: #fcfcfc; }
     .row .form-group { flex: 1; }
 }
 
+/* === Export Modal === */
+.export-modal {
+    max-width: 400px;
+    width: 90%;
+    padding: 0;
+    overflow: hidden;
+}
+
+.export-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    color: white;
+}
+
+.export-title {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.export-close {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 20px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.export-close:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+.export-options {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.export-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--gray-light);
+    border: 2px solid transparent;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition);
+    text-align: right;
+}
+
+.export-option:hover {
+    background: white;
+    border-color: var(--primary);
+    transform: translateX(-4px);
+}
+
+.export-icon {
+    font-size: 24px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-sm);
+}
+
+.export-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-dark);
+    flex: 1;
+}
+
+.export-desc {
+    font-size: 11px;
+    color: var(--gray);
+}
+
 /* === Print === */
 @media print {
     body { background: white; }
