@@ -7,6 +7,7 @@ import { API } from './api/sheets.js';
 import { PatientActions } from './modules/patients.js';
 import { OrdersModule } from './modules/orders.js';
 import { PatientHistory } from './modules/history.js';
+import { LabelPrint } from './modules/label.js';
 import { renderTracking } from './modules/tracking.js';
 import { generateReport } from './modules/reports.js';
 import { renderPatients, changePage } from './modules/render.js';
@@ -83,6 +84,7 @@ function checkTodayAlerts() {
 window.PatientActions = PatientActions;
 window.OrdersModule = OrdersModule;
 window.PatientHistory = PatientHistory;
+window.LabelPrint = LabelPrint;
 window.Utils = Utils;
 window.UI = UI;
 window.changePage = changePage;

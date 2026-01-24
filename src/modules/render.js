@@ -80,10 +80,10 @@ export function renderPatients() {
         let ac = '';
         if (io) {
             if (p.orderStatus === 'waiting') ac = '<button class="arrived" onclick="PatientActions.confirmArrived(\'' + p.id + '\')" title="Arrived">📥</button><button class="edit" onclick="PatientActions.edit(\'' + p.id + '\')" title="Edit">✏️</button><button class="del" onclick="PatientActions.delete(\'' + p.id + '\')" title="Delete">🗑️</button>';
-            else if (p.orderStatus === 'pending') ac = '<button class="done" onclick="PatientActions.markDelivered(\'' + p.id + '\')" title="Delivered">✅</button><button class="edit" onclick="PatientActions.edit(\'' + p.id + '\')" title="Edit">✏️</button><button class="del" onclick="PatientActions.delete(\'' + p.id + '\')" title="Delete">🗑️</button>';
+            else if (p.orderStatus === 'pending') ac = '<button class="done" onclick="PatientActions.markDelivered(\'' + p.id + '\')" title="Delivered">✅</button><button class="print-btn" onclick="LabelPrint.show(\'' + p.id + '\')" title="طباعة">🏷️</button><button class="edit" onclick="PatientActions.edit(\'' + p.id + '\')" title="Edit">✏️</button><button class="del" onclick="PatientActions.delete(\'' + p.id + '\')" title="Delete">🗑️</button>';
             else ac = '<button class="edit" onclick="PatientActions.edit(\'' + p.id + '\')" title="Edit">✏️</button><button class="del" onclick="PatientActions.delete(\'' + p.id + '\')" title="Delete">🗑️</button>';
         } else {
-            ac = '<button class="wa" onclick="PatientActions.confirmWhatsApp(\'' + p.id + '\')" title="WhatsApp">' + WA_ICON + '</button><button class="history-btn" onclick="PatientHistory.show(\'' + p.id + '\')" title="السجل">📋</button><button class="edit" onclick="PatientActions.edit(\'' + p.id + '\')" title="Edit">✏️</button><button class="del" onclick="PatientActions.delete(\'' + p.id + '\')" title="Delete">🗑️</button>';
+            ac = '<button class="wa" onclick="PatientActions.confirmWhatsApp(\'' + p.id + '\')" title="WhatsApp">' + WA_ICON + '</button><button class="print-btn" onclick="LabelPrint.show(\'' + p.id + '\')" title="طباعة">🏷️</button><button class="history-btn" onclick="PatientHistory.show(\'' + p.id + '\')" title="السجل">📋</button><button class="edit" onclick="PatientActions.edit(\'' + p.id + '\')" title="Edit">✏️</button><button class="del" onclick="PatientActions.delete(\'' + p.id + '\')" title="Delete">🗑️</button>';
         }
 
         return `<tr class="${io ? 'order-row' : ''}">
