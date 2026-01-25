@@ -829,17 +829,17 @@ tr:hover {
 }
 
 .stat-num {
-    font-size: 24px;
+    font-size: 28px;
     font-weight: 800;
     color: var(--text-dark);
 }
 
 .stat-label {
     color: #888;
-    font-size: 10px;
+    font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-top: 3px;
+    margin-top: 5px;
 }
 
 .stat.total::after {
