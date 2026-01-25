@@ -6,20 +6,22 @@
     <title>Rass 1 Hub</title>
     <link rel="icon" href="logo.png" type="image/png">
     <link rel="stylesheet" href="css/style.css">
-
+    <!-- Scanner Dependencies -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <link rel="stylesheet" href="css/scanner.css">
     <script>
-        window.onerror = function(message, source, lineno, colno, error) {
+        window.onerror = function (message, source, lineno, colno, error) {
             var fileName = source ? source.split('/').pop() : 'Unknown';
-            alert("🚨 كفشنا خطأ!\n\n" + 
-                  "الرسالة: " + message + "\n" +
-                  "الملف: " + fileName + "\n" +
-                  "السطر: " + lineno);
+            alert("🚨 كشفنا خطأ!\n\n" +
+                "الرسالة: " + message + "\n" +
+                "الملف: " + fileName + "\n" +
+                "السطر: " + lineno);
             return false;
         };
-        window.addEventListener('unhandledrejection', function(event) {
+        window.addEventListener('unhandledrejection', function (event) {
             alert("🚨 خطأ في الاتصال (Promise)!\n\n" + event.reason);
         });
-        window.addEventListener('error', function(e) {
+        window.addEventListener('error', function (e) {
             if (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK') {
                 alert("🚨 ملف مفقود أو رابط خطأ!\n\n" + (e.target.src || e.target.href));
             }
@@ -28,8 +30,10 @@
 </head>
 <body>
     <div class="toast-container" id="toastContainer"></div>
-    <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><div class="loading-text">Loading...</div></div>
-    
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading...</div>
+    </div>
     <div class="modal-overlay" id="confirmModal">
         <div class="modal">
             <div class="modal-icon" id="modalIcon">⚠️</div>
@@ -41,50 +45,86 @@
             </div>
         </div>
     </div>
-
     <div class="container">
         <div class="header-container">
             <img src="logo.png" alt="Rass 1" class="logo-img" onerror="this.style.display='none'">
             <h1>Rass 1 Hub</h1>
         </div>
-        
         <div class="tabs">
             <button class="tab active" data-page="patients">💊 Records</button>
             <button class="tab" data-page="orders">📦 Transfer Requests</button>
             <button class="tab" data-page="tracking">📊 Tracking</button>
             <button class="tab" data-page="reports">📈 Reports</button>
         </div>
-        
         <div id="sync" class="sync sync-ok">✓ Connected to Google Sheets</div>
-        <div class="alert-banner hidden" id="alertBanner"><span class="alert-banner-icon">🔔</span><span class="alert-banner-text" id="alertText"></span><button class="alert-banner-close" onclick="document.getElementById('alertBanner').classList.add('hidden')">×</button></div>
-        
+        <div class="alert-banner hidden" id="alertBanner"><span class="alert-banner-icon">🔔</span><span
+                class="alert-banner-text" id="alertText"></span><button class="alert-banner-close"
+                onclick="document.getElementById('alertBanner').classList.add('hidden')">×</button></div>
         <div id="patientsPage" class="page active">
             <div class="stats">
-                <div class="stat total"><div class="stat-num" id="total">0</div><div class="stat-label">Records</div></div>
-                <div class="stat w"><div class="stat-num" id="warn">0</div><div class="stat-label">Soon</div></div>
-                <div class="stat d"><div class="stat-num" id="over">0</div><div class="stat-label">Overdue</div></div>
-                <div class="stat orders"><div class="stat-num" id="pendingOrders">0</div><div class="stat-label">📦 Pending</div></div>
+                <div class="stat total">
+                    <div class="stat-num" id="total">0</div>
+                    <div class="stat-label">Records</div>
+                </div>
+                <div class="stat w">
+                    <div class="stat-num" id="warn">0</div>
+                    <div class="stat-label">Soon</div>
+                </div>
+                <div class="stat d">
+                    <div class="stat-num" id="over">0</div>
+                    <div class="stat-label">Overdue</div>
+                </div>
+                <div class="stat orders">
+                    <div class="stat-num" id="pendingOrders">0</div>
+                    <div class="stat-label">📦 Pending</div>
+                </div>
             </div>
             <div class="grid">
+                <!-- ===== BARCODE SCANNER BUTTON ===== -->
+                <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <button id="scanBarcodeBtn" class="scan-barcode-btn"
+                        style="background: transparent; box-shadow: none;">
+                        <span class="icon">📷</span>
+                        <span>Scan Barcode for Offers</span>
+                    </button>
+                </div>
+                <!-- ===== END SCANNER BUTTON ===== -->
                 <div class="card">
                     <h3 class="card-title" id="formTitle">➕ Add New</h3>
                     <div class="type-selector">
                         <button type="button" class="type-btn active refill" data-type="refill">
-                            <div class="type-btn-icon">💊</div><div class="type-btn-label">Refill</div>
+                            <div class="type-btn-icon">💊</div>
+                            <div class="type-btn-label">Refill</div>
                         </button>
                         <button type="button" class="type-btn order" data-type="order">
-                            <div class="type-btn-icon">📦</div><div class="type-btn-label">Order</div>
+                            <div class="type-btn-icon">📦</div>
+                            <div class="type-btn-label">Order</div>
                         </button>
                     </div>
                     <form id="patientForm" novalidate>
                         <input type="hidden" id="entryType" value="refill">
-                        <div class="form-group"><label>Customer Name (Optional)</label><input type="text" id="name" placeholder="Enter name"></div>
-                        <div class="form-group"><label>Phone <span class="required">*</span></label><input type="tel" id="phone" placeholder="966512345678"><div class="error-message" id="phoneError">Please enter a valid phone</div></div>
-                        <div class="form-group"><label id="medLabel">Medication <span class="required">*</span></label><input type="text" id="med" placeholder="Medication name"><div class="error-message" id="medError">Please enter medication</div></div>
+                        <div class="form-group"><label>Customer Name (Optional)</label><input type="text" id="name"
+                                placeholder="Enter name"></div>
+                        <div class="form-group"><label>Phone <span class="required">*</span></label><input type="tel"
+                                id="phone" placeholder="966512345678">
+                            <div class="error-message" id="phoneError">Please enter a valid phone</div>
+                        </div>
+                        <div class="form-group"><label id="medLabel">Medication <span
+                                    class="required">*</span></label><input type="text" id="med"
+                                placeholder="Medication name">
+                            <div class="error-message" id="medError">Please enter medication</div>
+                        </div>
                         <div id="refillFields">
                             <div class="row">
-                                <div class="form-group"><label>Dispense Date <span class="required">*</span></label><input type="date" id="date"><div class="error-message" id="dateError">Please select date</div></div>
-                                <div class="form-group"><label>Duration (days) <span class="required">*</span></label><input type="number" id="days" value="30" min="1" max="365"><div class="error-message" id="daysError">Enter 1-365</div></div>
+                                <div class="form-group"><label>Dispense Date <span
+                                            class="required">*</span></label><input type="date" id="date">
+                                    <div class="error-message" id="dateError">Please select date</div>
+                                </div>
+                                <div class="form-group"><label>Duration (days) <span
+                                            class="required">*</span></label><input type="number" id="days" value="30"
+                                        min="1" max="365">
+                                    <div class="error-message" id="daysError">Enter 1-365</div>
+                                </div>
                             </div>
                         </div>
                         <div id="orderFields" style="display:none">
@@ -92,37 +132,79 @@
                                 <label>From Branch <span class="required">*</span></label>
                                 <select id="branch">
                                     <option value="">Select branch...</option>
-                                    <option>RASS2</option><option>RASS5</option><option>UNIZAH1</option><option>UNIZAH2</option><option>UNIZAH3</option><option>UNIZAH5</option>
-                                    <option>BADAYA1</option><option>BADAYA2</option><option>BADAYA3</option><option>BADAYA5</option><option>BADAYA.MOR</option>
-                                    <option>BUKAYRIAH1</option><option>BUKAYRIAH2</option><option>BUKAYRIAH.MOR</option>
-                                    <option>BURIDAH1</option><option>BURIDAH2</option>
-                                    <option>KHABRA1</option><option>MITHNAB1</option><option>MITHNAB2</option><option>RIYADH.KHABRA.MOR</option>
+                                    <option>RASS2</option>
+                                    <option>RASS5</option>
+                                    <option>UNIZAH1</option>
+                                    <option>UNIZAH2</option>
+                                    <option>UNIZAH3</option>
+                                    <option>UNIZAH5</option>
+                                    <option>BADAYA1</option>
+                                    <option>BADAYA2</option>
+                                    <option>BADAYA3</option>
+                                    <option>BADAYA5</option>
+                                    <option>BADAYA.MOR</option>
+                                    <option>BUKAYRIAH1</option>
+                                    <option>BUKAYRIAH2</option>
+                                    <option>BUKAYRIAH.MOR</option>
+                                    <option>BURIDAH1</option>
+                                    <option>BURIDAH2</option>
+                                    <option>KHABRA1</option>
+                                    <option>MITHNAB1</option>
+                                    <option>MITHNAB2</option>
+                                    <option>RIYADH.KHABRA.MOR</option>
                                 </select>
                                 <div class="error-message" id="branchError">Please select branch</div>
                             </div>
                             <div class="form-group">
                                 <label>Pickup Date (Optional)</label>
                                 <select id="pickupDate">
-                                    <option value="">Not specified</option><option value="today">Today</option><option value="tomorrow">Tomorrow</option><option value="custom">Custom...</option>
+                                    <option value="">Not specified</option>
+                                    <option value="today">Today</option>
+                                    <option value="tomorrow">Tomorrow</option>
+                                    <option value="custom">Custom...</option>
                                 </select>
                             </div>
-                            <div class="form-group" id="customDateGroup" style="display:none"><label>Custom Date</label><input type="date" id="customPickupDate"></div>
+                            <div class="form-group" id="customDateGroup" style="display:none"><label>Custom
+                                    Date</label><input type="date" id="customPickupDate"></div>
                         </div>
-                        <div class="form-group"><label>Notes</label><input type="text" id="notes" placeholder="Additional notes"></div>
+                        <div class="form-group"><label>Notes</label><input type="text" id="notes"
+                                placeholder="Additional notes"></div>
                         <button type="submit" class="btn btn-primary" id="submitBtn"><span>➕</span> Add</button>
-                        <button type="button" class="btn btn-secondary" id="cancelBtn" onclick="window.resetForm()">Cancel</button>
+                        <button type="button" class="btn btn-secondary" id="cancelBtn"
+                            onclick="window.resetForm()">Cancel</button>
                     </form>
                 </div>
                 <div class="card">
                     <h3 class="card-title">📋 Records</h3>
                     <div class="filters-row">
                         <input type="text" id="search" placeholder="🔍 Search...">
-                        <select id="typeFilter"><option value="all">All Types</option><option value="refill">💊 Refill</option><option value="order">📦 Orders</option></select>
-                        <select id="statusFilter"><option value="all">All Status</option><option value="overdue">🔴 Overdue</option><option value="soon">🟡 Soon</option><option value="ok">🟢 OK</option><option value="waiting">🔵 Waiting</option><option value="pending">⏳ Pending</option></select>
+                        <select id="typeFilter">
+                            <option value="all">All Types</option>
+                            <option value="refill">💊 Refill</option>
+                            <option value="order">📦 Orders</option>
+                        </select>
+                        <select id="statusFilter">
+                            <option value="all">All Status</option>
+                            <option value="overdue">🔴 Overdue</option>
+                            <option value="soon">🟡 Soon</option>
+                            <option value="ok">🟢 OK</option>
+                            <option value="waiting">🔵 Waiting</option>
+                            <option value="pending">⏳ Pending</option>
+                        </select>
                     </div>
                     <div class="table-container">
                         <table>
-                            <thead><tr><th>Type</th><th>Customer</th><th>Item / Med</th><th>Added</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Customer</th>
+                                    <th>Item / Med</th>
+                                    <th>Added</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
                             <tbody id="patientsTbody"></tbody>
                         </table>
                     </div>
@@ -130,59 +212,92 @@
                 </div>
             </div>
         </div>
-    
         <div id="ordersPage" class="page">
             <div class="grid">
                 <div class="card">
                     <h3 class="card-title">➕ Add Item</h3>
                     <form id="orderForm" novalidate>
-                        <div class="form-group"><label>Item Name <span class="required">*</span></label><input type="text" id="orderMed" placeholder="Product name"><div class="error-message" id="orderMedError">Please enter item name</div></div>
+                        <div class="form-group"><label>Item Name <span class="required">*</span></label><input
+                                type="text" id="orderMed" placeholder="Product name">
+                            <div class="error-message" id="orderMedError">Please enter item name</div>
+                        </div>
                         <div class="row">
-                            <div class="form-group"><label>Quantity <span class="required">*</span></label><input type="number" id="orderQty" value="1" min="1"></div>
+                            <div class="form-group"><label>Quantity <span class="required">*</span></label><input
+                                    type="number" id="orderQty" value="1" min="1"></div>
                             <div class="form-group">
                                 <label>From Branch <span class="required">*</span></label>
                                 <select id="orderBranch">
                                     <option value="">Select...</option>
-                                    <option value="RASS2">RASS2</option><option value="RASS5">RASS5</option><option value="UNIZAH1">UNIZAH1</option><option value="UNIZAH2">UNIZAH2</option><option value="UNIZAH3">UNIZAH3</option><option value="UNIZAH5">UNIZAH5</option>
-                                    <option value="BADAYA1">BADAYA1</option><option value="BADAYA2">BADAYA2</option><option value="BADAYA3">BADAYA3</option><option value="BADAYA5">BADAYA5</option><option value="BADAYA.MOR">BADAYA.MOR</option>
-                                    <option value="BUKAYRIAH1">BUKAYRIAH1</option><option value="BUKAYRIAH2">BUKAYRIAH2</option><option value="BUKAYRIAH.MOR">BUKAYRIAH.MOR</option>
-                                    <option value="BURIDAH1">BURIDAH1</option><option value="BURIDAH2">BURIDAH2</option><option value="KHABRA1">KHABRA1</option><option value="MITHNAB1">MITHNAB1</option><option value="MITHNAB2">MITHNAB2</option><option value="RIYADH.KHABRA.MOR">RIYADH.KHABRA.MOR</option>
+                                    <option value="RASS2">RASS2</option>
+                                    <option value="RASS5">RASS5</option>
+                                    <option value="UNIZAH1">UNIZAH1</option>
+                                    <option value="UNIZAH2">UNIZAH2</option>
+                                    <option value="UNIZAH3">UNIZAH3</option>
+                                    <option value="UNIZAH5">UNIZAH5</option>
+                                    <option value="BADAYA1">BADAYA1</option>
+                                    <option value="BADAYA2">BADAYA2</option>
+                                    <option value="BADAYA3">BADAYA3</option>
+                                    <option value="BADAYA5">BADAYA5</option>
+                                    <option value="BADAYA.MOR">BADAYA.MOR</option>
+                                    <option value="BUKAYRIAH1">BUKAYRIAH1</option>
+                                    <option value="BUKAYRIAH2">BUKAYRIAH2</option>
+                                    <option value="BUKAYRIAH.MOR">BUKAYRIAH.MOR</option>
+                                    <option value="BURIDAH1">BURIDAH1</option>
+                                    <option value="BURIDAH2">BURIDAH2</option>
+                                    <option value="KHABRA1">KHABRA1</option>
+                                    <option value="MITHNAB1">MITHNAB1</option>
+                                    <option value="MITHNAB2">MITHNAB2</option>
+                                    <option value="RIYADH.KHABRA.MOR">RIYADH.KHABRA.MOR</option>
                                 </select>
                                 <div class="error-message" id="orderBranchError">Please select branch</div>
                             </div>
                         </div>
-                        <div class="checkbox-wrapper"><input type="checkbox" id="orderClient"><label for="orderClient">🔴 لعميل (For Client)</label></div>
+                        <div class="checkbox-wrapper"><input type="checkbox" id="orderClient"><label
+                                for="orderClient">🔵 لعميل (For Client)</label></div>
                         <button type="submit" class="btn btn-primary">➕ Add to List</button>
                     </form>
                 </div>
                 <div class="card">
                     <h3 class="card-title">📋 Transfer List</h3>
                     <div id="ordersList"></div>
-                    <button class="btn btn-danger btn-sm" id="clearAllBtn" style="margin-top:10px;display:none;">🗑️ Clear All</button>
+                    <button class="btn btn-danger btn-sm" id="clearAllBtn" style="margin-top:10px;display:none;">🗑️
+                        Clear All</button>
                     <div class="send-section" id="sendSection" style="display:none">
                         <h3 class="card-title">📧 Ready to Send</h3>
                         <div id="groupedOrders"></div>
-                        <button class="btn btn-success" id="sendAllBtn" style="margin-top:10px">📧 Send All Emails</button>
+                        <button class="btn btn-success" id="sendAllBtn" style="margin-top:10px">📧 Send All
+                            Emails</button>
                     </div>
                 </div>
             </div>
         </div>
-    
         <div id="trackingPage" class="page">
             <div class="stats">
-                <div class="stat total"><div class="stat-num" id="tSent">0</div><div class="stat-label">Sent</div></div>
-                <div class="stat s"><div class="stat-num" id="tConverted">0</div><div class="stat-label">Converted</div></div>
-                <div class="stat" style="border-left:4px solid var(--primary)"><div class="stat-num" id="tRate">0%</div><div class="stat-label">Rate</div></div>
+                <div class="stat total">
+                    <div class="stat-num" id="tSent">0</div>
+                    <div class="stat-label">Sent</div>
+                </div>
+                <div class="stat s">
+                    <div class="stat-num" id="tConverted">0</div>
+                    <div class="stat-label">Converted</div>
+                </div>
+                <div class="stat" style="border-left:4px solid var(--primary)">
+                    <div class="stat-num" id="tRate">0%</div>
+                    <div class="stat-label">Rate</div>
+                </div>
             </div>
             <div class="card">
                 <div class="header-row">
                     <h3 class="card-title" style="margin:0">📊 Track Conversions</h3>
-                    <select id="trackFilter" style="width:auto;min-width:140px"><option value="all">All</option><option value="waiting">⏳ Waiting</option><option value="converted">✅ Converted</option></select>
+                    <select id="trackFilter" style="width:auto;min-width:140px">
+                        <option value="all">All</option>
+                        <option value="waiting">⏳ Waiting</option>
+                        <option value="converted">✅ Converted</option>
+                    </select>
                 </div>
                 <div class="track-grid" id="trackGrid"></div>
             </div>
         </div>
-    
         <div id="reportsPage" class="page">
             <div class="card">
                 <div class="header-row">
@@ -200,32 +315,116 @@
             </div>
             <div id="refillReport" class="report-section active">
                 <div class="report-grid">
-                    <div class="report-card"><div class="report-value" id="rSent">0</div><div class="report-label">📤 Sent</div></div>
-                    <div class="report-card"><div class="report-value" style="color:var(--accent)" id="rConverted">0</div><div class="report-label">✅ Converted</div></div>
-                    <div class="report-card"><div class="report-value" style="color:var(--primary)" id="rRate">0%</div><div class="report-label">📊 Rate</div><div class="progress"><div class="progress-bar" id="rBar" style="width:0%;background:var(--accent)"></div></div></div>
+                    <div class="report-card">
+                        <div class="report-value" id="rSent">0</div>
+                        <div class="report-label">📤 Sent</div>
+                    </div>
+                    <div class="report-card">
+                        <div class="report-value" style="color:var(--accent)" id="rConverted">0</div>
+                        <div class="report-label">✅ Converted</div>
+                    </div>
+                    <div class="report-card">
+                        <div class="report-value" style="color:var(--primary)" id="rRate">0%</div>
+                        <div class="report-label">📊 Rate</div>
+                        <div class="progress">
+                            <div class="progress-bar" id="rBar" style="width:0%;background:var(--accent)"></div>
+                        </div>
+                    </div>
                 </div>
                 <div class="card">
                     <h3 class="card-title">📋 Summary</h3>
-                    <div class="table-container"><table><thead><tr><th>Metric</th><th>Count</th><th>%</th></tr></thead><tbody id="summaryTb"></tbody></table></div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Metric</th>
+                                    <th>Count</th>
+                                    <th>%</th>
+                                </tr>
+                            </thead>
+                            <tbody id="summaryTb"></tbody>
+                        </table>
+                    </div>
                 </div>
                 <div class="card">
                     <h3 class="card-title">✅ Converted Patients</h3>
-                    <div class="table-container"><table><thead><tr><th>Patient</th><th>Phone</th><th>Medication</th><th>Reminder</th><th>Converted</th></tr></thead><tbody id="convList"></tbody></table></div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Patient</th>
+                                    <th>Phone</th>
+                                    <th>Medication</th>
+                                    <th>Reminder</th>
+                                    <th>Converted</th>
+                                </tr>
+                            </thead>
+                            <tbody id="convList"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
             <div id="ordersReport" class="report-section">
                 <div class="report-grid">
-                    <div class="report-card"><div class="report-value" style="color:var(--info)" id="oTotal">0</div><div class="report-label">📦 Total</div></div>
-                    <div class="report-card"><div class="report-value" style="color:var(--accent)" id="oDelivered">0</div><div class="report-label">✅ Delivered</div></div>
-                    <div class="report-card"><div class="report-value" style="color:var(--warning)" id="oNotDelivered">0</div><div class="report-label">⏳ Pending</div></div>
-                    <div class="report-card"><div class="report-value" style="color:var(--primary)" id="oRate">0%</div><div class="report-label">📊 Rate</div><div class="progress"><div class="progress-bar" id="oBar" style="width:0%;background:var(--info)"></div></div></div>
+                    <div class="report-card">
+                        <div class="report-value" style="color:var(--info)" id="oTotal">0</div>
+                        <div class="report-label">📦 Total</div>
+                    </div>
+                    <div class="report-card">
+                        <div class="report-value" style="color:var(--accent)" id="oDelivered">0</div>
+                        <div class="report-label">✅ Delivered</div>
+                    </div>
+                    <div class="report-card">
+                        <div class="report-value" style="color:var(--warning)" id="oNotDelivered">0</div>
+                        <div class="report-label">⏳ Pending</div>
+                    </div>
+                    <div class="report-card">
+                        <div class="report-value" style="color:var(--primary)" id="oRate">0%</div>
+                        <div class="report-label">📊 Rate</div>
+                        <div class="progress">
+                            <div class="progress-bar" id="oBar" style="width:0%;background:var(--info)"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card"><h3 class="card-title">🏢 By Branch</h3><div class="table-container"><table><thead><tr><th>Branch</th><th>Total</th><th>Delivered</th><th>Pending</th></tr></thead><tbody id="branchSummary"></tbody></table></div></div>
-                <div class="card"><h3 class="card-title">📦 Top Items</h3><div class="table-container"><table><thead><tr><th>Item Name</th><th>Count</th></tr></thead><tbody id="topMeds"></tbody></table></div></div>
+                <div class="card">
+                    <h3 class="card-title">🏢 By Branch</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Branch</th>
+                                    <th>Total</th>
+                                    <th>Delivered</th>
+                                    <th>Pending</th>
+                                </tr>
+                            </thead>
+                            <tbody id="branchSummary"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3 class="card-title">📦 Top Items</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Item Name</th>
+                                    <th>Count</th>
+                                </tr>
+                            </thead>
+                            <tbody id="topMeds"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    
     <script type="module" src="js/main.js"></script>
+    <!-- Scanner Module -->
+    <script type="module">
+        import { Scanner } from './js/modules/scanner.js';
+        window.Scanner = Scanner;
+        document.getElementById('scanBarcodeBtn').addEventListener('click', () => Scanner.start());
+    </script>
 </body>
 </html>
