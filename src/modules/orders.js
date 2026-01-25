@@ -125,14 +125,24 @@ export const OrdersModule = {
 
         const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
-        // Open Gmail in a small popup window
-        const width = 600;
-        const height = 700;
-        const left = (screen.width - width) / 2;
-        const top = (screen.height - height) / 2;
-        gmailWindowRef = window.open(gmailUrl, 'gmailCompose', `width=${width},height=${height},left=${left},top=${top},popup=true`);
-        if (gmailWindowRef) {
-            gmailWindowRef.focus();
+        // Check if popup is already open
+        if (gmailWindowRef && !gmailWindowRef.closed) {
+            // Popup already open - copy content and focus
+            const emailText = `إلى: ${email}\nالموضوع: ${subject}\n\n${body}`;
+            navigator.clipboard.writeText(emailText).then(() => {
+                UI.showToast(`📋 تم نسخ الإيميل لـ ${branch} - الصقه في النافذة`, 'info');
+                gmailWindowRef.focus();
+            });
+        } else {
+            // First time - open new popup
+            const width = 600;
+            const height = 700;
+            const left = (screen.width - width) / 2;
+            const top = (screen.height - height) / 2;
+            gmailWindowRef = window.open(gmailUrl, 'gmailCompose', `width=${width},height=${height},left=${left},top=${top},popup=true`);
+            if (gmailWindowRef) {
+                gmailWindowRef.focus();
+            }
         }
 
         // Mark items as sent
