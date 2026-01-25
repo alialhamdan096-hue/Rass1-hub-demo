@@ -127,7 +127,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('orderForm').addEventListener('submit', (e) => OrdersModule.addItem(e));
     document.getElementById('pickupDate').addEventListener('change', handlePickupDateChange);
     document.getElementById('clearAllBtn').addEventListener('click', () => OrdersModule.clearAll());
-    document.getElementById('sendAllBtn').addEventListener('click', () => OrdersModule.sendAllEmails());
     document.getElementById('modalCancelBtn').addEventListener('click', () => UI.closeModal());
     document.getElementById('historyCloseBtn').addEventListener('click', () => PatientHistory.close());
     document.getElementById('labelCloseBtn').addEventListener('click', () => LabelPrint.close());

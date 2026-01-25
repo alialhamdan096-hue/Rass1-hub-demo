@@ -140,10 +140,5 @@ export const OrdersModule = {
         });
         this.saveOrders();
         this.renderOrders();
-    },
-
-    sendAllEmails() {
-        const branches = [...new Set(State.orderItems.map(item => item.branch))];
-        branches.forEach((branch, index) => { setTimeout(() => { this.sendEmail(branch); }, index * 500); });
     }
 };
