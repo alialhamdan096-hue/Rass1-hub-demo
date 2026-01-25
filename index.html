@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,7 +9,6 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
     <link rel="stylesheet" href="src/styles/scanner.css">
 </head>
-
 <body>
     <div class="toast-container" id="toastContainer"></div>
     <div class="loading-overlay" id="loadingOverlay">
@@ -129,15 +127,6 @@
                 </div>
             </div>
             <div class="grid">
-                <!-- BARCODE SCANNER BUTTON -->
-                <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 0;">
-                    <button id="scanBarcodeBtn" class="scan-barcode-btn"
-                        style="background: transparent; box-shadow: none; width: 100%; margin: 0;">
-                        <span class="icon">📷</span>
-                        <span>Scan Barcode for Offers</span>
-                    </button>
-                </div>
-                <!-- END SCANNER BUTTON -->
                 <div class="card">
                     <h3 class="card-title" id="formTitle">➕ Add New</h3>
                     <div class="type-selector">
@@ -474,6 +463,18 @@
             </div>
         </div>
     </div>
+    <!-- Floating Scanner Button -->
+    <button id="scanBarcodeBtn" class="floating-scanner-btn" title="Scan Barcode for Offers">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+            <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+            <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+            <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+            <line x1="7" y1="12" x2="17" y2="12"></line>
+            <line x1="12" y1="7" x2="12" y2="17"></line>
+        </svg>
+    </button>
     <iframe id="printFrame" style="display:none;position:absolute;width:0;height:0;border:0;"></iframe>
     <script type="module" src="/src/main.js"></script>
     <!-- Scanner Module -->
@@ -488,5 +489,4 @@
         }
     </script>
 </body>
-
 </html>
