@@ -1274,19 +1274,20 @@ tr:hover {
 
     .stats {
         grid-template-columns: 1fr 1fr;
-        gap: 10px;
+        gap: 12px;
     }
 
     .stat {
-        padding: 14px 12px;
+        padding: 16px 14px;
     }
 
     .stat-num {
-        font-size: 26px;
+        font-size: 32px;
     }
 
     .stat-label {
-        font-size: 11px;
+        font-size: 12px;
+        margin-top: 4px;
     }
 
     table {
@@ -1404,6 +1405,4 @@ tr:hover {
 
     .card {
         box-shadow: none;
-        border: 1px solid #ddd;
-    }
-}
+        border
