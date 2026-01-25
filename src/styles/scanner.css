@@ -445,3 +445,25 @@
     font-size: 0.75rem;
     font-weight: 600;
 }
+
+/* Offer Status Banner */
+.offer-status-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    color: #fff;
+    direction: rtl;
+}
+
+.offer-status-banner .status-label {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.offer-status-banner .status-message {
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
