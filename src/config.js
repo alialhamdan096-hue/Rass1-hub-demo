@@ -7,6 +7,7 @@ export const BRANCH_EMAILS = {
     'UNIZAH1': 'unizah1@alraziksa.com',
     'UNIZAH2': 'unizah2@alraziksa.com',
     'UNIZAH3': 'unizah3@alraziksa.com',
+    'UNIZAH4': 'unizah4@alraziksa.com',
     'UNIZAH5': 'unizah5@alraziksa.com',
     'BADAYA1': 'badaya1@alraziksa.com',
     'BADAYA2': 'badaya2@alraziksa.com',
