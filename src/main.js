@@ -172,5 +172,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load data
     API.loadPatients(renderPatients, checkTodayAlerts);
+    OrdersModule.loadOrders();
     OrdersModule.renderOrders();
 });
