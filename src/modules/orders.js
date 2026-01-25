@@ -3,6 +3,9 @@ import { UI } from '../components/ui.js';
 import { Utils } from '../utils/helpers.js';
 import { BRANCH_EMAILS } from '../config.js';
 
+// Store Gmail window reference
+let gmailWindowRef = null;
+
 // ==================== ORDERS MODULE ====================
 export const OrdersModule = {
     addItem(e) {
@@ -66,9 +69,15 @@ export const OrdersModule = {
         items.forEach(item => { body += `• ${item.med} - الكمية: ${item.qty}${item.isClient ? ' (لعميل)' : ''}\n`; });
         body += `\nوجزاكم الله خيراً\nصيدلية الرازي - الرس 1`;
 
-        // Open Gmail in same tab (use back button to return)
         const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-        window.location.href = gmailUrl;
+
+        // Reuse existing Gmail window or open new one
+        if (gmailWindowRef === null || gmailWindowRef.closed) {
+            gmailWindowRef = window.open(gmailUrl, 'gmailCompose');
+        } else {
+            gmailWindowRef.location.href = gmailUrl;
+            gmailWindowRef.focus();
+        }
     },
 
     sendAllEmails() {
