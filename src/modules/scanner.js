@@ -138,10 +138,93 @@ export const Scanner = {
                 priceBefore: cells[4]?.v || '',
                 save: cells[5]?.v || '',
                 priceAfter: cells[6]?.v || '',
+                startDate: cells[8]?.v || '', // From Datetime (Column I)
+                endDate: cells[9]?.v || '',   // To Datetime (Column J)
                 arDescription: cells[10]?.v || '',
                 category: cells[12]?.v || ''
             };
         }).filter(item => item.barcode);
+    },
+
+    /**
+     * Get offer status based on dates
+     */
+    getOfferStatus(offer) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Parse start date
+        let startDate = null;
+        if (offer.startDate) {
+            startDate = new Date(offer.startDate);
+        }
+
+        // Parse end date (∞ means infinite/no end)
+        let endDate = null;
+        if (offer.endDate && offer.endDate !== '∞' && offer.endDate !== 'infinity') {
+            endDate = new Date(offer.endDate);
+        }
+
+        // Check if not started yet
+        if (startDate && startDate > today) {
+            const daysUntilStart = Math.ceil((startDate - today) / (1000 * 60 * 60 * 24));
+            return {
+                status: 'not_started',
+                label: '🔜 لم يبدأ بعد',
+                labelEn: 'Not Started',
+                color: '#95a5a6',
+                message: `يبدأ بعد ${daysUntilStart} يوم`,
+                startDate: startDate.toLocaleDateString('ar-SA')
+            };
+        }
+
+        // Check if expired
+        if (endDate && endDate < today) {
+            return {
+                status: 'expired',
+                label: '❌ منتهي',
+                labelEn: 'Expired',
+                color: '#e74c3c',
+                message: 'انتهى هذا العرض'
+            };
+        }
+
+        // Check if ending soon (within 3 days)
+        if (endDate) {
+            const daysLeft = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+            if (daysLeft <= 3) {
+                return {
+                    status: 'ending_soon',
+                    label: '⚠️ قارب على الانتهاء',
+                    labelEn: 'Ending Soon',
+                    color: '#f39c12',
+                    message: `باقي ${daysLeft} يوم فقط!`,
+                    daysLeft: daysLeft
+                };
+            }
+        }
+
+        // Offer is active
+        if (endDate) {
+            const daysLeft = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+            return {
+                status: 'active',
+                label: '✅ ساري',
+                labelEn: 'Active',
+                color: '#27ae60',
+                message: `متبقي ${daysLeft} يوم`,
+                daysLeft: daysLeft
+            };
+        }
+
+        // Infinite offer (no end date)
+        return {
+            status: 'active',
+            label: '✅ ساري',
+            labelEn: 'Active',
+            color: '#27ae60',
+            message: 'عرض مستمر'
+        };
     },
 
     getSampleData() {
@@ -359,10 +442,15 @@ export const Scanner = {
         const content = document.getElementById('offerResultContent');
 
         if (offer) {
+            const offerStatus = this.getOfferStatus(offer);
             title.textContent = '🎉 Offer Found!';
             title.style.color = '#27ae60';
             content.innerHTML = `
                 <div class="offer-card">
+                    <div class="offer-status-banner" style="background: ${offerStatus.color}">
+                        <span class="status-label">${offerStatus.label}</span>
+                        <span class="status-message">${offerStatus.message}</span>
+                    </div>
                     <div class="offer-product">
                         <span class="offer-brand">${offer.brand}</span>
                         <h3>${offer.productName}</h3>
