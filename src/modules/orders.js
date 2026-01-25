@@ -125,8 +125,12 @@ export const OrdersModule = {
 
         const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
-        // Always use same window name - browser will reuse existing tab and focus it
-        gmailWindowRef = window.open(gmailUrl, 'gmailCompose');
+        // Open Gmail in a small popup window
+        const width = 600;
+        const height = 700;
+        const left = (screen.width - width) / 2;
+        const top = (screen.height - height) / 2;
+        gmailWindowRef = window.open(gmailUrl, 'gmailCompose', `width=${width},height=${height},left=${left},top=${top},popup=true`);
         if (gmailWindowRef) {
             gmailWindowRef.focus();
         }
