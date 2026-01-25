@@ -1597,59 +1597,60 @@ tr:hover {
         padding: 10px;
     }
 
-    /* === ENHANCED MOBILE HEADER & LOGO === */
+    /* === ENHANCED MOBILE HEADER & LOGO - LARGER TO MATCH FORMS === */
     .header-container {
-        padding: 10px 15px;
-        margin-bottom: 15px;
+        padding: 12px 15px;
+        margin-bottom: 18px;
     }
 
     .header-container h1 {
-        font-size: 16px;
+        font-size: 20px;
         line-height: 1.3;
         margin: 0;
     }
 
     .logo-img {
-        height: 50px;
+        height: 70px;
         width: auto;
-        max-width: 80%;
+        max-width: 85%;
         object-fit: contain;
-        margin: 0 auto 8px auto;
+        margin: 0 auto 10px auto;
         display: block;
     }
 
     /* === END ENHANCED MOBILE HEADER === */
 
+    /* === LARGER TABS TO MATCH === */
     .tabs {
-        gap: 5px;
+        gap: 6px;
     }
 
     .tab {
-        padding: 8px 12px;
-        font-size: 11px;
+        padding: 10px 14px;
+        font-size: 12px;
     }
 
     .card {
         padding: 15px;
     }
 
-    /* === ENHANCED MOBILE STATS === */
+    /* === ENHANCED MOBILE STATS - LARGER TO MATCH FORMS === */
     .stats {
         grid-template-columns: 1fr 1fr;
         gap: 12px;
     }
 
     .stat {
-        padding: 16px 14px;
+        padding: 18px 16px;
     }
 
     .stat-num {
-        font-size: 32px;
+        font-size: 36px;
     }
 
     .stat-label {
-        font-size: 12px;
-        margin-top: 4px;
+        font-size: 13px;
+        margin-top: 5px;
     }
 
     /* === END ENHANCED MOBILE STATS === */
@@ -1699,22 +1700,12 @@ tr:hover {
         align-items: stretch;
     }
 
-    /* === SMALLER FORM INPUTS FOR BALANCE === */
+    /* FORMS STAY FULL SIZE */
     input,
     select {
-        padding: 8px 10px;
-        font-size: 14px;
+        padding: 10px;
+        font-size: 16px;
     }
-
-    label {
-        font-size: 12px;
-    }
-
-    .card-title {
-        font-size: 14px;
-    }
-
-    /* === END SMALLER FORM INPUTS === */
 
     .row {
         flex-direction: column;
