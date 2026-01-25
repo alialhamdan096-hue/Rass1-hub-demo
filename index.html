@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +10,7 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
     <link rel="stylesheet" href="src/styles/scanner.css">
 </head>
+
 <body>
     <div class="toast-container" id="toastContainer"></div>
     <div class="loading-overlay" id="loadingOverlay">
@@ -463,6 +465,7 @@
             </div>
         </div>
     </div>
+
     <!-- Floating Scanner Button -->
     <button id="scanBarcodeBtn" class="floating-scanner-btn" title="Scan Barcode for Offers">
         <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
@@ -475,6 +478,7 @@
             <line x1="12" y1="7" x2="12" y2="17"></line>
         </svg>
     </button>
+
     <iframe id="printFrame" style="display:none;position:absolute;width:0;height:0;border:0;"></iframe>
     <script type="module" src="/src/main.js"></script>
     <!-- Scanner Module -->
@@ -489,4 +493,5 @@
         }
     </script>
 </body>
+
 </html>
