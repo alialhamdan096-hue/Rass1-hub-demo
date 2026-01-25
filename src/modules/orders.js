@@ -66,9 +66,9 @@ export const OrdersModule = {
         items.forEach(item => { body += `• ${item.med} - الكمية: ${item.qty}${item.isClient ? ' (لعميل)' : ''}\n`; });
         body += `\nوجزاكم الله خيراً\nصيدلية الرازي - الرس 1`;
 
-        // Open Gmail directly in browser
+        // Open Gmail directly in browser (reuse same tab)
         const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-        window.open(gmailUrl, '_blank');
+        window.open(gmailUrl, 'gmail');
     },
 
     sendAllEmails() {
