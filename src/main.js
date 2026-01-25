@@ -1,3 +1,6 @@
+import { Scanner } from './modules/scanner.js';
+import './styles/scanner.css';
+window.Scanner = Scanner;
 import './styles/main.css';
 import { CONFIG } from './config.js';
 import { State } from './state.js';
