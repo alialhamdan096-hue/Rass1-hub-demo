@@ -20,7 +20,18 @@ export const API = {
     },
 
     async loadPatients(renderCallback, checkAlertsCallback) {
-        UI.setLoading(true, 'Loading...');
+        // 1. Load from cache first (instant display)
+        const cached = localStorage.getItem('patients_rass1');
+        if (cached) {
+            try {
+                State.patients = JSON.parse(cached);
+                if (renderCallback) renderCallback();
+                UI.updateOrdersBadge();
+            } catch (e) {}
+        }
+
+        // 2. Fetch fresh data in background
+        UI.setLoading(true, cached ? 'Syncing...' : 'Loading...');
         try {
             const d = await this.request('get');
             State.patients = d.map(p => ({
@@ -46,13 +57,15 @@ export const API = {
             }));
             localStorage.setItem('patients_rass1', JSON.stringify(State.patients));
             if (checkAlertsCallback) checkAlertsCallback();
-        } catch (e) {
-            State.patients = JSON.parse(localStorage.getItem('patients_rass1')) || [];
-            UI.showToast('Loaded from cache', 'warning');
-        } finally {
-            UI.setLoading(false);
+            // 3. Update view with fresh data
             if (renderCallback) renderCallback();
             UI.updateOrdersBadge();
+        } catch (e) {
+            if (!cached) {
+                UI.showToast('Failed to load data', 'error');
+            }
+        } finally {
+            UI.setLoading(false);
         }
     },
 

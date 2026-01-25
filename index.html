@@ -286,5 +286,11 @@
 
     <iframe id="printFrame" style="display:none;position:absolute;width:0;height:0;border:0;"></iframe>
     <script type="module" src="/src/main.js"></script>
+    <script>
+        // Register Service Worker for caching
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+        }
+    </script>
 </body>
 </html>
