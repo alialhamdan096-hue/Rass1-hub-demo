@@ -3,11 +3,14 @@
  * Uses Html5-QRCode library for barcode scanning
  * For Vite project structure
  */
+
 // Offers data - will be loaded from Google Sheets
 let offersData = [];
+
 export const Scanner = {
     scanner: null,
     isScanning: false,
+
     /**
      * Initialize the scanner
      */
@@ -16,9 +19,11 @@ export const Scanner = {
         if (!document.getElementById('scannerModal')) {
             this.createScannerModal();
         }
+
         // Load offers data
         await this.loadOffersData();
     },
+
     /**
      * Create the scanner modal HTML
      */
@@ -32,6 +37,18 @@ export const Scanner = {
                     </div>
                     <div id="scannerPreview" class="scanner-preview"></div>
                     <p class="scanner-hint">Point your camera at the product barcode</p>
+                    
+                    <!-- Manual Search Section -->
+                    <div class="manual-search-section">
+                        <div class="manual-search-divider">
+                            <span>أو ابحث يدوياً</span>
+                        </div>
+                        <div class="manual-search-input">
+                            <input type="text" id="manualSearchInput" placeholder="أدخل الباركود أو اسم المنتج..." />
+                            <button id="manualSearchBtn" class="scanner-btn primary">🔍 بحث</button>
+                        </div>
+                    </div>
+                    
                     <div class="scanner-actions">
                         <button id="switchCameraBtn" class="scanner-btn secondary">🔄 Switch Camera</button>
                         <button id="stopScanBtn" class="scanner-btn danger">Stop Scanning</button>
@@ -53,9 +70,11 @@ export const Scanner = {
                 </div>
             </div>
         `;
+
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         this.bindEvents();
     },
+
     /**
      * Bind modal events
      */
@@ -69,6 +88,13 @@ export const Scanner = {
             this.start();
         });
         document.getElementById('switchCameraBtn')?.addEventListener('click', () => this.switchCamera());
+
+        // Manual search events
+        document.getElementById('manualSearchBtn')?.addEventListener('click', () => this.manualSearch());
+        document.getElementById('manualSearchInput')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.manualSearch();
+        });
+
         document.getElementById('scannerModal')?.addEventListener('click', (e) => {
             if (e.target.id === 'scannerModal') this.stop();
         });
@@ -76,6 +102,7 @@ export const Scanner = {
             if (e.target.id === 'offerResultModal') this.closeOfferResult();
         });
     },
+
     /**
      * Load offers data from Google Sheets
      */
@@ -83,8 +110,10 @@ export const Scanner = {
         try {
             const sheetId = '1-_6mN6DpmuUbpgy3q3h-RXRjPepfhhcdIx2K3oybCzw';
             const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json`;
+
             const response = await fetch(url);
             const text = await response.text();
+
             const jsonStr = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?/)?.[1];
             if (jsonStr) {
                 const data = JSON.parse(jsonStr);
@@ -96,6 +125,7 @@ export const Scanner = {
             offersData = this.getSampleData();
         }
     },
+
     parseGoogleSheetsData(data) {
         const rows = data.table.rows;
         return rows.slice(1).map(row => {
@@ -113,6 +143,7 @@ export const Scanner = {
             };
         }).filter(item => item.barcode);
     },
+
     getSampleData() {
         return [
             {
@@ -128,20 +159,25 @@ export const Scanner = {
             }
         ];
     },
+
     /**
      * Start barcode scanning
      */
     async start() {
         await this.init();
+
         const modal = document.getElementById('scannerModal');
         modal.classList.add('active');
+
         try {
             // Check if Html5Qrcode is loaded
             if (typeof Html5Qrcode === 'undefined') {
                 // Load the library dynamically
                 await this.loadHtml5QrcodeLib();
             }
+
             this.scanner = new Html5Qrcode('scannerPreview');
+
             const config = {
                 fps: 10,
                 qrbox: { width: 250, height: 150 },
@@ -153,19 +189,23 @@ export const Scanner = {
                     Html5QrcodeSupportedFormats.QR_CODE
                 ]
             };
+
             await this.scanner.start(
                 { facingMode: 'environment' },
                 config,
                 (decodedText) => this.onScanSuccess(decodedText),
                 () => { }
             );
+
             this.isScanning = true;
+
         } catch (error) {
             console.error('Scanner start error:', error);
             alert('Camera access denied or not available');
             this.stop();
         }
     },
+
     /**
      * Load Html5-QRCode library dynamically
      */
@@ -182,6 +222,7 @@ export const Scanner = {
             document.head.appendChild(script);
         });
     },
+
     async stop() {
         if (this.scanner && this.isScanning) {
             try {
@@ -191,6 +232,7 @@ export const Scanner = {
         this.isScanning = false;
         document.getElementById('scannerModal')?.classList.remove('active');
     },
+
     async switchCamera() {
         if (!this.scanner || !this.isScanning) return;
         try {
@@ -207,19 +249,115 @@ export const Scanner = {
             console.error('Camera switch error:', error);
         }
     },
+
     onScanSuccess(barcode) {
         console.log('📷 Scanned barcode:', barcode);
         this.stop();
         const offer = this.lookupOffer(barcode);
         this.showResult(barcode, offer);
     },
+
     lookupOffer(barcode) {
         return offersData.find(item => item.barcode === barcode);
     },
+
+    /**
+     * Search by product name
+     */
+    searchByName(query) {
+        const lowerQuery = query.toLowerCase();
+        return offersData.filter(item =>
+            item.productName?.toLowerCase().includes(lowerQuery) ||
+            item.arDescription?.toLowerCase().includes(lowerQuery) ||
+            item.brand?.toLowerCase().includes(lowerQuery)
+        );
+    },
+
+    /**
+     * Manual search handler
+     */
+    manualSearch() {
+        const input = document.getElementById('manualSearchInput');
+        const query = input?.value?.trim();
+
+        if (!query) {
+            alert('الرجاء إدخال الباركود أو اسم المنتج');
+            return;
+        }
+
+        this.stop();
+
+        // First try exact barcode match
+        let offer = this.lookupOffer(query);
+
+        if (offer) {
+            this.showResult(query, offer);
+        } else {
+            // Try search by name
+            const results = this.searchByName(query);
+
+            if (results.length === 1) {
+                this.showResult(results[0].barcode, results[0]);
+            } else if (results.length > 1) {
+                this.showMultipleResults(results);
+            } else {
+                this.showResult(query, null);
+            }
+        }
+
+        // Clear input
+        if (input) input.value = '';
+    },
+
+    /**
+     * Show multiple search results
+     */
+    showMultipleResults(results) {
+        const modal = document.getElementById('offerResultModal');
+        const title = document.getElementById('offerResultTitle');
+        const content = document.getElementById('offerResultContent');
+
+        title.textContent = `🔍 تم العثور على ${results.length} نتائج`;
+        title.style.color = '#3498db';
+
+        let html = '<div class="search-results">';
+        results.forEach((item, index) => {
+            html += `
+                <div class="search-result-item" onclick="Scanner.selectResult(${index})" data-index="${index}">
+                    <div class="result-brand">${item.brand || ''}</div>
+                    <div class="result-name">${item.productName}</div>
+                    <div class="result-price">
+                        <span class="old-price">${item.priceBefore} SAR</span>
+                        <span class="new-price">${item.priceAfter} SAR</span>
+                        <span class="discount-tag">${item.discount}</span>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+
+        content.innerHTML = html;
+        modal.classList.add('active');
+
+        // Store results for selection
+        this.searchResults = results;
+    },
+
+    /**
+     * Select a result from multiple results
+     */
+    selectResult(index) {
+        if (this.searchResults && this.searchResults[index]) {
+            const item = this.searchResults[index];
+            this.showResult(item.barcode, item);
+        }
+    },
+
     showResult(barcode, offer) {
         const modal = document.getElementById('offerResultModal');
         const title = document.getElementById('offerResultTitle');
         const content = document.getElementById('offerResultContent');
+
         if (offer) {
             title.textContent = '🎉 Offer Found!';
             title.style.color = '#27ae60';
@@ -263,10 +401,13 @@ export const Scanner = {
                 </div>
             `;
         }
+
         modal.classList.add('active');
     },
+
     closeOfferResult() {
         document.getElementById('offerResultModal')?.classList.remove('active');
     }
 };
+
 export default Scanner;
