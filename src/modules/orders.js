@@ -66,14 +66,9 @@ export const OrdersModule = {
         items.forEach(item => { body += `• ${item.med} - الكمية: ${item.qty}${item.isClient ? ' (لعميل)' : ''}\n`; });
         body += `\nوجزاكم الله خيراً\nصيدلية الرازي - الرس 1`;
 
-        // Copy email content to clipboard
-        const emailText = `إلى: ${email}\nالموضوع: ${subject}\n\n${body}`;
-        navigator.clipboard.writeText(emailText).then(() => {
-            UI.showToast(`✅ تم نسخ الإيميل - الصقه في Gmail (${branch})`, 'success');
-        }).catch(() => {
-            // Fallback: show in prompt
-            prompt('انسخ هذا النص:', emailText);
-        });
+        // Open Gmail in same tab (use back button to return)
+        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        window.location.href = gmailUrl;
     },
 
     sendAllEmails() {
