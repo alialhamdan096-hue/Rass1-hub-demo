@@ -71,11 +71,9 @@ export const OrdersModule = {
 
         const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
-        // Reuse existing Gmail window or open new one
-        if (gmailWindowRef === null || gmailWindowRef.closed) {
-            gmailWindowRef = window.open(gmailUrl, 'gmailCompose');
-        } else {
-            gmailWindowRef.location.href = gmailUrl;
+        // Always use same window name - browser will reuse existing tab and focus it
+        gmailWindowRef = window.open(gmailUrl, 'gmailCompose');
+        if (gmailWindowRef) {
             gmailWindowRef.focus();
         }
     },
