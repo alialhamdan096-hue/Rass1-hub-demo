@@ -212,27 +212,62 @@
 .no-offer p {
     color: rgba(255, 255, 255, 0.7);
 }
-.scan-barcode-btn {
+/* Floating Scanner Button */
+.floating-scanner-btn {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: #fff;
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    width: 100%;
-    padding: 18px 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
-    border-radius: 16px;
-    color: #fff;
-    font-size: 1.1rem;
-    font-weight: 600;
-    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.5);
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    z-index: 1000;
+    animation: pulse-glow 2s ease-in-out infinite;
 }
-.scan-barcode-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+.floating-scanner-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 30px rgba(102, 126, 234, 0.7);
 }
-.scan-barcode-btn .icon {
-    font-size: 1.4rem;
+.floating-scanner-btn:active {
+    transform: scale(0.95);
+}
+.floating-scanner-btn svg {
+    width: 28px;
+    height: 28px;
+}
+@keyframes pulse-glow {
+    0%,
+    100% {
+        box-shadow: 0 4px 20px rgba(102, 126, 234, 0.5);
+    }
+    50% {
+        box-shadow: 0 4px 30px rgba(102, 126, 234, 0.8), 0 0 40px rgba(118, 75, 162, 0.4);
+    }
+}
+/* Hide on print */
+@media print {
+    .floating-scanner-btn {
+        display: none;
+    }
+}
+/* Mobile adjustments */
+@media (max-width: 768px) {
+    .floating-scanner-btn {
+        bottom: 20px;
+        right: 20px;
+        width: 56px;
+        height: 56px;
+    }
+    .floating-scanner-btn svg {
+        width: 24px;
+        height: 24px;
+    }
 }
