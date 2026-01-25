@@ -1,6 +1,7 @@
 /**
  * Barcode Scanner Styles
  */
+
 .scanner-modal {
     display: none;
     position: fixed;
@@ -14,18 +15,22 @@
     align-items: center;
     backdrop-filter: blur(5px);
 }
+
 .scanner-modal.active {
     display: flex;
     animation: fadeIn 0.3s ease;
 }
+
 @keyframes fadeIn {
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }
 }
+
 .scanner-modal-content {
     background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
     border-radius: 20px;
@@ -36,6 +41,7 @@
     box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
+
 .scanner-header {
     display: flex;
     justify-content: space-between;
@@ -43,11 +49,13 @@
     padding: 20px 24px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
+
 .scanner-header h2 {
     margin: 0;
     font-size: 1.3rem;
     color: #fff;
 }
+
 .scanner-close-btn {
     background: rgba(255, 255, 255, 0.1);
     border: none;
@@ -59,26 +67,31 @@
     cursor: pointer;
     transition: all 0.2s ease;
 }
+
 .scanner-close-btn:hover {
     background: rgba(231, 76, 60, 0.8);
 }
+
 .scanner-preview {
     width: 100%;
     min-height: 280px;
     background: #000;
 }
+
 .scanner-hint {
     text-align: center;
     color: rgba(255, 255, 255, 0.7);
     padding: 15px;
     margin: 0;
 }
+
 .scanner-actions {
     display: flex;
     gap: 12px;
     padding: 20px 24px;
     justify-content: center;
 }
+
 .scanner-btn {
     padding: 12px 24px;
     border: none;
@@ -88,32 +101,39 @@
     cursor: pointer;
     transition: all 0.2s ease;
 }
+
 .scanner-btn.primary {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: #fff;
 }
+
 .scanner-btn.secondary {
     background: rgba(255, 255, 255, 0.1);
     color: #fff;
 }
+
 .scanner-btn.danger {
     background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
     color: #fff;
 }
+
 .offer-content {
     padding: 24px;
 }
+
 .offer-card {
     background: rgba(255, 255, 255, 0.05);
     border-radius: 16px;
     padding: 20px;
 }
+
 .offer-product {
     text-align: center;
     margin-bottom: 20px;
     padding-bottom: 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
+
 .offer-brand {
     display: inline-block;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -123,19 +143,23 @@
     font-size: 0.8rem;
     font-weight: 600;
 }
+
 .offer-product h3 {
     margin: 10px 0;
     color: #fff;
     font-size: 1.1rem;
 }
+
 .offer-ar {
     color: rgba(255, 255, 255, 0.6);
     font-size: 0.9rem;
     direction: rtl;
 }
+
 .offer-pricing {
     margin-bottom: 20px;
 }
+
 .price-row {
     display: flex;
     justify-content: space-between;
@@ -143,17 +167,21 @@
     padding: 10px 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
+
 .price-row span:first-child {
     color: rgba(255, 255, 255, 0.7);
 }
+
 .price {
     font-weight: 600;
     color: #fff;
 }
+
 .price.strikethrough {
     text-decoration: line-through;
     color: rgba(255, 255, 255, 0.4);
 }
+
 .discount-badge {
     background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
     color: #fff;
@@ -161,25 +189,30 @@
     border-radius: 20px;
     font-weight: 700;
 }
+
 .save-amount {
     color: #2ecc71;
     font-weight: 600;
 }
+
 .final-price {
     font-size: 1.3rem;
     color: #2ecc71 !important;
 }
+
 .price-row.final {
     background: rgba(46, 204, 113, 0.1);
     margin: 10px -10px -10px;
     padding: 15px 10px;
     border-radius: 0 0 12px 12px;
 }
+
 .offer-meta {
     display: flex;
     gap: 8px;
     justify-content: center;
 }
+
 .category-badge {
     background: rgba(52, 152, 219, 0.2);
     color: #3498db;
@@ -187,31 +220,37 @@
     border-radius: 20px;
     font-size: 0.8rem;
 }
+
 .no-offer {
     text-align: center;
     padding: 20px;
 }
+
 .barcode-display {
     background: rgba(255, 255, 255, 0.05);
     border-radius: 12px;
     padding: 15px;
     margin-bottom: 20px;
 }
+
 .barcode-display span {
     display: block;
     color: rgba(255, 255, 255, 0.6);
     font-size: 0.85rem;
     margin-bottom: 8px;
 }
+
 .barcode-display code {
     display: block;
     font-size: 1.2rem;
     color: #fff;
     letter-spacing: 2px;
 }
+
 .no-offer p {
     color: rgba(255, 255, 255, 0.7);
 }
+
 /* Floating Scanner Button */
 .floating-scanner-btn {
     position: fixed;
@@ -232,32 +271,40 @@
     z-index: 1000;
     animation: pulse-glow 2s ease-in-out infinite;
 }
+
 .floating-scanner-btn:hover {
     transform: scale(1.1);
     box-shadow: 0 6px 30px rgba(102, 126, 234, 0.7);
 }
+
 .floating-scanner-btn:active {
     transform: scale(0.95);
 }
+
 .floating-scanner-btn svg {
     width: 28px;
     height: 28px;
 }
+
 @keyframes pulse-glow {
+
     0%,
     100% {
         box-shadow: 0 4px 20px rgba(102, 126, 234, 0.5);
     }
+
     50% {
         box-shadow: 0 4px 30px rgba(102, 126, 234, 0.8), 0 0 40px rgba(118, 75, 162, 0.4);
     }
 }
+
 /* Hide on print */
 @media print {
     .floating-scanner-btn {
         display: none;
     }
 }
+
 /* Mobile adjustments */
 @media (max-width: 768px) {
     .floating-scanner-btn {
@@ -266,8 +313,135 @@
         width: 56px;
         height: 56px;
     }
+
     .floating-scanner-btn svg {
         width: 24px;
         height: 24px;
     }
+}
+
+/* Manual Search Section */
+.manual-search-section {
+    padding: 0 20px 15px;
+}
+
+.manual-search-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 15px 0;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.85rem;
+}
+
+.manual-search-divider::before,
+.manual-search-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.manual-search-divider span {
+    padding: 0 15px;
+}
+
+.manual-search-input {
+    display: flex;
+    gap: 10px;
+}
+
+.manual-search-input input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-size: 0.95rem;
+    direction: rtl;
+}
+
+.manual-search-input input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.manual-search-input input:focus {
+    outline: none;
+    border-color: #667eea;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.manual-search-input .scanner-btn {
+    white-space: nowrap;
+    padding: 12px 18px;
+}
+
+/* Search Results List */
+.search-results {
+    max-height: 350px;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.search-result-item {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.search-result-item:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(102, 126, 234, 0.5);
+    transform: translateX(-3px);
+}
+
+.search-result-item:active {
+    transform: scale(0.98);
+}
+
+.result-brand {
+    font-size: 0.75rem;
+    color: #667eea;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.result-name {
+    color: #fff;
+    font-size: 0.95rem;
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.result-price {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.old-price {
+    color: rgba(255, 255, 255, 0.4);
+    text-decoration: line-through;
+    font-size: 0.85rem;
+}
+
+.new-price {
+    color: #2ecc71;
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.discount-tag {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
 }
