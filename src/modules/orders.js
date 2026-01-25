@@ -118,10 +118,10 @@ export const OrdersModule = {
         const items = State.orderItems.filter(item => item.branch === branch);
         if (items.length === 0) return;
         const email = BRANCH_EMAILS[branch];
-        const subject = `طلب تحويل أصناف - صيدلية الرس 1`;
+        const subject = `طلب تحويل أصناف`;
         let body = `السلام عليكم\n\nنرجو تحويل الأصناف التالية:\n\n`;
         items.forEach(item => { body += `• ${item.med} - الكمية: ${item.qty}${item.isClient ? ' (لعميل)' : ''}\n`; });
-        body += `\nوجزاكم الله خيراً\nصيدلية الرازي - الرس 1`;
+        body += `\nوجزاكم الله خيراً`;
 
         const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
