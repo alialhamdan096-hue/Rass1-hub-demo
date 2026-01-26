@@ -640,11 +640,37 @@
             resumeScanner();
             input.focus();
         }
-        // ===== EVENTS =====
-        document.getElementById('searchBtn').onclick = search;
-        input.onkeypress = e => e.key === 'Enter' && search();
-        document.getElementById('closeBtn').onclick = closeModal;
-        document.getElementById('againBtn').onclick = closeModal;
+        // ===== EVENTS - ROBUST INPUT HANDLING =====
+        // 1. Pause scanner when user wants to type
+        input.addEventListener('focus', () => {
+            console.log('🖊️ Input focused - pausing scanner');
+            if (scanner) {
+                try { scanner.pause(true); } catch (e) { }
+            }
+        });
+        // 2. Search on Enter
+        input.addEventListener('keypress', e => {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // Prevent form submission
+                input.blur(); // Hide keyboard
+                search();
+            }
+        });
+        // 3. Search Button
+        document.getElementById('searchBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            search();
+        });
+        // 4. Close Modal
+        document.getElementById('closeBtn').addEventListener('click', closeModal);
+        document.getElementById('againBtn').addEventListener('click', closeModal);
+        // 5. Resume (if needed) when input loses focus AND is empty
+        input.addEventListener('blur', () => {
+            // Optional: resume if empty
+            if (!input.value) {
+                resumeScanner();
+            }
+        });
         // ===== START =====
         init();
     </script>
