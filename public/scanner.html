@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="screen-orientation" content="portrait">
+    <meta name="x5-orientation" content="portrait">
+    <meta name="msapplication-orientation" content="portrait">
     <title>ماسح العروض | Rass1</title>
     <link rel="icon" type="image/png" href="/favicon.png">
     <!-- Scanner Library -->
@@ -107,20 +110,24 @@
         .search-input-group input {
             flex: 1;
             padding: 14px 18px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(102, 126, 234, 0.5);
             border-radius: 12px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.4);
             color: #fff;
-            font-size: 1rem;
+            font-size: 1.1rem;
+            font-weight: 500;
             direction: rtl;
+            -webkit-text-fill-color: #fff;
         }
         .search-input-group input::placeholder {
-            color: rgba(255, 255, 255, 0.5);
+            color: rgba(255, 255, 255, 0.6);
+            -webkit-text-fill-color: rgba(255, 255, 255, 0.6);
         }
         .search-input-group input:focus {
             outline: none;
             border-color: #667eea;
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
         }
         .btn {
             padding: 14px 20px;
@@ -455,8 +462,21 @@
         const closeResultBtn = document.getElementById('closeResultBtn');
         const searchAgainBtn = document.getElementById('searchAgainBtn');
         const loading = document.getElementById('loading');
+        // Lock screen orientation to portrait
+        async function lockOrientation() {
+            try {
+                if (screen.orientation && screen.orientation.lock) {
+                    await screen.orientation.lock('portrait');
+                    console.log('✅ Screen locked to portrait');
+                }
+            } catch (e) {
+                console.log('Screen orientation lock not supported');
+            }
+        }
         // Initialize
         async function init() {
+            // Try to lock orientation
+            lockOrientation();
             loading.classList.add('active');
             await loadOffersData();
             loading.classList.remove('active');
@@ -491,16 +511,36 @@
             const rows = data.table.rows;
             return rows.slice(1).map(row => {
                 const cells = row.c;
+                // Extract date - Google Sheets returns dates in special format
+                // It could be in 'v' as "Date(2025,0,31)" or in 'f' as formatted string
+                const extractDate = (cell) => {
+                    if (!cell) return '';
+                    // Try formatted value first (usually more readable)
+                    if (cell.f) return cell.f;
+                    // Try raw value
+                    if (cell.v) {
+                        // Check if it's a Date() string format
+                        const dateMatch = String(cell.v).match(/Date\((\d+),(\d+),(\d+)\)/);
+                        if (dateMatch) {
+                            const year = parseInt(dateMatch[1]);
+                            const month = parseInt(dateMatch[2]) + 1; // months are 0-indexed
+                            const day = parseInt(dateMatch[3]);
+                            return `${month}/${day}/${year}`;
+                        }
+                        return cell.v;
+                    }
+                    return '';
+                };
                 return {
                     barcode: cells[0]?.v?.toString() || '',
                     productName: cells[1]?.v || '',
                     brand: cells[2]?.v || '',
-                    discount: cells[3]?.v || '',
-                    priceBefore: cells[4]?.v || '',
-                    save: cells[5]?.v || '',
-                    priceAfter: cells[6]?.v || '',
-                    startDate: cells[8]?.v || '',
-                    endDate: cells[9]?.v || '',
+                    discount: cells[3]?.v || cells[3]?.f || '',
+                    priceBefore: cells[4]?.v || cells[4]?.f || '',
+                    save: cells[5]?.v || cells[5]?.f || '',
+                    priceAfter: cells[6]?.v || cells[6]?.f || '',
+                    startDate: extractDate(cells[8]),
+                    endDate: extractDate(cells[9]),
                     arDescription: cells[10]?.v || '',
                     category: cells[12]?.v || ''
                 };
@@ -513,8 +553,30 @@
                 await scanner.start(
                     { facingMode: 'environment' },
                     {
-                        fps: 15,
-                        qrbox: { width: 280, height: 160 },
+                        fps: 20,  // Higher FPS for faster detection
+                        qrbox: { width: 300, height: 200 },  // Larger scan area
+                        aspectRatio: 1.5,
+                        formatsToSupport: [
+                            // Standard retail barcodes
+                            Html5QrcodeSupportedFormats.EAN_13,
+                            Html5QrcodeSupportedFormats.EAN_8,
+                            Html5QrcodeSupportedFormats.UPC_A,
+                            Html5QrcodeSupportedFormats.UPC_E,
+                            // Industrial barcodes
+                            Html5QrcodeSupportedFormats.CODE_128,
+                            Html5QrcodeSupportedFormats.CODE_39,
+                            Html5QrcodeSupportedFormats.CODE_93,
+                            Html5QrcodeSupportedFormats.CODABAR,
+                            Html5QrcodeSupportedFormats.ITF,
+                            // 2D barcodes
+                            Html5QrcodeSupportedFormats.QR_CODE,
+                            Html5QrcodeSupportedFormats.DATA_MATRIX,
+                            Html5QrcodeSupportedFormats.AZTEC,
+                            Html5QrcodeSupportedFormats.PDF_417,
+                            // GS1 DataBar (common for diapers, variable products)
+                            Html5QrcodeSupportedFormats.RSS_14,
+                            Html5QrcodeSupportedFormats.RSS_EXPANDED
+                        ],
                         experimentalFeatures: { useBarCodeDetectorIfSupported: true }
                     },
                     onScanSuccess,
