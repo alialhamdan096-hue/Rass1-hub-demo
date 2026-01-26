@@ -419,11 +419,19 @@
                         const c = r.c;
                         const getDate = (cell) => {
                             if (!cell) return '';
-                            if (cell.f) return cell.f;
-                            if (cell.v) {
-                                const m = String(cell.v).match(/Date\((\d+),(\d+),(\d+)\)/);
+                            // 1. Try formatted value (most reliable for strings like '1/26/2025')
+                            if (cell.f && cell.f !== '∞') return cell.f;
+                            if (cell.v !== null && cell.v !== undefined) {
+                                const vs = String(cell.v);
+                                // Case: Date(2026,8,6)
+                                const m = vs.match(/Date\((\d+),(\d+),(\d+)\)/);
                                 if (m) return `${parseInt(m[2]) + 1}/${m[3]}/${m[1]}`;
-                                return cell.v;
+                                // Case: Serial number (e.g. 45683)
+                                if (!isNaN(cell.v) && cell.v > 40000 && cell.v < 60000) {
+                                    const d = new Date((cell.v - 25569) * 86400000);
+                                    return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+                                }
+                                return vs;
                             }
                             return '';
                         };
@@ -435,16 +443,17 @@
                             priceBefore: c[4]?.f || c[4]?.v || '',
                             save: c[5]?.f || c[5]?.v || '',
                             priceAfter: c[6]?.f || c[6]?.v || '',
-                            startDate: getDate(c[8]),
-                            endDate: getDate(c[9]),
+                            from: getDate(c[8]),
+                            end: getDate(c[9]),
                             arName: c[10]?.v || '',
-                            category: c[12]?.v || ''
+                            type: c[11]?.v || '',
+                            cat: c[12]?.v || ''
                         };
                     }).filter(o => o.barcode);
-                    console.log('✅', offers.length, 'offers');
+                    console.log('✅ Loaded', offers.length, 'offers');
                 }
             } catch (e) {
-                console.error(e);
+                console.error('Error loading data:', e);
             }
         }
         // ===== ULTRA FAST SCANNER =====
@@ -520,44 +529,40 @@
                 beepOnce(2400, 80);
             } catch (e) { }
         }
-        // ===== DATE =====
-        // ===== DATE =====
+        // ===== DATE UTILS =====
         function parseDate(s) {
-            if (!s || s === '∞' || String(s).toLowerCase().includes('infinity')) return null;
-            // 1. Try standard date parse
+            if (!s || s === '∞' || String(s).toLowerCase().includes('inf')) return null;
+            // 1. Standard parse
             let d = new Date(s);
-            // 2. If invalid, try manual parsing (MM/DD/YYYY)
-            if (isNaN(d.getTime())) {
-                const p = String(s).split('/');
-                if (p.length === 3) {
-                    // Start with MM/DD/YYYY (standard from our extractor)
-                    d = new Date(p[2], p[0] - 1, p[1]);
+            if (!isNaN(d.getTime())) return d;
+            // 2. Manual parse for D/M/Y or M/D/Y
+            const p = String(s).split(/[\/\-.]/);
+            if (p.length === 3) {
+                const d1 = parseInt(p[0]);
+                const d2 = parseInt(p[1]);
+                const y = parseInt(p[2]);
+                if (y > 1000) {
+                    if (d1 > 12) return new Date(y, d2 - 1, d1); // Definitely D/M/Y
+                    return new Date(y, d1 - 1, d2); // Default to M/D/Y
                 }
             }
-            // 3. Last fallback, try DD/MM/YYYY
-            if (isNaN(d.getTime())) {
-                const p = String(s).split('/');
-                if (p.length === 3) {
-                    d = new Date(p[2], p[1] - 1, p[0]);
-                }
-            }
-            return isNaN(d.getTime()) ? null : d;
+            return null;
         }
         function getStatus(offer) {
+            // Check if Type is Fixed
+            if (offer.type === 'ثابت') return { label: '✅ ساري', msg: 'مستمر', color: '#27ae60' };
             const now = new Date(); now.setHours(0, 0, 0, 0);
-            const start = parseDate(offer.startDate);
-            const end = parseDate(offer.endDate);
+            const start = parseDate(offer.from);
+            const end = parseDate(offer.end);
             if (start && start > now) {
-                const d = Math.ceil((start - now) / 86400000);
-                return { label: '🔜 لم يبدأ', msg: `يبدأ بعد ${d} يوم`, color: '#95a5a6' };
-            }
-            if (end && end < now) {
-                return { label: '❌ منتهي', msg: 'انتهى', color: '#e74c3c' };
+                const diff = Math.ceil((start - now) / 86400000);
+                return { label: '🔜 لم يبدأ', msg: `بعد ${diff} يوم`, color: '#95a5a6' };
             }
             if (end) {
-                const d = Math.ceil((end - now) / 86400000);
-                if (d <= 3) return { label: '⚡ ينتهي قريباً', msg: `${d} يوم`, color: '#f39c12' };
-                return { label: '✅ ساري', msg: `${d} يوم`, color: '#27ae60' };
+                const diff = Math.ceil((end - now) / 86400000);
+                if (diff < 0) return { label: '❌ منتهي', msg: 'انتهى', color: '#e74c3c' };
+                if (diff <= 3) return { label: '⚡ ينتهي قريباً', msg: `${diff} يوم`, color: '#f39c12' };
+                return { label: '✅ ساري', msg: `${diff} يوم`, color: '#27ae60' };
             }
             return { label: '✅ ساري', msg: 'مستمر', color: '#27ae60' };
         }
