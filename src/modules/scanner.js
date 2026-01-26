@@ -146,21 +146,41 @@ export const Scanner = {
         }).filter(item => item.barcode);
     },
     /**
+     * Parse date string safely (handles MM/DD/YYYY and other formats)
+     */
+    parseDate(dateStr) {
+        if (!dateStr || dateStr === '∞' || dateStr === 'infinity' || dateStr === '') {
+            return null;
+        }
+        try {
+            // Try direct parsing first
+            let date = new Date(dateStr);
+            // If invalid, try parsing MM/DD/YYYY format
+            if (isNaN(date.getTime())) {
+                const parts = dateStr.split('/');
+                if (parts.length === 3) {
+                    // MM/DD/YYYY format
+                    date = new Date(parts[2], parts[0] - 1, parts[1]);
+                }
+            }
+            // Check if valid
+            if (isNaN(date.getTime())) {
+                return null;
+            }
+            return date;
+        } catch (e) {
+            return null;
+        }
+    },
+    /**
      * Get offer status based on dates
      */
     getOfferStatus(offer) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        // Parse start date
-        let startDate = null;
-        if (offer.startDate) {
-            startDate = new Date(offer.startDate);
-        }
-        // Parse end date (∞ means infinite/no end)
-        let endDate = null;
-        if (offer.endDate && offer.endDate !== '∞' && offer.endDate !== 'infinity') {
-            endDate = new Date(offer.endDate);
-        }
+        // Parse dates safely
+        const startDate = this.parseDate(offer.startDate);
+        const endDate = this.parseDate(offer.endDate);
         // Check if not started yet
         if (startDate && startDate > today) {
             const daysUntilStart = Math.ceil((startDate - today) / (1000 * 60 * 60 * 24));
