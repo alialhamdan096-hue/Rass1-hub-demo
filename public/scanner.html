@@ -443,14 +443,24 @@
         function startScanner() {
             statusText.textContent = '⏳ جاري تشغيل الكاميرا...';
             statusDot.className = 'status-dot loading';
-            // HIGH PERFORMANCE CONFIG
+            // HIGH PERFORMANCE CONFIG - Optimized for ITF (diapers) and all formats
             const config = {
-                fps: 30,  // Maximum FPS for fastest detection
-                qrbox: { width: 280, height: 150 },
+                fps: 30,  // Maximum FPS
+                qrbox: { width: 320, height: 120 },  // Wider for ITF barcodes
                 aspectRatio: 1.777778,  // 16:9
                 disableFlip: false,
+                formatsToSupport: [
+                    Html5QrcodeSupportedFormats.EAN_13,
+                    Html5QrcodeSupportedFormats.EAN_8,
+                    Html5QrcodeSupportedFormats.UPC_A,
+                    Html5QrcodeSupportedFormats.UPC_E,
+                    Html5QrcodeSupportedFormats.CODE_128,
+                    Html5QrcodeSupportedFormats.CODE_39,
+                    Html5QrcodeSupportedFormats.ITF,  // Important for diapers!
+                    Html5QrcodeSupportedFormats.QR_CODE
+                ],
                 experimentalFeatures: {
-                    useBarCodeDetectorIfSupported: true  // Use native API when available
+                    useBarCodeDetectorIfSupported: true
                 }
             };
             scanner = new Html5Qrcode("reader");
