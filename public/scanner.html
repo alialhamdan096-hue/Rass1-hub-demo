@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>ماسح العروض | Rass1</title>
-    <!-- html5-qrcode - يدعم iOS و Android -->
+    <!-- html5-qrcode -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
         * {
@@ -15,81 +16,156 @@
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            background: #0a0a0f;
             min-height: 100vh;
             color: #fff;
         }
         .header {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 15px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 12px;
             text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
         .header h1 {
-            font-size: 1.3rem;
+            font-size: 1.2rem;
         }
-        .container {
-            padding: 15px;
-            max-width: 500px;
-            margin: 0 auto;
-        }
-        .card {
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 20px;
-            padding: 15px;
-        }
-        .card h2 {
-            text-align: center;
-            margin-bottom: 15px;
-            font-size: 1.1rem;
-        }
-        /* Scanner container */
-        #reader {
+        .scanner-container {
+            position: relative;
             width: 100%;
-            border-radius: 15px;
+            height: 55vh;
+            background: #000;
             overflow: hidden;
         }
+        #reader {
+            width: 100% !important;
+            height: 100% !important;
+        }
         #reader video {
+            object-fit: cover !important;
+            width: 100% !important;
+            height: 100% !important;
+        }
+        /* Scan overlay */
+        .scan-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .scan-target {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 85%;
+            height: 45%;
+            border: 3px solid #00ff88;
             border-radius: 15px;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
         }
-        .hint {
+        .scan-target::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 10%;
+            right: 10%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #00ff88, transparent);
+            animation: scanLine 1s ease-in-out infinite;
+        }
+        @keyframes scanLine {
+            0%,
+            100% {
+                top: 0;
+            }
+            50% {
+                top: calc(100% - 3px);
+            }
+        }
+        /* Corner decorations */
+        .corner {
+            position: absolute;
+            width: 25px;
+            height: 25px;
+            border-color: #00ff88;
+            border-style: solid;
+        }
+        .corner.tl {
+            top: -3px;
+            left: -3px;
+            border-width: 4px 0 0 4px;
+            border-radius: 10px 0 0 0;
+        }
+        .corner.tr {
+            top: -3px;
+            right: -3px;
+            border-width: 4px 4px 0 0;
+            border-radius: 0 10px 0 0;
+        }
+        .corner.bl {
+            bottom: -3px;
+            left: -3px;
+            border-width: 0 0 4px 4px;
+            border-radius: 0 0 0 10px;
+        }
+        .corner.br {
+            bottom: -3px;
+            right: -3px;
+            border-width: 0 4px 4px 0;
+            border-radius: 0 0 10px 0;
+        }
+        .hint-text {
+            position: absolute;
+            bottom: 10%;
+            left: 0;
+            right: 0;
             text-align: center;
-            color: rgba(255, 255, 255, 0.7);
-            margin: 10px 0;
-            font-size: 0.9rem;
-        }
-        .status {
-            text-align: center;
-            padding: 10px;
-            border-radius: 10px;
-            margin: 10px 0;
-            font-weight: 600;
-        }
-        .status.ready {
-            background: rgba(0, 255, 136, 0.2);
             color: #00ff88;
+            font-size: 0.9rem;
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
         }
-        .status.error {
-            background: rgba(255, 0, 0, 0.2);
-            color: #ff6b6b;
-        }
-        .status.loading {
-            background: rgba(255, 200, 0, 0.2);
-            color: #ffc800;
-        }
-        .divider {
+        /* Status bar */
+        .status-bar {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            padding: 12px 15px;
             display: flex;
             align-items: center;
-            margin: 15px 0;
-            color: rgba(255, 255, 255, 0.5);
+            justify-content: center;
+            gap: 10px;
         }
-        .divider::before,
-        .divider::after {
-            content: '';
-            flex: 1;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
         }
-        .divider span {
-            padding: 0 15px;
+        .status-dot.ready {
+            background: #00ff88;
+        }
+        .status-dot.loading {
+            background: #ffc800;
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+        .status-text {
+            font-size: 0.9rem;
+        }
+        /* Search section */
+        .search-section {
+            padding: 15px;
+            background: linear-gradient(180deg, #16213e, #0f3460);
         }
         .search-box {
             display: flex;
@@ -97,8 +173,8 @@
         }
         .search-box input {
             flex: 1;
-            padding: 14px;
-            border: 2px solid rgba(102, 126, 234, 0.5);
+            padding: 14px 16px;
+            border: 2px solid #667eea;
             border-radius: 12px;
             background: rgba(0, 0, 0, 0.5);
             color: #fff;
@@ -109,12 +185,13 @@
             color: rgba(255, 255, 255, 0.5);
         }
         .btn {
-            padding: 14px 20px;
+            padding: 14px 24px;
             border: none;
             border-radius: 12px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: #fff;
-            font-weight: 600;
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            color: #000;
+            font-weight: 700;
+            font-size: 1.1rem;
             cursor: pointer;
             -webkit-appearance: none;
         }
@@ -126,29 +203,34 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.95);
             z-index: 1000;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 15px;
         }
         .modal.show {
             display: flex;
         }
         .modal-content {
-            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            background: linear-gradient(135deg, #1a1a2e, #0f3460);
             border-radius: 20px;
-            padding: 25px;
+            padding: 20px;
             width: 100%;
             max-width: 400px;
             max-height: 85vh;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
+            border: 1px solid rgba(102, 126, 234, 0.3);
         }
         .modal-header {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 20px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .modal-header h2 {
+            font-size: 1.1rem;
         }
         .close-btn {
             background: rgba(255, 255, 255, 0.1);
@@ -157,21 +239,40 @@
             width: 35px;
             height: 35px;
             border-radius: 50%;
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             cursor: pointer;
-            -webkit-appearance: none;
         }
-        .offer-status {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px;
+        .offer-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 15px;
             border-radius: 10px;
             margin-bottom: 15px;
+            width: 100%;
+            justify-content: space-between;
         }
-        .pricing {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
+        .product-info {
+            margin-bottom: 15px;
+        }
+        .product-info .brand {
+            color: #667eea;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .product-info h3 {
+            margin: 5px 0;
+            font-size: 1.1rem;
+        }
+        .product-info .desc {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+        }
+        .price-card {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
             padding: 15px;
+            margin-bottom: 15px;
         }
         .price-row {
             display: flex;
@@ -182,22 +283,33 @@
         .price-row:last-child {
             border: none;
         }
-        .old-price {
-            text-decoration: line-through;
-            color: rgba(255, 255, 255, 0.5);
+        .price-row.final {
+            font-size: 1.15rem;
+            font-weight: 700;
         }
-        .new-price {
+        .old {
+            text-decoration: line-through;
+            color: rgba(255, 255, 255, 0.4);
+        }
+        .new {
             color: #00ff88;
             font-weight: 700;
         }
+        .discount {
+            background: #e74c3c;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+        }
         .no-offer {
             text-align: center;
-            padding: 30px;
+            padding: 25px;
         }
         .no-offer .icon {
             font-size: 3rem;
+            margin-bottom: 15px;
         }
-        .barcode-box {
+        .barcode-display {
             background: rgba(255, 255, 255, 0.1);
             padding: 10px;
             border-radius: 8px;
@@ -206,41 +318,57 @@
             text-align: center;
             word-break: break-all;
         }
-        .footer {
-            text-align: center;
-            padding: 15px;
-            color: rgba(255, 255, 255, 0.4);
-            font-size: 0.8rem;
+        .btn-full {
+            width: 100%;
+            margin-top: 15px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
         }
-        /* Fix for html5-qrcode styles */
+        /* Hide html5-qrcode default UI */
+        #reader__dashboard_section_csr,
+        #reader__dashboard_section_swaplink,
+        #reader__status_span,
+        #reader__header_message {
+            display: none !important;
+        }
         #reader__scan_region {
-            min-height: 200px !important;
+            border: none !important;
+            min-height: 100% !important;
         }
-        #reader__dashboard_section_swaplink {
-            color: #667eea !important;
+        #reader__scan_region video {
+            object-fit: cover !important;
         }
     </style>
 </head>
 <body>
     <header class="header">
-        <h1>🛒 ماسح العروض | Rass1</h1>
+        <h1>🛒 ماسح العروض</h1>
     </header>
-    <main class="container">
-        <div class="card">
-            <h2 id="title">📷 مسح الباركود</h2>
-            <div id="cameraArea">
-                <div id="reader"></div>
-                <p class="hint">ضع الباركود داخل الإطار</p>
+    <!-- Scanner -->
+    <div class="scanner-container">
+        <div id="reader"></div>
+        <div class="scan-overlay">
+            <div class="scan-target">
+                <div class="corner tl"></div>
+                <div class="corner tr"></div>
+                <div class="corner bl"></div>
+                <div class="corner br"></div>
             </div>
-            <div class="status loading" id="status">⏳ جاري تحميل الكاميرا...</div>
-            <div class="divider"><span>أو ابحث يدوياً</span></div>
-            <div class="search-box">
-                <input type="text" id="input" placeholder="الباركود أو اسم المنتج" autocomplete="off">
-                <button class="btn" id="searchBtn">🔍</button>
-            </div>
+            <div class="hint-text">📷 وجّه الكاميرا نحو الباركود</div>
         </div>
-    </main>
-    <footer class="footer">© 2025 Rass1 Hub</footer>
+    </div>
+    <!-- Status -->
+    <div class="status-bar">
+        <div class="status-dot ready" id="statusDot"></div>
+        <span class="status-text" id="statusText">جاري التحميل...</span>
+    </div>
+    <!-- Search -->
+    <div class="search-section">
+        <div class="search-box">
+            <input type="text" id="input" placeholder="أو اكتب الباركود / اسم المنتج" autocomplete="off">
+            <button class="btn" id="searchBtn">🔍</button>
+        </div>
+    </div>
     <!-- Modal -->
     <div class="modal" id="modal">
         <div class="modal-content">
@@ -249,35 +377,26 @@
                 <button class="close-btn" id="closeBtn">&times;</button>
             </div>
             <div id="modalBody"></div>
-            <button class="btn" style="width:100%; margin-top:15px" id="againBtn">🔍 بحث جديد</button>
+            <button class="btn btn-full" id="againBtn">🔍 بحث جديد</button>
         </div>
     </div>
     <script>
-        // ===== GLOBALS =====
+        // ===== OPTIMIZED FOR SPEED =====
         let offers = [];
-        let html5QrcodeScanner = null;
+        let scanner = null;
         let audioCtx = null;
-        const status = document.getElementById('status');
+        let lastScan = 0;
         const input = document.getElementById('input');
         const modal = document.getElementById('modal');
         const modalTitle = document.getElementById('modalTitle');
         const modalBody = document.getElementById('modalBody');
-        const cameraArea = document.getElementById('cameraArea');
-        const title = document.getElementById('title');
-        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
         // ===== INIT =====
         async function init() {
-            status.textContent = '⏳ جاري تحميل البيانات...';
+            statusText.textContent = '⏳ جاري تحميل البيانات...';
             await loadOffers();
-            if (isMobile) {
-                startScanner();
-            } else {
-                cameraArea.style.display = 'none';
-                title.textContent = '🔍 البحث عن العروض';
-                status.textContent = '✅ جاهز للبحث';
-                status.className = 'status ready';
-                input.focus();
-            }
+            startScanner();
         }
         // ===== LOAD DATA =====
         async function loadOffers() {
@@ -314,65 +433,63 @@
                             category: c[12]?.v || ''
                         };
                     }).filter(o => o.barcode);
-                    console.log('✅ Loaded', offers.length, 'offers');
+                    console.log('✅', offers.length, 'offers');
                 }
             } catch (e) {
-                console.error('Load error:', e);
+                console.error(e);
             }
         }
-        // ===== SCANNER - html5-qrcode library =====
+        // ===== ULTRA FAST SCANNER =====
         function startScanner() {
-            status.textContent = '⏳ جاري تشغيل الكاميرا...';
-            status.className = 'status loading';
-            html5QrcodeScanner = new Html5QrcodeScanner(
-                "reader",
-                {
-                    fps: 10,
-                    qrbox: { width: 250, height: 150 },
-                    rememberLastUsedCamera: true,
-                    // Support all major barcode formats
-                    formatsToSupport: [
-                        Html5QrcodeSupportedFormats.EAN_13,
-                        Html5QrcodeSupportedFormats.EAN_8,
-                        Html5QrcodeSupportedFormats.UPC_A,
-                        Html5QrcodeSupportedFormats.UPC_E,
-                        Html5QrcodeSupportedFormats.CODE_128,
-                        Html5QrcodeSupportedFormats.CODE_39,
-                        Html5QrcodeSupportedFormats.ITF,
-                        Html5QrcodeSupportedFormats.QR_CODE
-                    ]
-                },
-                /* verbose= */ false
-            );
-            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-            // Update status after camera starts
-            setTimeout(() => {
-                const videoElem = document.querySelector('#reader video');
-                if (videoElem) {
-                    status.textContent = '🔍 جاهز للمسح - وجّه الكاميرا للباركود';
-                    status.className = 'status ready';
+            statusText.textContent = '⏳ جاري تشغيل الكاميرا...';
+            statusDot.className = 'status-dot loading';
+            // HIGH PERFORMANCE CONFIG
+            const config = {
+                fps: 30,  // Maximum FPS for fastest detection
+                qrbox: { width: 280, height: 150 },
+                aspectRatio: 1.777778,  // 16:9
+                disableFlip: false,
+                experimentalFeatures: {
+                    useBarCodeDetectorIfSupported: true  // Use native API when available
                 }
-            }, 2000);
+            };
+            scanner = new Html5Qrcode("reader");
+            scanner.start(
+                { facingMode: "environment" },
+                config,
+                onSuccess,
+                onError
+            ).then(() => {
+                statusText.textContent = '✅ جاهز - امسح الباركود';
+                statusDot.className = 'status-dot ready';
+            }).catch(err => {
+                console.error(err);
+                statusText.textContent = '❌ خطأ في الكاميرا';
+                statusDot.className = 'status-dot loading';
+            });
         }
-        function onScanSuccess(decodedText, decodedResult) {
-            console.log('📷 Scanned:', decodedText);
+        function onSuccess(code) {
+            // Prevent duplicate scans (debounce 1 second)
+            const now = Date.now();
+            if (now - lastScan < 1000) return;
+            lastScan = now;
+            console.log('📷', code);
             beep();
-            // Stop scanner temporarily
-            html5QrcodeScanner.pause(true);
-            const offer = offers.find(o => o.barcode === decodedText);
-            showResult(decodedText, offer);
+            // Pause scanner
+            scanner.pause(true);
+            const offer = offers.find(o => o.barcode === code);
+            showResult(code, offer);
         }
-        function onScanFailure(error) {
-            // Ignore - this fires continuously when no barcode is detected
+        function onError() {
+            // Ignore - fires when no barcode detected
         }
         function resumeScanner() {
-            if (html5QrcodeScanner) {
+            if (scanner) {
                 try {
-                    html5QrcodeScanner.resume();
+                    scanner.resume();
                 } catch (e) {
-                    // If resume fails, restart
-                    html5QrcodeScanner.clear();
-                    startScanner();
+                    // Restart if resume fails
+                    scanner.stop().then(() => startScanner());
                 }
             }
         }
@@ -380,19 +497,26 @@
         function beep() {
             try {
                 if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.frequency.value = 1800;
-                osc.type = 'square';
-                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.1);
+                // Quick double beep like Nahdi
+                const beepOnce = (freq, delay) => {
+                    setTimeout(() => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.frequency.value = freq;
+                        osc.type = 'sine';
+                        gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+                        osc.start();
+                        osc.stop(audioCtx.currentTime + 0.08);
+                    }, delay);
+                };
+                beepOnce(1800, 0);
+                beepOnce(2400, 80);
             } catch (e) { }
         }
-        // ===== DATE HELPERS =====
+        // ===== DATE =====
         function parseDate(s) {
             if (!s || s === '∞') return null;
             let d = new Date(s);
@@ -411,44 +535,44 @@
                 return { label: '🔜 لم يبدأ', msg: `يبدأ بعد ${d} يوم`, color: '#95a5a6' };
             }
             if (end && end < now) {
-                return { label: '❌ منتهي', msg: 'انتهى العرض', color: '#e74c3c' };
+                return { label: '❌ منتهي', msg: 'انتهى', color: '#e74c3c' };
             }
             if (end) {
                 const d = Math.ceil((end - now) / 86400000);
-                if (d <= 3) return { label: '⚠️ قريباً', msg: `باقي ${d} يوم`, color: '#f39c12' };
-                return { label: '✅ ساري', msg: `متبقي ${d} يوم`, color: '#27ae60' };
+                if (d <= 3) return { label: '⚡ ينتهي قريباً', msg: `${d} يوم`, color: '#f39c12' };
+                return { label: '✅ ساري', msg: `${d} يوم`, color: '#27ae60' };
             }
-            return { label: '✅ ساري', msg: 'عرض مستمر', color: '#27ae60' };
+            return { label: '✅ ساري', msg: 'مستمر', color: '#27ae60' };
         }
         // ===== SHOW RESULT =====
         function showResult(code, offer) {
             if (offer) {
                 const st = getStatus(offer);
-                modalTitle.textContent = '🎉 تم العثور على عرض!';
-                modalTitle.style.color = '#27ae60';
+                modalTitle.textContent = '🎉 عرض!';
+                modalTitle.style.color = '#00ff88';
                 modalBody.innerHTML = `
-                    <div class="offer-status" style="background:${st.color}">
+                    <div class="offer-badge" style="background:${st.color}">
                         <span>${st.label}</span>
                         <span>${st.msg}</span>
                     </div>
-                    <div style="margin-bottom:15px">
-                        <div style="color:#667eea;font-size:0.8rem">${offer.brand}</div>
+                    <div class="product-info">
+                        <div class="brand">${offer.brand}</div>
                         <h3>${offer.name}</h3>
-                        <p style="color:rgba(255,255,255,0.7)">${offer.arName}</p>
+                        <p class="desc">${offer.arName}</p>
                     </div>
-                    <div class="pricing">
+                    <div class="price-card">
                         <div class="price-row">
-                            <span>السعر الأصلي:</span>
-                            <span class="old-price">${offer.priceBefore} ريال</span>
+                            <span>السعر:</span>
+                            <span class="old">${offer.priceBefore} ر.س</span>
                         </div>
                         <div class="price-row">
                             <span>الخصم:</span>
-                            <span style="background:#e74c3c;padding:4px 12px;border-radius:20px">${offer.discount}</span>
+                            <span class="discount">${offer.discount}</span>
                         </div>
-                        ${offer.save ? `<div class="price-row"><span>توفير:</span><span class="new-price">${offer.save} ريال</span></div>` : ''}
-                        <div class="price-row" style="font-size:1.2rem;font-weight:700">
-                            <span>السعر النهائي:</span>
-                            <span class="new-price">${offer.priceAfter} ريال</span>
+                        ${offer.save ? `<div class="price-row"><span>وفّر:</span><span class="new">${offer.save} ر.س</span></div>` : ''}
+                        <div class="price-row final">
+                            <span>الآن:</span>
+                            <span class="new">${offer.priceAfter} ر.س</span>
                         </div>
                     </div>
                 `;
@@ -458,8 +582,8 @@
                 modalBody.innerHTML = `
                     <div class="no-offer">
                         <div class="icon">📦</div>
-                        <div class="barcode-box">${code}</div>
-                        <p>هذا المنتج ليس له عرض حالياً</p>
+                        <div class="barcode-display">${code}</div>
+                        <p style="color:rgba(255,255,255,0.6)">هذا المنتج بدون عرض حالياً</p>
                     </div>
                 `;
             }
@@ -469,7 +593,6 @@
         function search() {
             const q = input.value.trim();
             if (!q) return;
-            // By barcode
             const byCode = offers.find(o => o.barcode === q);
             if (byCode) {
                 beep();
@@ -477,7 +600,6 @@
                 input.value = '';
                 return;
             }
-            // By name
             const ql = q.toLowerCase();
             const results = offers.filter(o =>
                 o.name?.toLowerCase().includes(ql) ||
@@ -489,39 +611,34 @@
                 showResult(results[0].barcode, results[0]);
             } else if (results.length > 1) {
                 modalTitle.textContent = `🔍 ${results.length} نتيجة`;
-                modalTitle.style.color = '#3498db';
-                let html = '<div style="max-height:300px;overflow:auto;-webkit-overflow-scrolling:touch">';
+                modalTitle.style.color = '#667eea';
+                let html = '<div style="max-height:50vh;overflow:auto;-webkit-overflow-scrolling:touch">';
                 results.forEach((o, i) => {
-                    html += `<div onclick="pick(${i})" style="background:rgba(255,255,255,0.08);border-radius:12px;padding:15px;margin-bottom:10px;cursor:pointer">
+                    html += `<div onclick="pick(${i})" style="background:rgba(0,0,0,0.3);border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;border:1px solid rgba(102,126,234,0.3)">
                         <div style="color:#667eea;font-size:0.75rem">${o.brand}</div>
-                        <div>${o.name}</div>
-                        <div><span class="old-price">${o.priceBefore}</span> <span class="new-price">${o.priceAfter} ريال</span></div>
+                        <div style="margin:3px 0">${o.name}</div>
+                        <div><span class="old">${o.priceBefore}</span> → <span class="new">${o.priceAfter} ر.س</span></div>
                     </div>`;
                 });
                 html += '</div>';
                 modalBody.innerHTML = html;
                 modal.classList.add('show');
-                window._results = results;
+                window._r = results;
             } else {
                 showResult(q, null);
             }
             input.value = '';
         }
-        window.pick = function (i) {
-            const o = window._results[i];
-            showResult(o.barcode, o);
-        };
-        // ===== CLOSE MODAL =====
+        window.pick = i => showResult(window._r[i].barcode, window._r[i]);
+        // ===== CLOSE =====
         function closeModal() {
             modal.classList.remove('show');
-            if (isMobile) {
-                resumeScanner();
-            }
+            resumeScanner();
             input.focus();
         }
         // ===== EVENTS =====
         document.getElementById('searchBtn').onclick = search;
-        input.onkeypress = e => { if (e.key === 'Enter') search(); };
+        input.onkeypress = e => e.key === 'Enter' && search();
         document.getElementById('closeBtn').onclick = closeModal;
         document.getElementById('againBtn').onclick = closeModal;
         // ===== START =====
