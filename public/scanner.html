@@ -176,13 +176,21 @@
             padding: 14px 16px;
             border: 2px solid #667eea;
             border-radius: 12px;
-            background: rgba(0, 0, 0, 0.5);
-            color: #fff;
-            font-size: 1rem;
+            background: #1a1a2e !important;
+            color: #ffffff !important;
+            font-size: 16px;
             -webkit-appearance: none;
+            -webkit-text-fill-color: #ffffff !important;
+            opacity: 1;
         }
         .search-box input::placeholder {
             color: rgba(255, 255, 255, 0.5);
+            -webkit-text-fill-color: rgba(255, 255, 255, 0.5);
+        }
+        .search-box input:focus {
+            outline: none;
+            border-color: #00ff88;
+            background: #16213e !important;
         }
         .btn {
             padding: 14px 24px;
