@@ -123,9 +123,6 @@ export const Scanner = {
         document.getElementById('scannerModal')?.addEventListener('click', (e) => {
             if (e.target.id === 'scannerModal') this.stop();
         });
-        document.getElementById('offerResultModal')?.addEventListener('click', (e) => {
-            if (e.target.id === 'offerResultModal') this.closeOfferResult();
-        });
     },
     /**
      * Load offers data from Google Sheets
@@ -151,21 +148,22 @@ export const Scanner = {
         const rows = data.table.rows;
         return rows.slice(1).map(row => {
             const cells = row.c;
-            // Extract date - Google Sheets returns dates in special format
+            // Extract date - Google Sheets returns dates in special format or serial numbers
             const extractDate = (cell) => {
                 if (!cell) return '';
-                // Try formatted value first
-                if (cell.f) return cell.f;
-                // Try raw value
-                if (cell.v) {
-                    const dateMatch = String(cell.v).match(/Date\((\d+),(\d+),(\d+)\)/);
-                    if (dateMatch) {
-                        const year = parseInt(dateMatch[1]);
-                        const month = parseInt(dateMatch[2]) + 1;
-                        const day = parseInt(dateMatch[3]);
-                        return `${month}/${day}/${year}`;
+                // 1. Try formatted value (most reliable)
+                if (cell.f && cell.f !== '∞') return cell.f;
+                if (cell.v !== null && cell.v !== undefined) {
+                    const vs = String(cell.v);
+                    // Case: Date(2026,8,6)
+                    const m = vs.match(/Date\((\d+),(\d+),(\d+)\)/);
+                    if (m) return `${parseInt(m[2]) + 1}/${m[3]}/${m[1]}`;
+                    // Case: Serial number (e.g. 45683)
+                    if (!isNaN(cell.v) && cell.v > 40000 && cell.v < 60000) {
+                        const d = new Date((cell.v - 25569) * 86400000);
+                        return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
                     }
-                    return cell.v;
+                    return vs;
                 }
                 return '';
             };
@@ -180,6 +178,7 @@ export const Scanner = {
                 startDate: extractDate(cells[8]),
                 endDate: extractDate(cells[9]),
                 arDescription: cells[10]?.v || '',
+                type: cells[11]?.v || '',
                 category: cells[12]?.v || ''
             };
         }).filter(item => item.barcode);
@@ -188,33 +187,42 @@ export const Scanner = {
      * Parse date string safely (handles MM/DD/YYYY and other formats)
      */
     parseDate(dateStr) {
-        if (!dateStr || dateStr === '∞' || String(dateStr).toLowerCase().includes('infinity') || dateStr === '') {
+        if (!dateStr || dateStr === '∞' || String(dateStr).toLowerCase().includes('inf') || dateStr === '') {
             return null;
         }
         try {
             // 1. Try standard date parse
             let date = new Date(dateStr);
-            // 2. If invalid, try parsing MM/DD/YYYY (standard from our extractor)
-            if (isNaN(date.getTime())) {
-                const parts = String(dateStr).split('/');
-                if (parts.length === 3) {
-                    date = new Date(parts[2], parts[0] - 1, parts[1]);
+            if (!isNaN(date.getTime())) return date;
+            // 2. Manual parse for D/M/Y or M/D/Y
+            const parts = String(dateStr).split(/[\/\-.]/);
+            if (parts.length === 3) {
+                const p0 = parseInt(parts[0]);
+                const p1 = parseInt(parts[1]);
+                const y = parseInt(parts[2]);
+                if (y > 1000) {
+                    if (p0 > 12) return new Date(y, p1 - 1, p0); // D/M/Y
+                    return new Date(y, p0 - 1, p1); // M/D/Y (Default)
                 }
             }
-            // 3. Last fallback: try value directly if it's a timestamp number
-            if (isNaN(date.getTime()) && !isNaN(dateStr)) {
-                date = new Date(parseInt(dateStr));
-            }
-            return isNaN(date.getTime()) ? null : date;
+            return null;
         } catch (e) {
-            console.warn('Date parse error:', e);
             return null;
         }
     },
     /**
-     * Get offer status based on dates
+     * Get status object for an offer
      */
     getOfferStatus(offer) {
+        // Special case: Fixed/Static type
+        if (offer.type === 'ثابت') {
+            return {
+                status: 'active',
+                label: '✅ ساري',
+                color: '#27ae60',
+                message: 'عرض مستمر'
+            };
+        }
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         // Parse dates safely
@@ -222,14 +230,12 @@ export const Scanner = {
         const endDate = this.parseDate(offer.endDate);
         // Check if not started yet
         if (startDate && startDate > today) {
-            const daysUntilStart = Math.ceil((startDate - today) / (1000 * 60 * 60 * 24));
+            const diff = Math.ceil((startDate - today) / 86400000);
             return {
                 status: 'not_started',
-                label: '🔜 لم يبدأ بعد',
-                labelEn: 'Not Started',
+                label: '🔜 لم يبدأ',
                 color: '#95a5a6',
-                message: `يبدأ بعد ${daysUntilStart} يوم`,
-                startDate: startDate.toLocaleDateString('ar-SA')
+                message: `بعد ${diff} يوم`
             };
         }
         // Check if expired
@@ -237,44 +243,34 @@ export const Scanner = {
             return {
                 status: 'expired',
                 label: '❌ منتهي',
-                labelEn: 'Expired',
                 color: '#e74c3c',
-                message: 'انتهى هذا العرض'
+                message: 'انتهى'
             };
         }
-        // Check if ending soon (within 3 days)
+        // Active offer with end date
         if (endDate) {
-            const daysLeft = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
-            if (daysLeft <= 3) {
+            const diff = Math.ceil((endDate - today) / 86400000);
+            if (diff <= 3) {
                 return {
                     status: 'ending_soon',
-                    label: '⚠️ قارب على الانتهاء',
-                    labelEn: 'Ending Soon',
+                    label: '⚡ ينتهي قريباً',
                     color: '#f39c12',
-                    message: `باقي ${daysLeft} يوم فقط!`,
-                    daysLeft: daysLeft
+                    message: `${diff} يوم`
                 };
             }
-        }
-        // Offer is active
-        if (endDate) {
-            const daysLeft = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
             return {
                 status: 'active',
                 label: '✅ ساري',
-                labelEn: 'Active',
                 color: '#27ae60',
-                message: `متبقي ${daysLeft} يوم`,
-                daysLeft: daysLeft
+                message: `${diff} يوم`
             };
         }
-        // Infinite offer (no end date)
+        // Active offer without end date (Continuous)
         return {
             status: 'active',
             label: '✅ ساري',
-            labelEn: 'Active',
             color: '#27ae60',
-            message: 'عرض مستمر'
+            message: 'مستمر'
         };
     },
     getSampleData() {
@@ -310,7 +306,7 @@ export const Scanner = {
             modalTitle.textContent = '🔍 البحث عن العروض';
             cameraSection.style.display = 'none';
             cameraActions.style.display = 'none';
-            searchDivider.style.display = 'none';  // Hide "or search" text
+            searchDivider.style.display = 'none';
             // Focus on search input
             setTimeout(() => searchInput?.focus(), 100);
             return;
@@ -321,33 +317,16 @@ export const Scanner = {
         cameraActions.style.display = 'flex';
         searchDivider.style.display = 'flex';
         try {
-            // Check if Html5Qrcode is loaded
             if (typeof Html5Qrcode === 'undefined') {
-                // Load the library dynamically
                 await this.loadHtml5QrcodeLib();
             }
             this.scanner = new Html5Qrcode('scannerPreview');
-            // Optimized config for faster and more accurate scanning
             const config = {
-                fps: 15,  // Increased from 10 - faster scanning
-                qrbox: { width: 300, height: 180 },  // Larger scan area
-                aspectRatio: 1.777,  // 16:9 for better camera view
-                disableFlip: false,
-                formatsToSupport: [
-                    Html5QrcodeSupportedFormats.EAN_13,
-                    Html5QrcodeSupportedFormats.EAN_8,
-                    Html5QrcodeSupportedFormats.UPC_A,
-                    Html5QrcodeSupportedFormats.UPC_E,
-                    Html5QrcodeSupportedFormats.CODE_128,
-                    Html5QrcodeSupportedFormats.CODE_39,
-                    Html5QrcodeSupportedFormats.CODE_93,
-                    Html5QrcodeSupportedFormats.CODABAR,
-                    Html5QrcodeSupportedFormats.ITF,
-                    Html5QrcodeSupportedFormats.QR_CODE,
-                    Html5QrcodeSupportedFormats.DATA_MATRIX
-                ],
+                fps: 20,
+                qrbox: { width: 300, height: 150 },
+                aspectRatio: 1.777778,
                 experimentalFeatures: {
-                    useBarCodeDetectorIfSupported: true  // Use native API if available (faster)
+                    useBarCodeDetectorIfSupported: true
                 }
             };
             await this.scanner.start(
@@ -359,7 +338,6 @@ export const Scanner = {
             this.isScanning = true;
         } catch (error) {
             console.error('Scanner start error:', error);
-            // If camera fails, just show search mode
             cameraSection.style.display = 'none';
             cameraActions.style.display = 'none';
             searchDivider.style.display = 'none';
@@ -367,9 +345,6 @@ export const Scanner = {
             setTimeout(() => searchInput?.focus(), 100);
         }
     },
-    /**
-     * Load Html5-QRCode library dynamically
-     */
     loadHtml5QrcodeLib() {
         return new Promise((resolve, reject) => {
             if (typeof Html5Qrcode !== 'undefined') {
@@ -401,8 +376,9 @@ export const Scanner = {
             await this.scanner.start(
                 { facingMode: newFacing },
                 {
-                    fps: 15,
-                    qrbox: { width: 300, height: 180 },
+                    fps: 20,
+                    qrbox: { width: 300, height: 150 },
+                    aspectRatio: 1.777778,
                     experimentalFeatures: { useBarCodeDetectorIfSupported: true }
                 },
                 (decodedText) => this.onScanSuccess(decodedText),
@@ -414,17 +390,13 @@ export const Scanner = {
     },
     onScanSuccess(barcode) {
         console.log('📷 Scanned barcode:', barcode);
-        this.playBeepSound();  // Play scan sound
+        this.playBeepSound();
         this.stop();
         const offer = this.lookupOffer(barcode);
         this.showResult(barcode, offer);
     },
-    /**
-     * Play beep sound like real barcode scanner
-     */
     playBeepSound() {
         try {
-            // Create audio context if not exists
             if (!this.audioContext) {
                 this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             }
@@ -433,63 +405,37 @@ export const Scanner = {
             const gainNode = ctx.createGain();
             oscillator.connect(gainNode);
             gainNode.connect(ctx.destination);
-            // Configure beep sound
-            oscillator.frequency.value = 1800;  // High frequency beep
-            oscillator.type = 'square';  // Sharp beep sound
-            // Volume envelope (quick fade out)
+            oscillator.frequency.value = 1800;
+            oscillator.type = 'sine';
             gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-            // Play beep
             oscillator.start(ctx.currentTime);
-            oscillator.stop(ctx.currentTime + 0.1);  // 100ms beep
-            // Optional: Add a second quick beep for authentic scanner feel
-            setTimeout(() => {
-                const osc2 = ctx.createOscillator();
-                const gain2 = ctx.createGain();
-                osc2.connect(gain2);
-                gain2.connect(ctx.destination);
-                osc2.frequency.value = 2200;  // Slightly higher
-                osc2.type = 'square';
-                gain2.gain.setValueAtTime(0.2, ctx.currentTime);
-                gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
-                osc2.start(ctx.currentTime);
-                osc2.stop(ctx.currentTime + 0.08);
-            }, 50);
+            oscillator.stop(ctx.currentTime + 0.1);
         } catch (e) {
-            console.log('Could not play beep sound:', e);
+            console.log('Beep error:', e);
         }
     },
     lookupOffer(barcode) {
         return offersData.find(item => item.barcode === barcode);
     },
-    /**
-     * Search by product name
-     */
     searchByName(query) {
         const lowerQuery = query.toLowerCase();
         return offersData.filter(item =>
             item.productName?.toLowerCase().includes(lowerQuery) ||
             item.arDescription?.toLowerCase().includes(lowerQuery) ||
-            item.brand?.toLowerCase().includes(lowerQuery)
+            item.brand?.toLowerCase().includes(lowerQuery) ||
+            item.category?.toLowerCase().includes(lowerQuery)
         );
     },
-    /**
-     * Manual search handler
-     */
     manualSearch() {
         const input = document.getElementById('manualSearchInput');
         const query = input?.value?.trim();
-        if (!query) {
-            alert('الرجاء إدخال الباركود أو اسم المنتج');
-            return;
-        }
+        if (!query) return;
         this.stop();
-        // First try exact barcode match
         let offer = this.lookupOffer(query);
         if (offer) {
             this.showResult(query, offer);
         } else {
-            // Try search by name
             const results = this.searchByName(query);
             if (results.length === 1) {
                 this.showResult(results[0].barcode, results[0]);
@@ -499,12 +445,8 @@ export const Scanner = {
                 this.showResult(query, null);
             }
         }
-        // Clear input
         if (input) input.value = '';
     },
-    /**
-     * Show multiple search results
-     */
     showMultipleResults(results) {
         const modal = document.getElementById('offerResultModal');
         const title = document.getElementById('offerResultTitle');
@@ -514,30 +456,22 @@ export const Scanner = {
         let html = '<div class="search-results">';
         results.forEach((item, index) => {
             html += `
-                <div class="search-result-item" onclick="Scanner.selectResult(${index})" data-index="${index}">
-                    <div class="result-brand">${item.brand || ''}</div>
-                    <div class="result-name">${item.productName}</div>
-                    <div class="result-price">
-                        <span class="old-price">${item.priceBefore} SAR</span>
-                        <span class="new-price">${item.priceAfter} SAR</span>
-                        <span class="discount-tag">${item.discount}</span>
-                    </div>
+                <div class="search-result-item" onclick="window.Scanner.selectResult(${index})" style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); cursor: pointer;">
+                    <div style="font-weight: bold; color: #667eea;">${item.brand || ''}</div>
+                    <div style="color: #fff; margin: 5px 0;">${item.productName}</div>
+                    <div style="font-size: 0.9em; color: #2ecc71;">${item.priceAfter} SAR <span style="text-decoration: line-through; color: #95a5a6; font-size: 0.8em; margin-left:10px;">${item.priceBefore} SAR</span></div>
                 </div>
             `;
         });
         html += '</div>';
         content.innerHTML = html;
         modal.classList.add('active');
-        // Store results for selection
         this.searchResults = results;
+        window.Scanner = this; // Ensure onclick works
     },
-    /**
-     * Select a result from multiple results
-     */
     selectResult(index) {
         if (this.searchResults && this.searchResults[index]) {
-            const item = this.searchResults[index];
-            this.showResult(item.barcode, item);
+            this.showResult(this.searchResults[index].barcode, this.searchResults[index]);
         }
     },
     showResult(barcode, offer) {
@@ -545,50 +479,44 @@ export const Scanner = {
         const title = document.getElementById('offerResultTitle');
         const content = document.getElementById('offerResultContent');
         if (offer) {
-            const offerStatus = this.getOfferStatus(offer);
-            title.textContent = '🎉 Offer Found!';
+            const status = this.getOfferStatus(offer);
+            title.textContent = '🎉 تم العثور على العرض!';
             title.style.color = '#27ae60';
             content.innerHTML = `
                 <div class="offer-card">
-                    <div class="offer-status-banner" style="background: ${offerStatus.color}">
-                        <span class="status-label">${offerStatus.label}</span>
-                        <span class="status-message">${offerStatus.message}</span>
+                    <div class="offer-status-banner" style="background: ${status.color}; padding: 10px; border-radius: 10px; margin-bottom: 15px; text-align: center; color: white;">
+                        <span style="font-weight: bold;">${status.label}</span> | <span>${status.message}</span>
                     </div>
-                    <div class="offer-product">
-                        <span class="offer-brand">${offer.brand}</span>
-                        <h3>${offer.productName}</h3>
-                        <p class="offer-ar">${offer.arDescription || ''}</p>
+                    <div class="offer-product" style="text-align: center; margin-bottom: 15px;">
+                        <span style="background: #667eea; padding: 2px 8px; border-radius: 10px; font-size: 0.8em; color: white;">${offer.brand}</span>
+                        <h3 style="color: white; margin: 10px 0;">${offer.productName}</h3>
+                        <p style="color: #95a5a6; font-size: 0.9em;">${offer.arDescription || ''}</p>
                     </div>
-                    <div class="offer-pricing">
-                        <div class="price-row original">
-                            <span>Original Price:</span>
-                            <span class="price strikethrough">${offer.priceBefore} SAR</span>
+                    <div class="offer-pricing" style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: #95a5a6;">السعر الأصلي:</span>
+                            <span style="text-decoration: line-through; color: #e74c3c;">${offer.priceBefore} SAR</span>
                         </div>
-                        <div class="price-row discount">
-                            <span>Discount:</span>
-                            <span class="discount-badge">${offer.discount}</span>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: #95a5a6;">الخصم:</span>
+                            <span style="background: #e74c3c; padding: 2px 6px; border-radius: 5px; font-size: 0.9em; color: white;">${offer.discount}</span>
                         </div>
-                        ${offer.save ? `<div class="price-row save"><span>You Save:</span><span class="save-amount">${offer.save} SAR</span></div>` : ''}
-                        <div class="price-row final">
-                            <span>Final Price:</span>
-                            <span class="price final-price">${offer.priceAfter} SAR</span>
+                        <div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; margin-top: 10px;">
+                            <span style="font-weight: bold; color: white;">السعر العرض:</span>
+                            <span style="font-size: 1.4em; font-weight: bold; color: #2ecc71;">${offer.priceAfter} SAR</span>
                         </div>
-                    </div>
-                    <div class="offer-meta">
-                        <span class="category-badge">${offer.category || 'General'}</span>
                     </div>
                 </div>
             `;
         } else {
-            title.textContent = '❌ No Offer Found';
+            title.textContent = '❌ لم يتم العثور على العرض';
             title.style.color = '#e74c3c';
             content.innerHTML = `
-                <div class="no-offer">
-                    <div class="barcode-display">
-                        <span>Scanned Barcode:</span>
-                        <code>${barcode}</code>
+                <div style="text-align: center; color: white; padding: 20px;">
+                    <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-bottom: 15px; font-family: monospace;">
+                        ${barcode}
                     </div>
-                    <p>This product does not have an active offer at the moment.</p>
+                    <p>هذا المنتج لا يوجد له عرض حالياً في قاعدة البيانات.</p>
                 </div>
             `;
         }
