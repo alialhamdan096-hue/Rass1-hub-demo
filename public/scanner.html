@@ -4,12 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="screen-orientation" content="portrait">
-    <meta name="x5-orientation" content="portrait">
-    <meta name="msapplication-orientation" content="portrait">
     <title>ماسح العروض | Rass1</title>
     <link rel="icon" type="image/png" href="/favicon.png">
-    <!-- Scanner Library -->
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <!-- ZXing-js Library - More reliable barcode scanning -->
+    <script src="https://unpkg.com/@aspect-analytics/barcode-scanner"></script>
     <style>
         * {
             margin: 0;
@@ -17,13 +15,11 @@
             box-sizing: border-box;
         }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             min-height: 100vh;
             color: #fff;
-            overflow-x: hidden;
         }
-        /* Header */
         .header {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
@@ -32,65 +28,104 @@
             align-items: center;
             justify-content: center;
             gap: 10px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
         .header h1 {
             font-size: 1.3rem;
-            font-weight: 600;
         }
-        .header .logo {
-            font-size: 1.5rem;
-        }
-        /* Main Container */
         .main-container {
-            padding: 20px;
+            padding: 15px;
             max-width: 500px;
             margin: 0 auto;
         }
-        /* Scanner Card */
         .scanner-card {
             background: rgba(255, 255, 255, 0.08);
             border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            margin-bottom: 15px;
         }
         .scanner-card h2 {
             font-size: 1.1rem;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            margin-bottom: 10px;
+            text-align: center;
         }
-        /* Camera Preview */
-        #scannerPreview {
+        /* Video Container */
+        #videoContainer {
+            position: relative;
             width: 100%;
-            min-height: 250px;
-            background: #000;
             border-radius: 15px;
             overflow: hidden;
-            margin-bottom: 15px;
+            background: #000;
         }
-        #scannerPreview video {
+        #video {
             width: 100%;
-            height: 100%;
-            object-fit: cover;
+            display: block;
+        }
+        /* Scan Line Animation */
+        .scan-line {
+            position: absolute;
+            left: 10%;
+            right: 10%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #00ff88, transparent);
+            animation: scan 1.5s linear infinite;
+            box-shadow: 0 0 20px #00ff88;
+        }
+        @keyframes scan {
+            0% {
+                top: 20%;
+            }
+            50% {
+                top: 80%;
+            }
+            100% {
+                top: 20%;
+            }
+        }
+        /* Scan Frame */
+        .scan-frame {
+            position: absolute;
+            top: 15%;
+            left: 10%;
+            right: 10%;
+            bottom: 15%;
+            border: 2px solid rgba(0, 255, 136, 0.6);
+            border-radius: 10px;
+        }
+        .scan-frame::before,
+        .scan-frame::after {
+            content: '';
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-color: #00ff88;
+            border-style: solid;
+        }
+        .scan-frame::before {
+            top: -2px;
+            left: -2px;
+            border-width: 4px 0 0 4px;
+            border-radius: 10px 0 0 0;
+        }
+        .scan-frame::after {
+            top: -2px;
+            right: -2px;
+            border-width: 4px 4px 0 0;
+            border-radius: 0 10px 0 0;
         }
         .scanner-hint {
             text-align: center;
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(255, 255, 255, 0.7);
             font-size: 0.9rem;
-            margin-bottom: 15px;
+            margin: 10px 0;
         }
-        /* Search Input */
+        /* Search Section */
         .search-section {
-            margin-top: 20px;
+            margin-top: 15px;
         }
         .search-divider {
             display: flex;
             align-items: center;
-            text-align: center;
-            margin: 20px 0;
+            margin: 15px 0;
             color: rgba(255, 255, 255, 0.5);
             font-size: 0.85rem;
         }
@@ -112,22 +147,18 @@
             padding: 14px 18px;
             border: 2px solid rgba(102, 126, 234, 0.5);
             border-radius: 12px;
-            background: rgba(0, 0, 0, 0.4);
+            background: rgba(0, 0, 0, 0.5);
             color: #fff;
             font-size: 1.1rem;
             font-weight: 500;
             direction: rtl;
-            -webkit-text-fill-color: #fff;
         }
         .search-input-group input::placeholder {
-            color: rgba(255, 255, 255, 0.6);
-            -webkit-text-fill-color: rgba(255, 255, 255, 0.6);
+            color: rgba(255, 255, 255, 0.5);
         }
         .search-input-group input:focus {
             outline: none;
-            border-color: #667eea;
-            background: rgba(0, 0, 0, 0.5);
-            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+            border-color: #00ff88;
         }
         .btn {
             padding: 14px 20px;
@@ -136,67 +167,61 @@
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #667eea, #764ba2);
             color: #fff;
         }
-        .btn-primary:active {
-            transform: scale(0.95);
+        /* Status Badge */
+        .scan-status {
+            text-align: center;
+            padding: 8px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 0.9rem;
         }
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.15);
-            color: #fff;
+        .scan-status.ready {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
         }
-        /* Camera Controls */
-        .camera-controls {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        .camera-controls .btn {
-            flex: 1;
-            justify-content: center;
+        .scan-status.scanning {
+            background: rgba(255, 200, 0, 0.2);
+            color: #ffc800;
         }
         /* Result Modal */
-        .result-modal {
+        .modal {
             display: none;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(5px);
+            background: rgba(0, 0, 0, 0.85);
             z-index: 1000;
             align-items: center;
             justify-content: center;
             padding: 20px;
         }
-        .result-modal.active {
+        .modal.active {
             display: flex;
         }
-        .result-content {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
             border-radius: 20px;
             padding: 25px;
             width: 100%;
             max-width: 400px;
-            max-height: 80vh;
+            max-height: 85vh;
             overflow-y: auto;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        .result-header {
+        .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
         }
-        .result-header h2 {
+        .modal-header h2 {
             font-size: 1.2rem;
         }
         .close-btn {
@@ -208,26 +233,15 @@
             border-radius: 50%;
             font-size: 1.5rem;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
         /* Offer Card */
-        .offer-status {
+        .offer-status-bar {
             display: flex;
-            align-items: center;
             justify-content: space-between;
             padding: 12px 16px;
             border-radius: 12px;
             margin-bottom: 15px;
             color: #fff;
-        }
-        .offer-status .label {
-            font-weight: 700;
-        }
-        .offer-status .message {
-            font-size: 0.85rem;
-            opacity: 0.9;
         }
         .offer-product {
             margin-bottom: 15px;
@@ -236,15 +250,10 @@
             font-size: 0.8rem;
             color: #667eea;
             font-weight: 600;
-            text-transform: uppercase;
         }
         .offer-product h3 {
             font-size: 1.1rem;
             margin: 5px 0;
-        }
-        .offer-product .ar-desc {
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 0.9rem;
         }
         .pricing {
             background: rgba(255, 255, 255, 0.05);
@@ -255,7 +264,6 @@
         .price-row {
             display: flex;
             justify-content: space-between;
-            align-items: center;
             padding: 8px 0;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
@@ -266,40 +274,27 @@
             font-size: 1.2rem;
             font-weight: 700;
         }
-        .price-row .old-price {
+        .old-price {
             text-decoration: line-through;
             color: rgba(255, 255, 255, 0.5);
         }
-        .price-row .new-price {
-            color: #2ecc71;
+        .new-price {
+            color: #00ff88;
             font-weight: 700;
         }
         .discount-badge {
-            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            background: #e74c3c;
             padding: 4px 12px;
             border-radius: 20px;
             font-size: 0.9rem;
-            font-weight: 600;
         }
-        .category-badge {
-            background: rgba(102, 126, 234, 0.2);
-            color: #667eea;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-        /* No Offer */
         .no-offer {
             text-align: center;
-            padding: 30px 20px;
+            padding: 30px;
         }
         .no-offer .icon {
             font-size: 3rem;
             margin-bottom: 15px;
-        }
-        .no-offer p {
-            color: rgba(255, 255, 255, 0.7);
         }
         .barcode-display {
             background: rgba(255, 255, 255, 0.1);
@@ -309,59 +304,17 @@
             font-family: monospace;
             font-size: 1.1rem;
         }
-        /* Search Results */
-        .search-results {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        .search-result-item {
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 12px;
+        .footer {
+            text-align: center;
             padding: 15px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            border: 1px solid transparent;
-            transition: all 0.2s ease;
-        }
-        .search-result-item:active {
-            transform: scale(0.98);
-            border-color: #667eea;
-        }
-        .result-brand {
-            font-size: 0.75rem;
-            color: #667eea;
-            font-weight: 600;
-        }
-        .result-name {
-            margin: 5px 0;
-            font-size: 0.95rem;
-        }
-        .result-price {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        .result-price .old {
-            text-decoration: line-through;
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 0.85rem;
-        }
-        .result-price .new {
-            color: #2ecc71;
-            font-weight: 700;
-        }
-        .result-price .disc {
-            background: #e74c3c;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.8rem;
         }
         /* Loading */
         .loading {
             display: none;
             text-align: center;
-            padding: 40px;
+            padding: 30px;
         }
         .loading.active {
             display: block;
@@ -370,7 +323,7 @@
             width: 40px;
             height: 40px;
             border: 3px solid rgba(255, 255, 255, 0.2);
-            border-top-color: #667eea;
+            border-top-color: #00ff88;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin: 0 auto 15px;
@@ -380,33 +333,25 @@
                 transform: rotate(360deg);
             }
         }
-        /* Footer */
-        .footer {
-            text-align: center;
-            padding: 20px;
-            color: rgba(255, 255, 255, 0.4);
-            font-size: 0.8rem;
-        }
     </style>
 </head>
 <body>
     <header class="header">
-        <span class="logo">🛒</span>
+        <span>🛒</span>
         <h1>ماسح العروض | Rass1</h1>
     </header>
     <main class="main-container">
-        <!-- Scanner Card -->
         <div class="scanner-card">
             <h2 id="scannerTitle">📷 مسح الباركود</h2>
-            <!-- Camera Preview -->
             <div id="cameraSection">
-                <div id="scannerPreview"></div>
-                <p class="scanner-hint">وجّه الكاميرا على الباركود</p>
-                <div class="camera-controls">
-                    <button class="btn btn-secondary" id="switchCameraBtn">🔄 تبديل الكاميرا</button>
+                <div id="videoContainer">
+                    <video id="video" playsinline autoplay muted></video>
+                    <div class="scan-frame"></div>
+                    <div class="scan-line"></div>
                 </div>
+                <p class="scanner-hint">ضع الباركود داخل الإطار الأخضر</p>
+                <div class="scan-status ready" id="scanStatus">✅ جاهز للمسح</div>
             </div>
-            <!-- Search Section -->
             <div class="search-section">
                 <div class="search-divider" id="searchDivider">
                     <span>أو ابحث يدوياً</span>
@@ -417,7 +362,6 @@
                 </div>
             </div>
         </div>
-        <!-- Loading -->
         <div class="loading" id="loading">
             <div class="spinner"></div>
             <p>جاري تحميل البيانات...</p>
@@ -427,63 +371,49 @@
         <p>© 2025 Rass1 Hub - نسخة الموظفين</p>
     </footer>
     <!-- Result Modal -->
-    <div class="result-modal" id="resultModal">
-        <div class="result-content">
-            <div class="result-header">
+    <div class="modal" id="resultModal">
+        <div class="modal-content">
+            <div class="modal-header">
                 <h2 id="resultTitle">🎉 تم العثور على عرض!</h2>
-                <button class="close-btn" id="closeResultBtn">&times;</button>
+                <button class="close-btn" id="closeBtn">&times;</button>
             </div>
             <div id="resultContent"></div>
-            <button class="btn btn-primary" id="searchAgainBtn"
-                style="width: 100%; margin-top: 15px; justify-content: center;">
+            <button class="btn btn-primary" id="scanAgainBtn" style="width: 100%; margin-top: 15px;">
                 🔍 بحث جديد
             </button>
         </div>
     </div>
+    <script src="https://unpkg.com/@aspect-analytics/barcode-scanner@0.2.30/dist/barcode-scanner.js"></script>
     <script>
-        // Offers data
+        // Data
         let offersData = [];
-        let scanner = null;
-        let isScanning = false;
+        let barcodeScanner = null;
         let audioContext = null;
-        // Check if mobile
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-            || (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
-        // DOM Elements
+        // Check mobile
+        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        // DOM
+        const video = document.getElementById('video');
+        const videoContainer = document.getElementById('videoContainer');
         const cameraSection = document.getElementById('cameraSection');
         const searchDivider = document.getElementById('searchDivider');
         const scannerTitle = document.getElementById('scannerTitle');
         const searchInput = document.getElementById('searchInput');
         const searchBtn = document.getElementById('searchBtn');
-        const switchCameraBtn = document.getElementById('switchCameraBtn');
+        const scanStatus = document.getElementById('scanStatus');
         const resultModal = document.getElementById('resultModal');
         const resultTitle = document.getElementById('resultTitle');
         const resultContent = document.getElementById('resultContent');
-        const closeResultBtn = document.getElementById('closeResultBtn');
-        const searchAgainBtn = document.getElementById('searchAgainBtn');
+        const closeBtn = document.getElementById('closeBtn');
+        const scanAgainBtn = document.getElementById('scanAgainBtn');
         const loading = document.getElementById('loading');
-        // Lock screen orientation to portrait
-        async function lockOrientation() {
-            try {
-                if (screen.orientation && screen.orientation.lock) {
-                    await screen.orientation.lock('portrait');
-                    console.log('✅ Screen locked to portrait');
-                }
-            } catch (e) {
-                console.log('Screen orientation lock not supported');
-            }
-        }
         // Initialize
         async function init() {
-            // Try to lock orientation
-            lockOrientation();
             loading.classList.add('active');
-            await loadOffersData();
+            await loadOffers();
             loading.classList.remove('active');
             if (isMobile) {
-                startCamera();
+                startScanner();
             } else {
-                // Desktop - search only
                 cameraSection.style.display = 'none';
                 searchDivider.style.display = 'none';
                 scannerTitle.textContent = '🔍 البحث عن العروض';
@@ -491,7 +421,7 @@
             }
         }
         // Load offers from Google Sheets
-        async function loadOffersData() {
+        async function loadOffers() {
             try {
                 const sheetId = '1-_6mN6DpmuUbpgy3q3h-RXRjPepfhhcdIx2K3oybCzw';
                 const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json`;
@@ -504,29 +434,19 @@
                     console.log(`✅ Loaded ${offersData.length} offers`);
                 }
             } catch (error) {
-                console.error('Error loading data:', error);
+                console.error('Error:', error);
             }
         }
         function parseData(data) {
             const rows = data.table.rows;
             return rows.slice(1).map(row => {
                 const cells = row.c;
-                // Extract date - Google Sheets returns dates in special format
-                // It could be in 'v' as "Date(2025,0,31)" or in 'f' as formatted string
                 const extractDate = (cell) => {
                     if (!cell) return '';
-                    // Try formatted value first (usually more readable)
                     if (cell.f) return cell.f;
-                    // Try raw value
                     if (cell.v) {
-                        // Check if it's a Date() string format
-                        const dateMatch = String(cell.v).match(/Date\((\d+),(\d+),(\d+)\)/);
-                        if (dateMatch) {
-                            const year = parseInt(dateMatch[1]);
-                            const month = parseInt(dateMatch[2]) + 1; // months are 0-indexed
-                            const day = parseInt(dateMatch[3]);
-                            return `${month}/${day}/${year}`;
-                        }
+                        const m = String(cell.v).match(/Date\((\d+),(\d+),(\d+)\)/);
+                        if (m) return `${parseInt(m[2]) + 1}/${m[3]}/${m[1]}`;
                         return cell.v;
                     }
                     return '';
@@ -535,10 +455,10 @@
                     barcode: cells[0]?.v?.toString() || '',
                     productName: cells[1]?.v || '',
                     brand: cells[2]?.v || '',
-                    discount: cells[3]?.v || cells[3]?.f || '',
-                    priceBefore: cells[4]?.v || cells[4]?.f || '',
-                    save: cells[5]?.v || cells[5]?.f || '',
-                    priceAfter: cells[6]?.v || cells[6]?.f || '',
+                    discount: cells[3]?.f || cells[3]?.v || '',
+                    priceBefore: cells[4]?.f || cells[4]?.v || '',
+                    save: cells[5]?.f || cells[5]?.v || '',
+                    priceAfter: cells[6]?.f || cells[6]?.v || '',
                     startDate: extractDate(cells[8]),
                     endDate: extractDate(cells[9]),
                     arDescription: cells[10]?.v || '',
@@ -546,67 +466,92 @@
                 };
             }).filter(item => item.barcode);
         }
-        // Start camera
-        async function startCamera() {
+        // Start scanner using native API + fallback
+        async function startScanner() {
             try {
-                scanner = new Html5Qrcode('scannerPreview');
-                // Simple, reliable config - let the library detect all formats automatically
-                const config = {
-                    fps: 10,
-                    qrbox: { width: 250, height: 150 },
-                    aspectRatio: 1.5
-                };
-                await scanner.start(
-                    { facingMode: 'environment' },
-                    config,
-                    onScanSuccess,
-                    (errorMessage) => {
-                        // Silently ignore scan errors (no barcode detected)
+                // First try native BarcodeDetector
+                if ('BarcodeDetector' in window) {
+                    console.log('Using native BarcodeDetector');
+                    const detector = new BarcodeDetector({
+                        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code']
+                    });
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+                    });
+                    video.srcObject = stream;
+                    await video.play();
+                    // Continuous detection
+                    const detect = async () => {
+                        if (video.readyState >= 2) {
+                            try {
+                                const barcodes = await detector.detect(video);
+                                if (barcodes.length > 0) {
+                                    onBarcodeDetected(barcodes[0].rawValue);
+                                    return;
+                                }
+                            } catch (e) { }
+                        }
+                        requestAnimationFrame(detect);
+                    };
+                    detect();
+                    scanStatus.textContent = '🔍 يبحث عن الباركود...';
+                    scanStatus.className = 'scan-status scanning';
+                    console.log('✅ Native scanner started');
+                    return;
+                }
+                // Fallback to ZXing
+                console.log('Fallback to ZXing');
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' }
+                });
+                video.srcObject = stream;
+                await video.play();
+                // Use canvas for ZXing
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const scanWithZxing = async () => {
+                    if (video.readyState >= 2) {
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        ctx.drawImage(video, 0, 0);
+                        try {
+                            if (window.BarcodeScanner) {
+                                const result = await window.BarcodeScanner.scanImage(canvas);
+                                if (result) {
+                                    onBarcodeDetected(result.rawValue || result.text);
+                                    return;
+                                }
+                            }
+                        } catch (e) { }
                     }
-                );
-                isScanning = true;
-                console.log('✅ Scanner started successfully');
+                    setTimeout(scanWithZxing, 100);
+                };
+                scanWithZxing();
+                scanStatus.textContent = '🔍 يبحث عن الباركود...';
+                scanStatus.className = 'scan-status scanning';
             } catch (error) {
-                console.error('Camera error:', error);
+                console.error('Scanner error:', error);
                 cameraSection.style.display = 'none';
                 searchDivider.style.display = 'none';
                 scannerTitle.textContent = '🔍 البحث عن العروض';
                 searchInput.focus();
             }
         }
-        // Stop camera
-        async function stopCamera() {
-            if (scanner && isScanning) {
-                try {
-                    await scanner.stop();
-                } catch (e) { }
-            }
-            isScanning = false;
-        }
-        // Switch camera
-        async function switchCamera() {
-            if (!scanner || !isScanning) return;
-            try {
-                await scanner.stop();
-                const newFacing = 'user';
-                await scanner.start(
-                    { facingMode: newFacing },
-                    { fps: 15, qrbox: { width: 280, height: 160 } },
-                    onScanSuccess,
-                    () => { }
-                );
-            } catch (e) {
-                console.error('Switch camera error:', e);
-            }
-        }
-        // On scan success
-        function onScanSuccess(barcode) {
+        // On barcode detected
+        function onBarcodeDetected(barcode) {
+            console.log('📷 Barcode:', barcode);
             playBeep();
-            stopCamera();
+            stopScanner();
             const offer = offersData.find(item => item.barcode === barcode);
             showResult(barcode, offer);
         }
-        // Play beep sound
+        // Stop scanner
+        function stopScanner() {
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+            }
+        }
+        // Play beep
         function playBeep() {
             try {
                 if (!audioContext) {
@@ -623,37 +568,29 @@
                 osc.start(audioContext.currentTime);
                 osc.stop(audioContext.currentTime + 0.1);
                 setTimeout(() => {
-                    const osc2 = audioContext.createOscillator();
-                    const gain2 = audioContext.createGain();
-                    osc2.connect(gain2);
-                    gain2.connect(audioContext.destination);
-                    osc2.frequency.value = 2200;
-                    osc2.type = 'square';
-                    gain2.gain.setValueAtTime(0.2, audioContext.currentTime);
-                    gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.08);
-                    osc2.start(audioContext.currentTime);
-                    osc2.stop(audioContext.currentTime + 0.08);
+                    const o2 = audioContext.createOscillator();
+                    const g2 = audioContext.createGain();
+                    o2.connect(g2);
+                    g2.connect(audioContext.destination);
+                    o2.frequency.value = 2200;
+                    o2.type = 'square';
+                    g2.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    g2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.08);
+                    o2.start(audioContext.currentTime);
+                    o2.stop(audioContext.currentTime + 0.08);
                 }, 50);
             } catch (e) { }
         }
-        // Parse date safely
-        function parseDate(dateStr) {
-            if (!dateStr || dateStr === '∞' || dateStr === 'infinity' || dateStr === '') {
-                return null;
-            }
+        // Parse date
+        function parseDate(str) {
+            if (!str || str === '∞' || str === '') return null;
             try {
-                let date = new Date(dateStr);
-                // If invalid, try MM/DD/YYYY format
-                if (isNaN(date.getTime())) {
-                    const parts = dateStr.split('/');
-                    if (parts.length === 3) {
-                        date = new Date(parts[2], parts[0] - 1, parts[1]);
-                    }
+                let d = new Date(str);
+                if (isNaN(d.getTime())) {
+                    const p = str.split('/');
+                    if (p.length === 3) d = new Date(p[2], p[0] - 1, p[1]);
                 }
-                if (isNaN(date.getTime())) {
-                    return null;
-                }
-                return date;
+                return isNaN(d.getTime()) ? null : d;
             } catch (e) {
                 return null;
             }
@@ -662,19 +599,19 @@
         function getOfferStatus(offer) {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            const startDate = parseDate(offer.startDate);
-            const endDate = parseDate(offer.endDate);
-            if (startDate && startDate > today) {
-                const days = Math.ceil((startDate - today) / (1000 * 60 * 60 * 24));
-                return { label: '🔜 لم يبدأ بعد', message: `يبدأ بعد ${days} يوم`, color: '#95a5a6' };
+            const start = parseDate(offer.startDate);
+            const end = parseDate(offer.endDate);
+            if (start && start > today) {
+                const days = Math.ceil((start - today) / 86400000);
+                return { label: '🔜 لم يبدأ', message: `يبدأ بعد ${days} يوم`, color: '#95a5a6' };
             }
-            if (endDate && endDate < today) {
-                return { label: '❌ منتهي', message: 'انتهى هذا العرض', color: '#e74c3c' };
+            if (end && end < today) {
+                return { label: '❌ منتهي', message: 'انتهى العرض', color: '#e74c3c' };
             }
-            if (endDate) {
-                const days = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+            if (end) {
+                const days = Math.ceil((end - today) / 86400000);
                 if (days <= 3) {
-                    return { label: '⚠️ قارب على الانتهاء', message: `باقي ${days} يوم فقط!`, color: '#f39c12' };
+                    return { label: '⚠️ ينتهي قريباً', message: `باقي ${days} يوم`, color: '#f39c12' };
                 }
                 return { label: '✅ ساري', message: `متبقي ${days} يوم`, color: '#27ae60' };
             }
@@ -687,14 +624,14 @@
                 resultTitle.textContent = '🎉 تم العثور على عرض!';
                 resultTitle.style.color = '#27ae60';
                 resultContent.innerHTML = `
-                    <div class="offer-status" style="background: ${status.color}">
-                        <span class="label">${status.label}</span>
-                        <span class="message">${status.message}</span>
+                    <div class="offer-status-bar" style="background: ${status.color}">
+                        <span>${status.label}</span>
+                        <span>${status.message}</span>
                     </div>
                     <div class="offer-product">
                         <span class="offer-brand">${offer.brand}</span>
                         <h3>${offer.productName}</h3>
-                        <p class="ar-desc">${offer.arDescription || ''}</p>
+                        <p style="color: rgba(255,255,255,0.7)">${offer.arDescription || ''}</p>
                     </div>
                     <div class="pricing">
                         <div class="price-row">
@@ -705,13 +642,12 @@
                             <span>الخصم:</span>
                             <span class="discount-badge">${offer.discount}</span>
                         </div>
-                        ${offer.save ? `<div class="price-row"><span>توفير:</span><span style="color:#2ecc71">${offer.save} ريال</span></div>` : ''}
+                        ${offer.save ? `<div class="price-row"><span>توفير:</span><span class="new-price">${offer.save} ريال</span></div>` : ''}
                         <div class="price-row final">
                             <span>السعر النهائي:</span>
                             <span class="new-price">${offer.priceAfter} ريال</span>
                         </div>
                     </div>
-                    <span class="category-badge">${offer.category || 'عام'}</span>
                 `;
             } else {
                 resultTitle.textContent = '❌ لا يوجد عرض';
@@ -726,20 +662,50 @@
             }
             resultModal.classList.add('active');
         }
-        // Show multiple results
-        function showMultipleResults(results) {
-            resultTitle.textContent = `🔍 تم العثور على ${results.length} نتائج`;
+        // Search
+        function search() {
+            const query = searchInput.value.trim();
+            if (!query) return;
+            stopScanner();
+            // Try barcode
+            const byBarcode = offersData.find(item => item.barcode === query);
+            if (byBarcode) {
+                playBeep();
+                showResult(query, byBarcode);
+                searchInput.value = '';
+                return;
+            }
+            // Search by name
+            const q = query.toLowerCase();
+            const results = offersData.filter(item =>
+                item.productName?.toLowerCase().includes(q) ||
+                item.arDescription?.toLowerCase().includes(q) ||
+                item.brand?.toLowerCase().includes(q)
+            );
+            if (results.length === 1) {
+                playBeep();
+                showResult(results[0].barcode, results[0]);
+            } else if (results.length > 1) {
+                showMultiResults(results);
+            } else {
+                showResult(query, null);
+            }
+            searchInput.value = '';
+        }
+        // Multiple results
+        function showMultiResults(results) {
+            resultTitle.textContent = `🔍 ${results.length} نتيجة`;
             resultTitle.style.color = '#3498db';
-            let html = '<div class="search-results">';
+            let html = '<div style="max-height: 300px; overflow-y: auto;">';
             results.forEach((item, i) => {
                 html += `
-                    <div class="search-result-item" onclick="selectResult(${i})">
-                        <span class="result-brand">${item.brand || ''}</span>
-                        <div class="result-name">${item.productName}</div>
-                        <div class="result-price">
-                            <span class="old">${item.priceBefore} ريال</span>
-                            <span class="new">${item.priceAfter} ريال</span>
-                            <span class="disc">${item.discount}</span>
+                    <div onclick="selectResult(${i})" style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 15px; margin-bottom: 10px; cursor: pointer;">
+                        <div style="font-size: 0.75rem; color: #667eea">${item.brand || ''}</div>
+                        <div style="margin: 5px 0">${item.productName}</div>
+                        <div>
+                            <span style="text-decoration: line-through; color: rgba(255,255,255,0.5)">${item.priceBefore}</span>
+                            <span style="color: #00ff88; font-weight: 700; margin: 0 10px">${item.priceAfter} ريال</span>
+                            <span style="background: #e74c3c; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem">${item.discount}</span>
                         </div>
                     </div>
                 `;
@@ -749,57 +715,25 @@
             resultModal.classList.add('active');
             window.searchResults = results;
         }
-        // Select result
-        window.selectResult = function (index) {
-            if (window.searchResults && window.searchResults[index]) {
-                const item = window.searchResults[index];
+        window.selectResult = function (i) {
+            if (window.searchResults && window.searchResults[i]) {
+                const item = window.searchResults[i];
                 showResult(item.barcode, item);
             }
         };
-        // Search
-        function search() {
-            const query = searchInput.value.trim();
-            if (!query) return;
-            stopCamera();
-            // Try barcode first
-            const byBarcode = offersData.find(item => item.barcode === query);
-            if (byBarcode) {
-                playBeep();
-                showResult(query, byBarcode);
-                searchInput.value = '';
-                return;
-            }
-            // Search by name
-            const lowerQuery = query.toLowerCase();
-            const results = offersData.filter(item =>
-                item.productName?.toLowerCase().includes(lowerQuery) ||
-                item.arDescription?.toLowerCase().includes(lowerQuery) ||
-                item.brand?.toLowerCase().includes(lowerQuery)
-            );
-            if (results.length === 1) {
-                playBeep();
-                showResult(results[0].barcode, results[0]);
-            } else if (results.length > 1) {
-                showMultipleResults(results);
-            } else {
-                showResult(query, null);
-            }
-            searchInput.value = '';
-        }
-        // Close result
-        function closeResult() {
+        // Close modal
+        function closeModal() {
             resultModal.classList.remove('active');
             if (isMobile) {
-                startCamera();
+                startScanner();
             }
             searchInput.focus();
         }
-        // Event listeners
+        // Events
         searchBtn.addEventListener('click', search);
         searchInput.addEventListener('keypress', e => { if (e.key === 'Enter') search(); });
-        switchCameraBtn.addEventListener('click', switchCamera);
-        closeResultBtn.addEventListener('click', closeResult);
-        searchAgainBtn.addEventListener('click', closeResult);
+        closeBtn.addEventListener('click', closeModal);
+        scanAgainBtn.addEventListener('click', closeModal);
         // Start
         init();
     </script>
