@@ -591,12 +591,34 @@
                 }, 50);
             } catch (e) { }
         }
+        // Parse date safely
+        function parseDate(dateStr) {
+            if (!dateStr || dateStr === '∞' || dateStr === 'infinity' || dateStr === '') {
+                return null;
+            }
+            try {
+                let date = new Date(dateStr);
+                // If invalid, try MM/DD/YYYY format
+                if (isNaN(date.getTime())) {
+                    const parts = dateStr.split('/');
+                    if (parts.length === 3) {
+                        date = new Date(parts[2], parts[0] - 1, parts[1]);
+                    }
+                }
+                if (isNaN(date.getTime())) {
+                    return null;
+                }
+                return date;
+            } catch (e) {
+                return null;
+            }
+        }
         // Get offer status
         function getOfferStatus(offer) {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            let startDate = offer.startDate ? new Date(offer.startDate) : null;
-            let endDate = (offer.endDate && offer.endDate !== '∞') ? new Date(offer.endDate) : null;
+            const startDate = parseDate(offer.startDate);
+            const endDate = parseDate(offer.endDate);
             if (startDate && startDate > today) {
                 const days = Math.ceil((startDate - today) / (1000 * 60 * 60 * 24));
                 return { label: '🔜 لم يبدأ بعد', message: `يبدأ بعد ${days} يوم`, color: '#95a5a6' };
