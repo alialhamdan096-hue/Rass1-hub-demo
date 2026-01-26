@@ -550,39 +550,22 @@
         async function startCamera() {
             try {
                 scanner = new Html5Qrcode('scannerPreview');
+                // Simple, reliable config - let the library detect all formats automatically
+                const config = {
+                    fps: 10,
+                    qrbox: { width: 250, height: 150 },
+                    aspectRatio: 1.5
+                };
                 await scanner.start(
                     { facingMode: 'environment' },
-                    {
-                        fps: 20,  // Higher FPS for faster detection
-                        qrbox: { width: 300, height: 200 },  // Larger scan area
-                        aspectRatio: 1.5,
-                        formatsToSupport: [
-                            // Standard retail barcodes
-                            Html5QrcodeSupportedFormats.EAN_13,
-                            Html5QrcodeSupportedFormats.EAN_8,
-                            Html5QrcodeSupportedFormats.UPC_A,
-                            Html5QrcodeSupportedFormats.UPC_E,
-                            // Industrial barcodes
-                            Html5QrcodeSupportedFormats.CODE_128,
-                            Html5QrcodeSupportedFormats.CODE_39,
-                            Html5QrcodeSupportedFormats.CODE_93,
-                            Html5QrcodeSupportedFormats.CODABAR,
-                            Html5QrcodeSupportedFormats.ITF,
-                            // 2D barcodes
-                            Html5QrcodeSupportedFormats.QR_CODE,
-                            Html5QrcodeSupportedFormats.DATA_MATRIX,
-                            Html5QrcodeSupportedFormats.AZTEC,
-                            Html5QrcodeSupportedFormats.PDF_417,
-                            // GS1 DataBar (common for diapers, variable products)
-                            Html5QrcodeSupportedFormats.RSS_14,
-                            Html5QrcodeSupportedFormats.RSS_EXPANDED
-                        ],
-                        experimentalFeatures: { useBarCodeDetectorIfSupported: true }
-                    },
+                    config,
                     onScanSuccess,
-                    () => { }
+                    (errorMessage) => {
+                        // Silently ignore scan errors (no barcode detected)
+                    }
                 );
                 isScanning = true;
+                console.log('✅ Scanner started successfully');
             } catch (error) {
                 console.error('Camera error:', error);
                 cameraSection.style.display = 'none';
