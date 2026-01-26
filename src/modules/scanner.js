@@ -130,16 +130,34 @@ export const Scanner = {
         const rows = data.table.rows;
         return rows.slice(1).map(row => {
             const cells = row.c;
+            // Extract date - Google Sheets returns dates in special format
+            const extractDate = (cell) => {
+                if (!cell) return '';
+                // Try formatted value first
+                if (cell.f) return cell.f;
+                // Try raw value
+                if (cell.v) {
+                    const dateMatch = String(cell.v).match(/Date\((\d+),(\d+),(\d+)\)/);
+                    if (dateMatch) {
+                        const year = parseInt(dateMatch[1]);
+                        const month = parseInt(dateMatch[2]) + 1;
+                        const day = parseInt(dateMatch[3]);
+                        return `${month}/${day}/${year}`;
+                    }
+                    return cell.v;
+                }
+                return '';
+            };
             return {
                 barcode: cells[0]?.v?.toString() || '',
                 productName: cells[1]?.v || '',
                 brand: cells[2]?.v || '',
-                discount: cells[3]?.v || '',
-                priceBefore: cells[4]?.v || '',
-                save: cells[5]?.v || '',
-                priceAfter: cells[6]?.v || '',
-                startDate: cells[8]?.v || '', // From Datetime (Column I)
-                endDate: cells[9]?.v || '',   // To Datetime (Column J)
+                discount: cells[3]?.v || cells[3]?.f || '',
+                priceBefore: cells[4]?.v || cells[4]?.f || '',
+                save: cells[5]?.v || cells[5]?.f || '',
+                priceAfter: cells[6]?.v || cells[6]?.f || '',
+                startDate: extractDate(cells[8]),
+                endDate: extractDate(cells[9]),
                 arDescription: cells[10]?.v || '',
                 category: cells[12]?.v || ''
             };
