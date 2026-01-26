@@ -521,14 +521,27 @@
             } catch (e) { }
         }
         // ===== DATE =====
+        // ===== DATE =====
         function parseDate(s) {
-            if (!s || s === '∞') return null;
+            if (!s || s === '∞' || String(s).toLowerCase().includes('infinity')) return null;
+            // 1. Try standard date parse
             let d = new Date(s);
-            if (isNaN(d)) {
-                const p = s.split('/');
-                if (p.length === 3) d = new Date(p[2], p[0] - 1, p[1]);
+            // 2. If invalid, try manual parsing (MM/DD/YYYY)
+            if (isNaN(d.getTime())) {
+                const p = String(s).split('/');
+                if (p.length === 3) {
+                    // Start with MM/DD/YYYY (standard from our extractor)
+                    d = new Date(p[2], p[0] - 1, p[1]);
+                }
             }
-            return isNaN(d) ? null : d;
+            // 3. Last fallback, try DD/MM/YYYY
+            if (isNaN(d.getTime())) {
+                const p = String(s).split('/');
+                if (p.length === 3) {
+                    d = new Date(p[2], p[1] - 1, p[0]);
+                }
+            }
+            return isNaN(d.getTime()) ? null : d;
         }
         function getStatus(offer) {
             const now = new Date(); now.setHours(0, 0, 0, 0);
