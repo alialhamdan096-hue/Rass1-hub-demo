@@ -9,6 +9,24 @@
     <!-- Scanner Dependencies -->
     <script src="https://unpkg.com/html5-qrcode"></script>
     <link rel="stylesheet" href="css/scanner.css">
+    <script>
+        window.onerror = function (message, source, lineno, colno, error) {
+            var fileName = source ? source.split('/').pop() : 'Unknown';
+            alert("🚨 كشفنا خطأ!\n\n" +
+                "الرسالة: " + message + "\n" +
+                "الملف: " + fileName + "\n" +
+                "السطر: " + lineno);
+            return false;
+        };
+        window.addEventListener('unhandledrejection', function (event) {
+            alert("🚨 خطأ في الاتصال (Promise)!\n\n" + event.reason);
+        });
+        window.addEventListener('error', function (e) {
+            if (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK') {
+                alert("🚨 ملف مفقود أو رابط خطأ!\n\n" + (e.target.src || e.target.href));
+            }
+        }, true);
+    </script>
 </head>
 <body>
     <div class="toast-container" id="toastContainer"></div>
@@ -27,68 +45,6 @@
             </div>
         </div>
     </div>
-    <div class="modal-overlay" id="historyModal">
-        <div class="modal history-modal">
-            <div class="history-header">
-                <div class="history-title">📋 سجل المريض</div>
-                <button class="history-close" id="historyCloseBtn">×</button>
-            </div>
-            <div class="history-patient-info">
-                <div class="history-patient-name" id="historyPatientName"></div>
-                <div class="history-patient-phone" id="historyPatientPhone"></div>
-                <div class="history-patient-med" id="historyPatientMed"></div>
-            </div>
-            <div class="history-content" id="historyContent"></div>
-        </div>
-    </div>
-    <div class="modal-overlay" id="labelModal">
-        <div class="modal label-modal">
-            <div class="label-header">
-                <div class="label-title">🏷️ طباعة ملصق</div>
-                <button class="label-close" id="labelCloseBtn">×</button>
-            </div>
-            <div class="label-preview" id="labelPreview"></div>
-            <div class="label-actions">
-                <button class="btn btn-secondary" id="labelCancelBtn">إغلاق</button>
-                <button class="btn btn-primary" id="labelPrintBtn">🖨️ طباعة</button>
-            </div>
-        </div>
-    </div>
-    <div class="modal-overlay" id="exportModal">
-        <div class="modal export-modal">
-            <div class="export-header">
-                <div class="export-title">📊 تصدير Excel</div>
-                <button class="export-close" id="exportCloseBtn">×</button>
-            </div>
-            <div class="export-options">
-                <button class="export-option" id="exportAllBtn">
-                    <span class="export-icon">📋</span>
-                    <span class="export-label">تصدير الكل</span>
-                    <span class="export-desc">جميع البيانات</span>
-                </button>
-                <button class="export-option" id="exportRefillsBtn">
-                    <span class="export-icon">💊</span>
-                    <span class="export-label">إعادة التعبئة</span>
-                    <span class="export-desc">Refills فقط</span>
-                </button>
-                <button class="export-option" id="exportOrdersBtn">
-                    <span class="export-icon">📦</span>
-                    <span class="export-label">الطلبات</span>
-                    <span class="export-desc">Orders فقط</span>
-                </button>
-                <button class="export-option" id="exportFilteredBtn">
-                    <span class="export-icon">🔍</span>
-                    <span class="export-label">البيانات المفلترة</span>
-                    <span class="export-desc">حسب الفلتر الحالي</span>
-                </button>
-                <button class="export-option" id="exportReportBtn">
-                    <span class="export-icon">📈</span>
-                    <span class="export-label">التقرير الشهري</span>
-                    <span class="export-desc">الشهر المحدد</span>
-                </button>
-            </div>
-        </div>
-    </div>
     <div class="container">
         <div class="header-container">
             <img src="logo.png" alt="Rass 1" class="logo-img" onerror="this.style.display='none'">
@@ -101,13 +57,9 @@
             <button class="tab" data-page="reports">📈 Reports</button>
         </div>
         <div id="sync" class="sync sync-ok">✓ Connected to Google Sheets</div>
-        <div class="alert-banner hidden" id="alertBanner">
-            <span class="alert-banner-icon">🔔</span>
-            <span class="alert-banner-text" id="alertText"></span>
-            <button class="alert-banner-close"
-                onclick="document.getElementById('alertBanner').classList.add('hidden')">×</button>
-        </div>
-        <!-- Patients Page -->
+        <div class="alert-banner hidden" id="alertBanner"><span class="alert-banner-icon">🔔</span><span
+                class="alert-banner-text" id="alertText"></span><button class="alert-banner-close"
+                onclick="document.getElementById('alertBanner').classList.add('hidden')">×</button></div>
         <div id="patientsPage" class="page active">
             <div class="stats">
                 <div class="stat total">
@@ -129,9 +81,9 @@
             </div>
             <div class="grid">
                 <!-- ===== BARCODE SCANNER BUTTON ===== -->
-                <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 0;">
+                <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                     <button id="scanBarcodeBtn" class="scan-barcode-btn"
-                        style="background: transparent; box-shadow: none; width: 100%; margin: 0;">
+                        style="background: transparent; box-shadow: none;">
                         <span class="icon">📷</span>
                         <span>Scan Barcode for Offers</span>
                     </button>
@@ -185,7 +137,6 @@
                                     <option>UNIZAH1</option>
                                     <option>UNIZAH2</option>
                                     <option>UNIZAH3</option>
-                                    <option>UNIZAH4</option>
                                     <option>UNIZAH5</option>
                                     <option>BADAYA1</option>
                                     <option>BADAYA2</option>
@@ -224,10 +175,7 @@
                     </form>
                 </div>
                 <div class="card">
-                    <div class="header-row">
-                        <h3 class="card-title" style="margin:0">📋 Records</h3>
-                        <button class="btn btn-secondary btn-sm" id="exportBtn">📊 Excel</button>
-                    </div>
+                    <h3 class="card-title">📋 Records</h3>
                     <div class="filters-row">
                         <input type="text" id="search" placeholder="🔍 Search...">
                         <select id="typeFilter">
@@ -264,7 +212,6 @@
                 </div>
             </div>
         </div>
-        <!-- Orders Page -->
         <div id="ordersPage" class="page">
             <div class="grid">
                 <div class="card">
@@ -286,7 +233,6 @@
                                     <option value="UNIZAH1">UNIZAH1</option>
                                     <option value="UNIZAH2">UNIZAH2</option>
                                     <option value="UNIZAH3">UNIZAH3</option>
-                                    <option value="UNIZAH4">UNIZAH4</option>
                                     <option value="UNIZAH5">UNIZAH5</option>
                                     <option value="BADAYA1">BADAYA1</option>
                                     <option value="BADAYA2">BADAYA2</option>
@@ -319,11 +265,12 @@
                     <div class="send-section" id="sendSection" style="display:none">
                         <h3 class="card-title">📧 Ready to Send</h3>
                         <div id="groupedOrders"></div>
+                        <button class="btn btn-success" id="sendAllBtn" style="margin-top:10px">📧 Send All
+                            Emails</button>
                     </div>
                 </div>
             </div>
         </div>
-        <!-- Tracking Page -->
         <div id="trackingPage" class="page">
             <div class="stats">
                 <div class="stat total">
@@ -351,7 +298,6 @@
                 <div class="track-grid" id="trackGrid"></div>
             </div>
         </div>
-        <!-- Reports Page -->
         <div id="reportsPage" class="page">
             <div class="card">
                 <div class="header-row">
@@ -473,8 +419,6 @@
             </div>
         </div>
     </div>
-    <iframe id="printFrame" style="display:none;position:absolute;width:0;height:0;border:0;"></iframe>
-    <script type="module" src="/src/main.js"></script>
     <!-- Bottom Navigation Bar (Mobile Only) -->
     <div class="bottom-nav">
         <button class="nav-item active" data-page="patients">
@@ -499,6 +443,7 @@
     <button id="fabScanBtn" class="fab-scan">
         <span class="fab-icon">📷</span>
     </button>
+    <script type="module" src="js/main.js"></script>
     <!-- Scanner Module -->
     <script type="module">
         import { Scanner } from './js/modules/scanner.js';
@@ -516,34 +461,25 @@
             const tabs = document.querySelectorAll('.tab');
             const pages = document.querySelectorAll('.page');
             function switchPage(pageId) {
-                // Update pages
                 pages.forEach(p => p.classList.remove('active'));
                 const targetPage = document.getElementById(pageId + 'Page');
                 if (targetPage) targetPage.classList.add('active');
-                // Update bottom nav
                 navItems.forEach(n => {
                     if (n.dataset.page === pageId) n.classList.add('active');
                     else n.classList.remove('active');
                 });
-                // Update top tabs (sync)
                 tabs.forEach(t => {
                     if (t.dataset.page === pageId) t.classList.add('active');
                     else t.classList.remove('active');
                 });
             }
             navItems.forEach(item => {
-                item.addEventListener('click', (e) => {
-                    const page = item.dataset.page;
-                    switchPage(page);
+                item.addEventListener('click', () => {
+                    switchPage(item.dataset.page);
                 });
             });
-            // Sync top tabs clicks to bottom nav
             tabs.forEach(tab => {
-                tab.addEventListener('click', (e) => {
-                    // The existing main.js likely handles the page switching, 
-                    // but we need to ensure bottom nav is also updated.
-                    // If main.js does it, we might be doubling up, but one removes 'active' repeats safely.
-                    // We just need to ensure styling is synced.
+                tab.addEventListener('click', () => {
                     const page = tab.dataset.page;
                     navItems.forEach(n => {
                         if (n.dataset.page === page) n.classList.add('active');
@@ -552,12 +488,6 @@
                 });
             });
         });
-    </script>
-    <script>
-        // Register Service Worker for caching
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js').catch(() => { });
-        }
     </script>
 </body>
 </html>
