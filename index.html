@@ -1,16 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rass 1 Hub</title>
     <link rel="icon" href="logo.png" type="image/png">
+    <link rel="stylesheet" href="css/style.css">
     <!-- Scanner Dependencies -->
     <script src="https://unpkg.com/html5-qrcode"></script>
-    <link rel="stylesheet" href="src/styles/scanner.css">
+    <link rel="stylesheet" href="css/scanner.css">
 </head>
-
 <body>
     <div class="toast-container" id="toastContainer"></div>
     <div class="loading-overlay" id="loadingOverlay">
@@ -129,6 +128,15 @@
                 </div>
             </div>
             <div class="grid">
+                <!-- ===== BARCODE SCANNER BUTTON ===== -->
+                <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 0;">
+                    <button id="scanBarcodeBtn" class="scan-barcode-btn"
+                        style="background: transparent; box-shadow: none; width: 100%; margin: 0;">
+                        <span class="icon">📷</span>
+                        <span>Scan Barcode for Offers</span>
+                    </button>
+                </div>
+                <!-- ===== END SCANNER BUTTON ===== -->
                 <div class="card">
                     <h3 class="card-title" id="formTitle">➕ Add New</h3>
                     <div class="type-selector">
@@ -465,33 +473,91 @@
             </div>
         </div>
     </div>
-
-    <!-- Floating Scanner Button -->
-    <button id="scanBarcodeBtn" class="floating-scanner-btn" title="Scan Barcode for Offers">
-        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
-            <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
-            <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
-            <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
-            <line x1="7" y1="12" x2="17" y2="12"></line>
-            <line x1="12" y1="7" x2="12" y2="17"></line>
-        </svg>
-    </button>
-
     <iframe id="printFrame" style="display:none;position:absolute;width:0;height:0;border:0;"></iframe>
     <script type="module" src="/src/main.js"></script>
+    <!-- Bottom Navigation Bar (Mobile Only) -->
+    <div class="bottom-nav">
+        <button class="nav-item active" data-page="patients">
+            <span class="nav-icon">💊</span>
+            <span class="nav-label">Records</span>
+        </button>
+        <button class="nav-item" data-page="orders">
+            <span class="nav-icon">📦</span>
+            <span class="nav-label">Transfers</span>
+        </button>
+        <div class="nav-spacer"></div> <!-- Spacer for FAB -->
+        <button class="nav-item" data-page="tracking">
+            <span class="nav-icon">📊</span>
+            <span class="nav-label">Tracking</span>
+        </button>
+        <button class="nav-item" data-page="reports">
+            <span class="nav-icon">📈</span>
+            <span class="nav-label">Reports</span>
+        </button>
+    </div>
+    <!-- Floating Action Button for Scanner -->
+    <button id="fabScanBtn" class="fab-scan">
+        <span class="fab-icon">📷</span>
+    </button>
     <!-- Scanner Module -->
     <script type="module">
-        import { Scanner } from './src/modules/scanner.js';
+        import { Scanner } from './js/modules/scanner.js';
         window.Scanner = Scanner;
-        document.getElementById('scanBarcodeBtn').addEventListener('click', () => Scanner.start());
+        const startScanner = () => Scanner.start();
+        const scanBtn = document.getElementById('scanBarcodeBtn');
+        if (scanBtn) scanBtn.addEventListener('click', startScanner);
+        const fabBtn = document.getElementById('fabScanBtn');
+        if (fabBtn) fabBtn.addEventListener('click', startScanner);
     </script>
     <script>
+        // Bottom Navigation Logic
+        document.addEventListener('DOMContentLoaded', () => {
+            const navItems = document.querySelectorAll('.nav-item');
+            const tabs = document.querySelectorAll('.tab');
+            const pages = document.querySelectorAll('.page');
+            function switchPage(pageId) {
+                // Update pages
+                pages.forEach(p => p.classList.remove('active'));
+                const targetPage = document.getElementById(pageId + 'Page');
+                if (targetPage) targetPage.classList.add('active');
+                // Update bottom nav
+                navItems.forEach(n => {
+                    if (n.dataset.page === pageId) n.classList.add('active');
+                    else n.classList.remove('active');
+                });
+                // Update top tabs (sync)
+                tabs.forEach(t => {
+                    if (t.dataset.page === pageId) t.classList.add('active');
+                    else t.classList.remove('active');
+                });
+            }
+            navItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    const page = item.dataset.page;
+                    switchPage(page);
+                });
+            });
+            // Sync top tabs clicks to bottom nav
+            tabs.forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    // The existing main.js likely handles the page switching, 
+                    // but we need to ensure bottom nav is also updated.
+                    // If main.js does it, we might be doubling up, but one removes 'active' repeats safely.
+                    // We just need to ensure styling is synced.
+                    const page = tab.dataset.page;
+                    navItems.forEach(n => {
+                        if (n.dataset.page === page) n.classList.add('active');
+                        else n.classList.remove('active');
+                    });
+                });
+            });
+        });
+    </script>
+    <script>
+        // Register Service Worker for caching
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js').catch(() => { });
         }
     </script>
 </body>
-
 </html>
