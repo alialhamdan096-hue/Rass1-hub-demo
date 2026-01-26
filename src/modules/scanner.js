@@ -91,14 +91,35 @@ export const Scanner = {
         document.getElementById('closeOfferResultBtn')?.addEventListener('click', () => this.closeOfferResult());
         document.getElementById('scanAgainBtn')?.addEventListener('click', () => {
             this.closeOfferResult();
-            this.start();
+            if (this.isMobile) this.start();
         });
         document.getElementById('switchCameraBtn')?.addEventListener('click', () => this.switchCamera());
-        // Manual search events
-        document.getElementById('manualSearchBtn')?.addEventListener('click', () => this.manualSearch());
-        document.getElementById('manualSearchInput')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.manualSearch();
-        });
+        // Robust Input Handling
+        const manualInput = document.getElementById('manualSearchInput');
+        const manualBtn = document.getElementById('manualSearchBtn');
+        if (manualInput) {
+            // 1. Pause scanner when focused (fixes keyboard issue)
+            manualInput.addEventListener('focus', () => {
+                if (this.isScanning && this.scanner) {
+                    try { this.scanner.pause(true); } catch (e) { }
+                }
+            });
+            // 2. Search on Enter
+            manualInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    manualInput.blur();
+                    this.manualSearch();
+                }
+            });
+        }
+        if (manualBtn) {
+            manualBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                manualInput?.blur();
+                this.manualSearch();
+            });
+        }
         document.getElementById('scannerModal')?.addEventListener('click', (e) => {
             if (e.target.id === 'scannerModal') this.stop();
         });
@@ -167,26 +188,26 @@ export const Scanner = {
      * Parse date string safely (handles MM/DD/YYYY and other formats)
      */
     parseDate(dateStr) {
-        if (!dateStr || dateStr === '∞' || dateStr === 'infinity' || dateStr === '') {
+        if (!dateStr || dateStr === '∞' || String(dateStr).toLowerCase().includes('infinity') || dateStr === '') {
             return null;
         }
         try {
-            // Try direct parsing first
+            // 1. Try standard date parse
             let date = new Date(dateStr);
-            // If invalid, try parsing MM/DD/YYYY format
+            // 2. If invalid, try parsing MM/DD/YYYY (standard from our extractor)
             if (isNaN(date.getTime())) {
-                const parts = dateStr.split('/');
+                const parts = String(dateStr).split('/');
                 if (parts.length === 3) {
-                    // MM/DD/YYYY format
                     date = new Date(parts[2], parts[0] - 1, parts[1]);
                 }
             }
-            // Check if valid
-            if (isNaN(date.getTime())) {
-                return null;
+            // 3. Last fallback: try value directly if it's a timestamp number
+            if (isNaN(date.getTime()) && !isNaN(dateStr)) {
+                date = new Date(parseInt(dateStr));
             }
-            return date;
+            return isNaN(date.getTime()) ? null : date;
         } catch (e) {
+            console.warn('Date parse error:', e);
             return null;
         }
     },
