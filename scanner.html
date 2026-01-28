@@ -1,1 +1,276 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scanner</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Tahoma, Arial; margin: 16px; }
+    .wrap { max-width: 980px; margin: 0 auto; }
+    .row { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    .card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; }
+    #reader { width: 100%; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: right; vertical-align: top; }
+    th { background: #f9fafb; }
+    .muted { color: #6b7280; font-size: 12px; }
+    .ok { color: #065f46; }
+    .bad { color: #991b1b; }
+    .controls { display:flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    input[type="text"] { padding: 8px; border: 1px solid #e5e7eb; border-radius: 10px; min-width: 260px; }
+    button { padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; cursor: pointer; }
+  </style>
+
+  <!-- html5-qrcode library -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+
+<body>
+<div class="wrap">
+  <h2>السكانر + قراءة الشيتات</h2>
+  <div class="muted">
+    لازم تكون الصفحة على HTTPS (أو localhost) عشان الكاميرا تشتغل.
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <h3>السكانر</h3>
+      <div id="reader"></div>
+      <div class="muted">إذا تبي توقف بعد أول قراءة، موجود خيار “Stop” في واجهة السكانر.</div>
+      <hr/>
+      <div class="controls">
+        <input id="manualInput" type="text" placeholder="أو اكتب الكود يدويًا ثم Enter" />
+        <button id="btnSearch">بحث</button>
+        <span id="status" class="muted"></span>
+      </div>
+      <div class="muted">آخر كود مقروء: <span id="lastCode">—</span></div>
+    </div>
+
+    <div class="card">
+      <h3>النتائج</h3>
+      <div id="results"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ====== إعدادات الشيتات (حسب روابطك) ======
+  const SHEETS = [
+    {
+      name: "Sheet 1",
+      id: "1-_6mN6DpmuUbpgy3q3h-RXRjPepfhhcdIx2K3oybCzw",
+      gid: "682108686"
+    },
+    {
+      name: "Sheet 2",
+      id: "1xd6gpkII3lxnr1h1mbGTYiomR3Q1HpAZltHD8nDXCI0",
+      gid: "0"
+    }
+  ];
+
+  // رابط تصدير CSV من Google Sheets (شغال إذا الشيت public/anyone-with-link)
+  // مثال صيغة export?format=csv&gid=... :contentReference[oaicite:2]{index=2}
+  function sheetCsvUrl(fileId, gid) {
+    return `https://docs.google.com/spreadsheets/d/${fileId}/export?format=csv&gid=${gid}`;
+  }
+
+  // ====== تحميل بيانات الشيتات ======
+  const cache = new Map(); // key: name => { headers, rows }
+
+  async function loadSheet(sheet) {
+    const key = sheet.name;
+    if (cache.has(key)) return cache.get(key);
+
+    const url = sheetCsvUrl(sheet.id, sheet.gid);
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) {
+      throw new Error(`فشل تحميل ${sheet.name}. تأكد الشيت public/anyone-with-link. HTTP ${res.status}`);
+    }
+    const csvText = await res.text();
+    const { headers, rows } = parseCsvToTable(csvText);
+    const data = { headers, rows };
+    cache.set(key, data);
+    return data;
+  }
+
+  async function loadAllSheets() {
+    const loaded = [];
+    for (const s of SHEETS) loaded.push(await loadSheet(s));
+    return loaded;
+  }
+
+  // ====== CSV Parser بسيط (يدعم quotes بشكل معقول) ======
+  function parseCsvToTable(csv) {
+    const lines = csv.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n").filter(l => l.length);
+    const rows = lines.map(parseCsvLine);
+    const headers = rows.shift() || [];
+    return { headers, rows };
+  }
+
+  function parseCsvLine(line) {
+    const out = [];
+    let cur = "";
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+
+      if (ch === '"') {
+        // double quote escape
+        if (inQuotes && line[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (ch === "," && !inQuotes) {
+        out.push(cur);
+        cur = "";
+      } else {
+        cur += ch;
+      }
+    }
+    out.push(cur);
+    return out.map(x => x.trim());
+  }
+
+  // ====== البحث بالكود المقروء داخل الشيتين ======
+  function findMatches(allSheetsData, code) {
+    const needle = (code || "").trim();
+    if (!needle) return [];
+
+    const matches = [];
+
+    allSheetsData.forEach((data, idx) => {
+      const sheetMeta = SHEETS[idx];
+      const headers = data.headers;
+      data.rows.forEach((row, rIdx) => {
+        // 1) مطابقة في أول عمود
+        const firstCol = (row[0] || "").trim();
+        // 2) أو أي خلية تطابق الكود بالكامل
+        const anyCell = row.some(c => (c || "").trim() === needle);
+
+        if (firstCol === needle || anyCell) {
+          const obj = {};
+          headers.forEach((h, i) => obj[h || `col_${i+1}`] = row[i] ?? "");
+          matches.push({
+            sheet: sheetMeta.name,
+            rowIndex: rIdx + 2, // +1 header, +1 1-based
+            data: obj
+          });
+        }
+      });
+    });
+
+    return matches;
+  }
+
+  // ====== عرض النتائج ======
+  function renderResults(code, matches) {
+    const el = document.getElementById("results");
+    if (!code) {
+      el.innerHTML = `<div class="muted">اقرأ كود أو اكتب يدويًا.</div>`;
+      return;
+    }
+
+    if (!matches.length) {
+      el.innerHTML = `<div class="bad">ما لقيت أي نتيجة للكود: <b>${escapeHtml(code)}</b></div>`;
+      return;
+    }
+
+    let html = `<div class="ok">تم العثور على <b>${matches.length}</b> نتيجة للكود: <b>${escapeHtml(code)}</b></div><br/>`;
+
+    matches.forEach((m) => {
+      html += `
+        <div class="card" style="margin-bottom:10px;">
+          <div><b>${escapeHtml(m.sheet)}</b> — Row: ${m.rowIndex}</div>
+          <div style="overflow:auto; margin-top:8px;">
+            <table>
+              <thead><tr><th>الحقل</th><th>القيمة</th></tr></thead>
+              <tbody>
+                ${Object.entries(m.data).map(([k,v]) => `
+                  <tr><td>${escapeHtml(k)}</td><td>${escapeHtml(String(v ?? ""))}</td></tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    });
+
+    el.innerHTML = html;
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, (c) => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[c]));
+  }
+
+  // ====== تشغيل السكانر ======
+  let allSheetsDataPromise = null;
+
+  async function handleCode(code) {
+    document.getElementById("lastCode").textContent = code;
+    setStatus("جاري البحث...");
+    try {
+      if (!allSheetsDataPromise) allSheetsDataPromise = loadAllSheets();
+      const allSheetsData = await allSheetsDataPromise;
+      const matches = findMatches(allSheetsData, code);
+      renderResults(code, matches);
+      setStatus("تم.");
+    } catch (e) {
+      renderResults(code, []);
+      setStatus(e.message || String(e), true);
+    }
+  }
+
+  function setStatus(msg, isError = false) {
+    const el = document.getElementById("status");
+    el.textContent = msg || "";
+    el.className = isError ? "bad" : "muted";
+  }
+
+  // واجهة html5-qrcode (جاهزة وتعرض Start/Stop)
+  // الاستخدام شائع عبر Html5QrcodeScanner + render :contentReference[oaicite:3]{index=3}
+  function startScanner() {
+    const onScanSuccess = (decodedText, decodedResult) => {
+      // عشان ما يكرر نفس الكود بسرعة:
+      if (decodedText && decodedText !== window.__lastSeen) {
+        window.__lastSeen = decodedText;
+        handleCode(decodedText);
+      }
+    };
+
+    const onScanFailure = (error) => {
+      // تجاهل (القراءة تفشل كثير أثناء الحركة)
+    };
+
+    const scanner = new Html5QrcodeScanner(
+      "reader",
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      /* verbose= */ false
+    );
+
+    scanner.render(onScanSuccess, onScanFailure);
+  }
+
+  // Manual search
+  document.getElementById("btnSearch").addEventListener("click", () => {
+    const code = document.getElementById("manualInput").value.trim();
+    handleCode(code);
+  });
+  document.getElementById("manualInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      const code = e.target.value.trim();
+      handleCode(code);
+    }
+  });
+
+  // init
+  startScanner();
+  renderResults("", []);
+</script>
+</body>
+</html>
 
