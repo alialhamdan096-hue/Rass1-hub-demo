@@ -167,7 +167,6 @@
             background:#000;
             position:relative;
         }
-
         .scanner-preview::after{
             content:'';
             position:absolute;
@@ -261,7 +260,6 @@
             flex-wrap:wrap;
         }
 
-        /* Offer result modal */
         .offer-result{
             max-width:520px;
             background:radial-gradient(circle at top,#111827 0%,#020617 55%,#000 100%);
@@ -312,8 +310,8 @@
                 </button>
             </div>
             <div class="hint">
-                هذه الصفحة مستقلة عن النظام الرئيسي<br>
-                فقط احفظها باسم <strong>scanner.html</strong> وارفعها في Netlify.
+                الصفحة مستقلة باسم <strong>scanner.html</strong><br>
+                تأكد أن الشيت في Google Sheets قابل للعرض لأي شخص معه الرابط.
             </div>
         </div>
     </div>
@@ -443,66 +441,127 @@
             try {
                 const sheetId = '1-_6mN6DpmuUbpgy3q3h-RXRjPepfhhcdIx2K3oybCzw';
                 const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&gid=0`;
+                console.log('🔄 Fetching offers from:', url);
                 const response = await fetch(url);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const text = await response.text();
-                const jsonStr = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?/)?.[1];
-                if (jsonStr) {
-                    const data = JSON.parse(jsonStr);
-                    offersData = this.parseGoogleSheetsData(data);
-                    console.log(`✅ Loaded ${offersData.length} offers`);
-                } else {
-                    throw new Error('Data format mismatch from Google Sheets');
+                const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?/);
+                if (!match || !match[1]) {
+                    throw new Error('Unexpected response format from Google Sheets');
+                }
+                const data = JSON.parse(match[1]);
+                offersData = this.parseGoogleSheetsData(data);
+                console.log(`✅ Offers loaded: ${offersData.length}`);
+                if (!offersData.length) {
+                    console.warn('⚠️ لا توجد بيانات عروض في الشيت (أو لم يتم التعرف على الأعمدة)');
                 }
             } catch (error) {
                 console.error('❌ Google Sheets Load Error:', error);
                 offersData = this.getSampleData();
-                console.log('💡 Using fallback sample data.');
+                console.log('💡 Using fallback sample data (local).');
             }
         },
 
         parseGoogleSheetsData(data) {
             if (!data?.table?.rows) return [];
             const rows = data.table.rows;
-            const firstVal = rows[0]?.c?.[0]?.f || rows[0]?.c?.[0]?.v;
-            const startIdx = (firstVal && !isNaN(String(firstVal).replace(/\D/g, ''))) ? 0 : 1;
+            const cols = data.table.cols.map(c => (c.label || '').toString().trim());
+            console.log('📋 Sheet headers:', cols);
 
-            return rows.slice(startIdx).map((row) => {
-                const cells = row.c;
-                if (!cells) return null;
-
-                const extractDate = (cell) => {
-                    if (!cell) return '';
-                    if (cell.f && cell.f !== '∞') return cell.f;
-                    if (cell.v !== null && cell.v !== undefined) {
-                        const vs = String(cell.v);
-                        const m = vs.match(/Date\((\d+),(\d+),(\d+)\)/);
-                        if (m) return `${parseInt(m[1])}/${parseInt(m[2]) + 1}/${m[3]}`;
-                        if (!isNaN(cell.v) && cell.v > 40000 && cell.v < 60000) {
-                            const d = new Date((cell.v - 25569) * 86400000);
-                            return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
-                        }
-                        return vs;
+            // helper to find index by keywords
+            const findIndex = (keywords) => {
+                const lowerCols = cols.map(c => c.toLowerCase());
+                for (let i = 0; i < lowerCols.length; i++) {
+                    for (const k of keywords) {
+                        if (lowerCols[i].includes(k)) return i;
                     }
-                    return '';
-                };
+                }
+                return -1;
+            };
 
-                const barcode = cells[0]?.f || cells[0]?.v?.toString() || '';
+            const idx = {
+                barcode: findIndex(['barcode','باركود','code','كود']),
+                productName: findIndex(['product','اسم','المنتج','الوصف بالانج']),
+                brand: findIndex(['brand','ماركة','شركة']),
+                discount: findIndex(['discount','خصم','نسبة']),
+                priceBefore: findIndex(['before','السعر قبل','price before']),
+                save: findIndex(['save','توفير','فرق']),
+                priceAfter: findIndex(['after','السعر بعد','price after']),
+                startDate: findIndex(['start','بداية','from','من']),
+                endDate: findIndex(['end','نهاية','to','إلى']),
+                arDescription: findIndex(['arabic','وصف عربي','الاسم العربي','الوصف']),
+                type: findIndex(['type','نوع','فئة العرض']),
+                category: findIndex(['category','تصنيف','قسم'])
+            };
+
+            // fallback to fixed positions if not detected
+            const fallback = {
+                barcode: 0,
+                productName: 1,
+                brand: 2,
+                discount: 3,
+                priceBefore: 4,
+                save: 5,
+                priceAfter: 6,
+                startDate: 8,
+                endDate: 9,
+                arDescription: 10,
+                type: 11,
+                category: 12
+            };
+
+            const getIdx = (key) => (idx[key] !== -1 ? idx[key] : fallback[key]);
+
+            const extractDate = (cell) => {
+                if (!cell) return '';
+                if (cell.f && cell.f !== '∞') return cell.f;
+                if (cell.v !== null && cell.v !== undefined) {
+                    const vs = String(cell.v);
+                    const m = vs.match(/Date\((\d+),(\d+),(\d+)\)/);
+                    if (m) return `${parseInt(m[1])}/${parseInt(m[2]) + 1}/${m[3]}`;
+                    if (!isNaN(cell.v) && cell.v > 40000 && cell.v < 60000) {
+                        const d = new Date((cell.v - 25569) * 86400000);
+                        return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+                    }
+                    return vs;
+                }
+                return '';
+            };
+
+            // detect if first row is header (non-numeric barcode)
+            const firstRow = rows[0];
+            const fvCell = firstRow?.c?.[getIdx('barcode')];
+            const fv = fvCell?.f || fvCell?.v;
+            const firstLooksLikeBarcode =
+                fv && !isNaN(String(fv).replace(/\D/g, '')) && String(fv).replace(/\D/g, '').length >= 6;
+            const startIdx = firstLooksLikeBarcode ? 0 : 1;
+
+            const items = rows.slice(startIdx).map((row) => {
+                const cells = row.c || [];
+                const getCell = (i) => (i >= 0 && i < cells.length ? cells[i] : null);
+
+                const bcCell = getCell(getIdx('barcode'));
+                const barcode = (bcCell?.f || bcCell?.v || '').toString().trim();
+                if (!barcode) return null;
+
                 return {
-                    barcode: barcode.trim(),
-                    productName: cells[1]?.v || cells[1]?.f || '',
-                    brand: cells[2]?.v || '',
-                    discount: cells[3]?.v || cells[3]?.f || '',
-                    priceBefore: cells[4]?.v || cells[4]?.f || '',
-                    save: cells[5]?.v || cells[5]?.f || '',
-                    priceAfter: cells[6]?.v || cells[6]?.f || '',
-                    startDate: extractDate(cells[8]),
-                    endDate: extractDate(cells[9]),
-                    arDescription: cells[10]?.v || '',
-                    type: cells[11]?.v || '',
-                    category: cells[12]?.v || ''
+                    barcode,
+                    productName: (getCell(getIdx('productName'))?.v || getCell(getIdx('productName'))?.f || '').toString(),
+                    brand: (getCell(getIdx('brand'))?.v || '').toString(),
+                    discount: (getCell(getIdx('discount'))?.v || getCell(getIdx('discount'))?.f || '').toString(),
+                    priceBefore: (getCell(getIdx('priceBefore'))?.v || getCell(getIdx('priceBefore'))?.f || '').toString(),
+                    save: (getCell(getIdx('save'))?.v || getCell(getIdx('save'))?.f || '').toString(),
+                    priceAfter: (getCell(getIdx('priceAfter'))?.v || getCell(getIdx('priceAfter'))?.f || '').toString(),
+                    startDate: extractDate(getCell(getIdx('startDate'))),
+                    endDate: extractDate(getCell(getIdx('endDate'))),
+                    arDescription: (getCell(getIdx('arDescription'))?.v || '').toString(),
+                    type: (getCell(getIdx('type'))?.v || '').toString(),
+                    category: (getCell(getIdx('category'))?.v || '').toString()
                 };
-            }).filter(item => item && item.barcode);
+            }).filter(Boolean);
+
+            console.log('✅ Parsed offers from sheet:', items.length);
+            return items;
         },
 
         parseDate(dateStr) {
@@ -618,7 +677,6 @@
         async start() {
             await this.init();
 
-            // تأكد من تحميل مكتبة Html5Qrcode
             if (typeof Html5Qrcode === 'undefined') {
                 try {
                     await this.loadHtml5QrcodeLib();
@@ -637,7 +695,6 @@
 
             modal.classList.add('active');
 
-            // لو مو موبايل أو ما فيه مكتبة → بحث يدوي فقط
             if (!this.isMobile || typeof Html5Qrcode === 'undefined') {
                 modalTitle.textContent = '🔍 البحث عن العروض';
                 cameraSection.style.display = 'none';
@@ -647,7 +704,6 @@
                 return;
             }
 
-            // موبايل + مكتبة جاهزة → شغّل الكاميرا
             modalTitle.textContent = '📷 مسح الباركود';
             cameraSection.style.display = 'block';
             cameraActions.style.display = 'flex';
@@ -904,7 +960,7 @@
 
     window.Scanner = Scanner;
 
-    // فتح الكاميرا تلقائياً عند فتح الصفحة (قد يتطلب تفاعل أو إذن من المتصفح)
+    // يفتح السكانر مباشرة عند تحميل الصفحة
     document.addEventListener('DOMContentLoaded', () => {
         Scanner.start();
     });
