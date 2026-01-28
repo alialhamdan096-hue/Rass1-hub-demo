@@ -129,35 +129,52 @@ export const Scanner = {
      */
     async loadOffersData() {
         try {
+            console.log('🔄 Fetching data from Google Sheets...');
             const sheetId = '1-_6mN6DpmuUbpgy3q3h-RXRjPepfhhcdIx2K3oybCzw';
-            const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json`;
+            // Use gid=0 to ensure we target the first sheet specifically
+            const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&gid=0`;
             const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const text = await response.text();
+            // Extract JSON from gviz response format
             const jsonStr = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?/)?.[1];
             if (jsonStr) {
                 const data = JSON.parse(jsonStr);
                 offersData = this.parseGoogleSheetsData(data);
-                console.log(`✅ Loaded ${offersData.length} offers from Google Sheets`);
+                console.log(`✅ Successfully loaded ${offersData.length} offers`);
+                if (offersData.length === 0) {
+                    console.warn('⚠️ Base is empty after parsing. Check sheet structure.');
+                }
+            } else {
+                throw new Error('Data format mismatch from Google Sheets');
             }
         } catch (error) {
-            console.warn('Could not load from Google Sheets, using fallback data:', error);
+            console.error('❌ Google Sheets Load Error:', error);
+            // alert("⚠️ خطأ في الاتصال بقاعدة البيانات. تأكد من الإنترنت أو صلاحيات الشيت.\n" + error.message);
             offersData = this.getSampleData();
+            console.log('💡 Using fallback sample data.');
         }
     },
     parseGoogleSheetsData(data) {
+        if (!data?.table?.rows) return [];
         const rows = data.table.rows;
-        return rows.slice(1).map(row => {
+        // Auto-detect if first row is a header. 
+        // If first cell of first row is NOT a number (barcode), it's a header.
+        const firstVal = rows[0]?.c?.[0]?.f || rows[0]?.c?.[0]?.v;
+        const startIdx = (firstVal && !isNaN(String(firstVal).replace(/\D/g, ''))) ? 0 : 1;
+        return rows.slice(startIdx).map((row, idx) => {
             const cells = row.c;
+            if (!cells) return null;
             // Extract date - Google Sheets returns dates in special format or serial numbers
             const extractDate = (cell) => {
                 if (!cell) return '';
-                // 1. Try formatted value (most reliable)
+                // 1. Try formatted value (most reliable for display)
                 if (cell.f && cell.f !== '∞') return cell.f;
                 if (cell.v !== null && cell.v !== undefined) {
                     const vs = String(cell.v);
                     // Case: Date(2026,8,6)
                     const m = vs.match(/Date\((\d+),(\d+),(\d+)\)/);
-                    if (m) return `${parseInt(m[2]) + 1}/${m[3]}/${m[1]}`;
+                    if (m) return `${parseInt(m[1])}/${parseInt(m[2]) + 1}/${m[3]}`; // Standard Y/M/D from Google matches better
                     // Case: Serial number (e.g. 45683)
                     if (!isNaN(cell.v) && cell.v > 40000 && cell.v < 60000) {
                         const d = new Date((cell.v - 25569) * 86400000);
@@ -167,9 +184,11 @@ export const Scanner = {
                 }
                 return '';
             };
+            // Prefers 'f' (formatted) for barcode to keep leading zeros
+            const barcode = cells[0]?.f || cells[0]?.v?.toString() || '';
             return {
-                barcode: cells[0]?.v?.toString() || '',
-                productName: cells[1]?.v || '',
+                barcode: barcode.trim(),
+                productName: cells[1]?.v || cells[1]?.f || '',
                 brand: cells[2]?.v || '',
                 discount: cells[3]?.v || cells[3]?.f || '',
                 priceBefore: cells[4]?.v || cells[4]?.f || '',
@@ -181,7 +200,7 @@ export const Scanner = {
                 type: cells[11]?.v || '',
                 category: cells[12]?.v || ''
             };
-        }).filter(item => item.barcode);
+        }).filter(item => item && item.barcode);
     },
     /**
      * Parse date string safely (handles MM/DD/YYYY and other formats)
