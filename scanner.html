@@ -400,19 +400,35 @@
         const modalBody = document.getElementById('modalBody');
         const statusDot = document.getElementById('statusDot');
         const statusText = document.getElementById('statusText');
-
+        // ===== NORMALIZE BARCODE =====
+        function normalizeBarcode(code) {
+            if (!code) return '';
+            let s = String(code).trim();
+            // تحويل الصيغة العلمية إلى رقم كامل
+            if (s.includes('E+') || s.includes('e+') || s.includes('E-') || s.includes('e-')) {
+                try {
+                    const num = parseFloat(s);
+                    if (!isNaN(num)) {
+                        s = num.toLocaleString('fullwide', { useGrouping: false });
+                    }
+                } catch (e) { }
+            }
+            // إزالة أي أحرف غير رقمية (ما عدا الأرقام)
+            s = s.replace(/[^\d]/g, '');
+            // إزالة الأصفار الزائدة من البداية
+            s = s.replace(/^0+/, '') || '0';
+            return s;
+        }
         // ===== INIT =====
         async function init() {
             statusText.textContent = '⏳ جاري تحميل البيانات...';
             await loadOffers();
             startScanner();
         }
-
         // ===== LOAD DATA =====
         async function loadOffers() {
             try {
                 offers = [];
-
                 // ===== SHEET 1 (spreadsheet 1 + gid=682108686) =====
                 {
                     const id = '1-_6mN6DpmuUbpgy3q3h-RXRjPepfhhcdIx2K3oybCzw';
@@ -443,7 +459,7 @@
                                 return '';
                             };
                             return {
-                                barcode: c[0]?.v?.toString() || '',
+                                barcode: normalizeBarcode(c[0]?.v),
                                 name: c[1]?.v || '',
                                 brand: c[2]?.v || '',
                                 discount: c[3]?.f || c[3]?.v || '',
@@ -460,7 +476,6 @@
                         offers = offers.concat(sheetOffers);
                     }
                 }
-
                 // ===== SHEET 2 (spreadsheet 2 + gid=0) =====
                 {
                     const id = '1xd6gpkII3lxnr1h1mbGTYiomR3Q1HpAZltHD8nDXCI0';
@@ -491,7 +506,7 @@
                                 return '';
                             };
                             return {
-                                barcode: c[0]?.v?.toString() || '',
+                                barcode: normalizeBarcode(c[0]?.v),
                                 name: c[1]?.v || '',
                                 brand: c[2]?.v || '',
                                 discount: c[3]?.f || c[3]?.v || '',
@@ -508,14 +523,11 @@
                         offers = offers.concat(sheetOffers);
                     }
                 }
-
                 console.log('✅ Loaded', offers.length, 'offers');
-
             } catch (e) {
                 console.error('Error loading data:', e);
             }
         }
-
         // ===== ULTRA FAST SCANNER =====
         function startScanner() {
             statusText.textContent = '⏳ جاري تشغيل الكاميرا...';
@@ -546,11 +558,12 @@
             const now = Date.now();
             if (now - lastScan < 1000) return;
             lastScan = now;
-            console.log('📷', code);
+            const normalizedCode = normalizeBarcode(code);
+            console.log('📷', code, '→', normalizedCode);
             beep();
             // Pause scanner
             scanner.pause(true);
-            const offer = offers.find(o => o.barcode === code);
+            const offer = offers.find(o => o.barcode === normalizedCode);
             showResult(code, offer);
         }
         function onError() {
@@ -566,7 +579,6 @@
                 }
             }
         }
-
         // ===== BEEP =====
         function beep() {
             try {
@@ -590,7 +602,6 @@
                 beepOnce(2400, 80);
             } catch (e) { }
         }
-
         // ===== DATE UTILS =====
         function parseDate(s) {
             if (!s || s === '∞' || String(s).toLowerCase().includes('inf')) return null;
@@ -628,7 +639,6 @@
             }
             return { label: '✅ ساري', msg: 'مستمر', color: '#27ae60' };
         }
-
         // ===== SHOW RESULT =====
         function showResult(code, offer) {
             if (offer) {
@@ -674,12 +684,12 @@
             }
             modal.classList.add('show');
         }
-
         // ===== SEARCH =====
         function search() {
             const q = input.value.trim();
             if (!q) return;
-            const byCode = offers.find(o => o.barcode === q);
+            const normalizedQ = normalizeBarcode(q);
+            const byCode = offers.find(o => o.barcode === normalizedQ);
             if (byCode) {
                 beep();
                 showResult(q, byCode);
@@ -716,14 +726,12 @@
             input.value = '';
         }
         window.pick = i => showResult(window._r[i].barcode, window._r[i]);
-
         // ===== CLOSE =====
         function closeModal() {
             modal.classList.remove('show');
             resumeScanner();
             input.focus();
         }
-
         // ===== EVENTS - ROBUST INPUT HANDLING =====
         // 1. Pause scanner when user wants to type
         input.addEventListener('focus', () => {
@@ -755,7 +763,6 @@
                 resumeScanner();
             }
         });
-
         // ===== START =====
         init();
     </script>
