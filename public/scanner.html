@@ -400,62 +400,122 @@
         const modalBody = document.getElementById('modalBody');
         const statusDot = document.getElementById('statusDot');
         const statusText = document.getElementById('statusText');
+
         // ===== INIT =====
         async function init() {
             statusText.textContent = '⏳ جاري تحميل البيانات...';
             await loadOffers();
             startScanner();
         }
+
         // ===== LOAD DATA =====
         async function loadOffers() {
             try {
-                const id = '1-_6mN6DpmuUbpgy3q3h-RXRjPepfhhcdIx2K3oybCzw';
-                const res = await fetch(`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json`);
-                const txt = await res.text();
-                const json = txt.match(/setResponse\(([\s\S]*)\);?/)?.[1];
-                if (json) {
-                    const data = JSON.parse(json);
-                    offers = data.table.rows.slice(1).map(r => {
-                        const c = r.c;
-                        const getDate = (cell) => {
-                            if (!cell) return '';
-                            // 1. Try formatted value (most reliable for strings like '1/26/2025')
-                            if (cell.f && cell.f !== '∞') return cell.f;
-                            if (cell.v !== null && cell.v !== undefined) {
-                                const vs = String(cell.v);
-                                // Case: Date(2026,8,6)
-                                const m = vs.match(/Date\((\d+),(\d+),(\d+)\)/);
-                                if (m) return `${parseInt(m[2]) + 1}/${m[3]}/${m[1]}`;
-                                // Case: Serial number (e.g. 45683)
-                                if (!isNaN(cell.v) && cell.v > 40000 && cell.v < 60000) {
-                                    const d = new Date((cell.v - 25569) * 86400000);
-                                    return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+                offers = [];
+
+                // ===== SHEET 1 (spreadsheet 1 + gid=682108686) =====
+                {
+                    const id = '1-_6mN6DpmuUbpgy3q3h-RXRjPepfhhcdIx2K3oybCzw';
+                    const gid = '682108686';
+                    const res = await fetch(`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json&gid=${gid}`);
+                    const txt = await res.text();
+                    const json = txt.match(/setResponse\(([\s\S]*)\);?/)?.[1];
+                    if (json) {
+                        const data = JSON.parse(json);
+                        const sheetOffers = data.table.rows.slice(1).map(r => {
+                            const c = r.c;
+                            const getDate = (cell) => {
+                                if (!cell) return '';
+                                // 1. Try formatted value (most reliable for strings like '1/26/2025')
+                                if (cell.f && cell.f !== '∞') return cell.f;
+                                if (cell.v !== null && cell.v !== undefined) {
+                                    const vs = String(cell.v);
+                                    // Case: Date(2026,8,6)
+                                    const m = vs.match(/Date\((\d+),(\d+),(\d+)\)/);
+                                    if (m) return `${parseInt(m[2]) + 1}/${m[3]}/${m[1]}`;
+                                    // Case: Serial number (e.g. 45683)
+                                    if (!isNaN(cell.v) && cell.v > 40000 && cell.v < 60000) {
+                                        const d = new Date((cell.v - 25569) * 86400000);
+                                        return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+                                    }
+                                    return vs;
                                 }
-                                return vs;
-                            }
-                            return '';
-                        };
-                        return {
-                            barcode: c[0]?.v?.toString() || '',
-                            name: c[1]?.v || '',
-                            brand: c[2]?.v || '',
-                            discount: c[3]?.f || c[3]?.v || '',
-                            priceBefore: c[4]?.f || c[4]?.v || '',
-                            save: c[5]?.f || c[5]?.v || '',
-                            priceAfter: c[6]?.f || c[6]?.v || '',
-                            from: getDate(c[8]),
-                            end: getDate(c[9]),
-                            arName: c[10]?.v || '',
-                            type: c[11]?.v || '',
-                            cat: c[12]?.v || ''
-                        };
-                    }).filter(o => o.barcode);
-                    console.log('✅ Loaded', offers.length, 'offers');
+                                return '';
+                            };
+                            return {
+                                barcode: c[0]?.v?.toString() || '',
+                                name: c[1]?.v || '',
+                                brand: c[2]?.v || '',
+                                discount: c[3]?.f || c[3]?.v || '',
+                                priceBefore: c[4]?.f || c[4]?.v || '',
+                                save: c[5]?.f || c[5]?.v || '',
+                                priceAfter: c[6]?.f || c[6]?.v || '',
+                                from: getDate(c[8]),
+                                end: getDate(c[9]),
+                                arName: c[10]?.v || '',
+                                type: c[11]?.v || '',
+                                cat: c[12]?.v || ''
+                            };
+                        }).filter(o => o.barcode);
+                        offers = offers.concat(sheetOffers);
+                    }
                 }
+
+                // ===== SHEET 2 (spreadsheet 2 + gid=0) =====
+                {
+                    const id = '1xd6gpkII3lxnr1h1mbGTYiomR3Q1HpAZltHD8nDXCI0';
+                    const gid = '0';
+                    const res = await fetch(`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json&gid=${gid}`);
+                    const txt = await res.text();
+                    const json = txt.match(/setResponse\(([\s\S]*)\);?/)?.[1];
+                    if (json) {
+                        const data = JSON.parse(json);
+                        const sheetOffers = data.table.rows.slice(1).map(r => {
+                            const c = r.c;
+                            const getDate = (cell) => {
+                                if (!cell) return '';
+                                // 1. Try formatted value (most reliable for strings like '1/26/2025')
+                                if (cell.f && cell.f !== '∞') return cell.f;
+                                if (cell.v !== null && cell.v !== undefined) {
+                                    const vs = String(cell.v);
+                                    // Case: Date(2026,8,6)
+                                    const m = vs.match(/Date\((\d+),(\d+),(\d+)\)/);
+                                    if (m) return `${parseInt(m[2]) + 1}/${m[3]}/${m[1]}`;
+                                    // Case: Serial number (e.g. 45683)
+                                    if (!isNaN(cell.v) && cell.v > 40000 && cell.v < 60000) {
+                                        const d = new Date((cell.v - 25569) * 86400000);
+                                        return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+                                    }
+                                    return vs;
+                                }
+                                return '';
+                            };
+                            return {
+                                barcode: c[0]?.v?.toString() || '',
+                                name: c[1]?.v || '',
+                                brand: c[2]?.v || '',
+                                discount: c[3]?.f || c[3]?.v || '',
+                                priceBefore: c[4]?.f || c[4]?.v || '',
+                                save: c[5]?.f || c[5]?.v || '',
+                                priceAfter: c[6]?.f || c[6]?.v || '',
+                                from: getDate(c[8]),
+                                end: getDate(c[9]),
+                                arName: c[10]?.v || '',
+                                type: c[11]?.v || '',
+                                cat: c[12]?.v || ''
+                            };
+                        }).filter(o => o.barcode);
+                        offers = offers.concat(sheetOffers);
+                    }
+                }
+
+                console.log('✅ Loaded', offers.length, 'offers');
+
             } catch (e) {
                 console.error('Error loading data:', e);
             }
         }
+
         // ===== ULTRA FAST SCANNER =====
         function startScanner() {
             statusText.textContent = '⏳ جاري تشغيل الكاميرا...';
@@ -506,6 +566,7 @@
                 }
             }
         }
+
         // ===== BEEP =====
         function beep() {
             try {
@@ -529,6 +590,7 @@
                 beepOnce(2400, 80);
             } catch (e) { }
         }
+
         // ===== DATE UTILS =====
         function parseDate(s) {
             if (!s || s === '∞' || String(s).toLowerCase().includes('inf')) return null;
@@ -566,6 +628,7 @@
             }
             return { label: '✅ ساري', msg: 'مستمر', color: '#27ae60' };
         }
+
         // ===== SHOW RESULT =====
         function showResult(code, offer) {
             if (offer) {
@@ -611,6 +674,7 @@
             }
             modal.classList.add('show');
         }
+
         // ===== SEARCH =====
         function search() {
             const q = input.value.trim();
@@ -652,12 +716,14 @@
             input.value = '';
         }
         window.pick = i => showResult(window._r[i].barcode, window._r[i]);
+
         // ===== CLOSE =====
         function closeModal() {
             modal.classList.remove('show');
             resumeScanner();
             input.focus();
         }
+
         // ===== EVENTS - ROBUST INPUT HANDLING =====
         // 1. Pause scanner when user wants to type
         input.addEventListener('focus', () => {
@@ -689,6 +755,7 @@
                 resumeScanner();
             }
         });
+
         // ===== START =====
         init();
     </script>
