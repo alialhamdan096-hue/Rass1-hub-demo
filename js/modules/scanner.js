@@ -1,13 +1,22 @@
 /**
  * Barcode Scanner Module for Rass1 Hub
  * Uses Html5-QRCode library for barcode scanning
+ * For Vite project structure
  */
-import { UI } from './ui.js';
-// Offers data - will be loaded from Google Sheets API or embedded JSON
+// Offers data - will be loaded from Google Sheets
 let offersData = [];
 export const Scanner = {
     scanner: null,
     isScanning: false,
+    audioContext: null,
+    isMobile: false,
+    /**
+     * Check if device is mobile
+     */
+    checkIsMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+            || (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
+    },
     /**
      * Initialize the scanner
      */
@@ -27,12 +36,28 @@ export const Scanner = {
             <div id="scannerModal" class="scanner-modal">
                 <div class="scanner-modal-content">
                     <div class="scanner-header">
-                        <h2>📷 Scan Barcode</h2>
+                        <h2 id="scannerModalTitle">📷 Scan Barcode</h2>
                         <button id="closeScannerBtn" class="scanner-close-btn">&times;</button>
                     </div>
-                    <div id="scannerPreview" class="scanner-preview"></div>
-                    <p class="scanner-hint">Point your camera at the product barcode</p>
-                    <div class="scanner-actions">
+                    
+                    <!-- Camera Section (Mobile) -->
+                    <div id="cameraSection">
+                        <div id="scannerPreview" class="scanner-preview"></div>
+                        <p class="scanner-hint">Point your camera at the product barcode</p>
+                    </div>
+                    
+                    <!-- Manual Search Section -->
+                    <div class="manual-search-section">
+                        <div class="manual-search-divider" id="searchDivider">
+                            <span>أو ابحث يدوياً</span>
+                        </div>
+                        <div class="manual-search-input">
+                            <input type="text" id="manualSearchInput" placeholder="أدخل الباركود أو اسم المنتج..." autofocus />
+                            <button id="manualSearchBtn" class="scanner-btn primary">🔍 بحث</button>
+                        </div>
+                    </div>
+                    
+                    <div class="scanner-actions" id="cameraActions">
                         <button id="switchCameraBtn" class="scanner-btn secondary">🔄 Switch Camera</button>
                         <button id="stopScanBtn" class="scanner-btn danger">Stop Scanning</button>
                     </div>
@@ -47,7 +72,7 @@ export const Scanner = {
                     </div>
                     <div id="offerResultContent" class="offer-content"></div>
                     <div class="scanner-actions">
-                        <button id="scanAgainBtn" class="scanner-btn primary">📷 Scan Again</button>
+                        <button id="scanAgainBtn" class="scanner-btn primary">🔍 بحث جديد</button>
                         <button id="closeOfferResultBtn" class="scanner-btn secondary">Close</button>
                     </div>
                 </div>
@@ -60,80 +85,213 @@ export const Scanner = {
      * Bind modal events
      */
     bindEvents() {
-        // Close scanner modal
         document.getElementById('closeScannerBtn')?.addEventListener('click', () => this.stop());
         document.getElementById('stopScanBtn')?.addEventListener('click', () => this.stop());
-        // Close offer result modal
         document.getElementById('closeOfferBtn')?.addEventListener('click', () => this.closeOfferResult());
         document.getElementById('closeOfferResultBtn')?.addEventListener('click', () => this.closeOfferResult());
-        // Scan again
         document.getElementById('scanAgainBtn')?.addEventListener('click', () => {
             this.closeOfferResult();
-            this.start();
+            if (this.isMobile) this.start();
         });
-        // Switch camera
         document.getElementById('switchCameraBtn')?.addEventListener('click', () => this.switchCamera());
-        // Close on backdrop click
+        // Robust Input Handling
+        const manualInput = document.getElementById('manualSearchInput');
+        const manualBtn = document.getElementById('manualSearchBtn');
+        if (manualInput) {
+            // 1. Pause scanner when focused (fixes keyboard issue)
+            manualInput.addEventListener('focus', () => {
+                if (this.isScanning && this.scanner) {
+                    try { this.scanner.pause(true); } catch (e) { }
+                }
+            });
+            // 2. Search on Enter
+            manualInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    manualInput.blur();
+                    this.manualSearch();
+                }
+            });
+        }
+        if (manualBtn) {
+            manualBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                manualInput?.blur();
+                this.manualSearch();
+            });
+        }
         document.getElementById('scannerModal')?.addEventListener('click', (e) => {
             if (e.target.id === 'scannerModal') this.stop();
         });
-        document.getElementById('offerResultModal')?.addEventListener('click', (e) => {
-            if (e.target.id === 'offerResultModal') this.closeOfferResult();
-        });
     },
     /**
-     * Load offers data from Google Sheets or embedded JSON
+     * Load offers data from Google Sheets
      */
     async loadOffersData() {
         try {
-            // Try to fetch from Google Sheets API (public CSV export)
+            console.log('🔄 Fetching data from Google Sheets...');
             const sheetId = '1-_6mN6DpmuUbpgy3q3h-RXRjPepfhhcdIx2K3oybCzw';
-            const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json`;
+            // Use gid=0 to ensure we target the first sheet specifically
+            const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&gid=0`;
             const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const text = await response.text();
-            // Parse Google Sheets JSON response (remove prefix/suffix)
+            // Extract JSON from gviz response format
             const jsonStr = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?/)?.[1];
             if (jsonStr) {
                 const data = JSON.parse(jsonStr);
                 offersData = this.parseGoogleSheetsData(data);
-                console.log(`✅ Loaded ${offersData.length} offers from Google Sheets`);
+                console.log(`✅ Successfully loaded ${offersData.length} offers`);
+                if (offersData.length === 0) {
+                    console.warn('⚠️ Base is empty after parsing. Check sheet structure.');
+                }
+            } else {
+                throw new Error('Data format mismatch from Google Sheets');
             }
         } catch (error) {
-            console.warn('Could not load from Google Sheets, using fallback data:', error);
-            // Fallback to embedded sample data
+            console.error('❌ Google Sheets Load Error:', error);
+            // alert("⚠️ خطأ في الاتصال بقاعدة البيانات. تأكد من الإنترنت أو صلاحيات الشيت.\n" + error.message);
             offersData = this.getSampleData();
+            console.log('💡 Using fallback sample data.');
+        }
+    },
+    parseGoogleSheetsData(data) {
+        if (!data?.table?.rows) return [];
+        const rows = data.table.rows;
+        // Auto-detect if first row is a header. 
+        // If first cell of first row is NOT a number (barcode), it's a header.
+        const firstVal = rows[0]?.c?.[0]?.f || rows[0]?.c?.[0]?.v;
+        const startIdx = (firstVal && !isNaN(String(firstVal).replace(/\D/g, ''))) ? 0 : 1;
+        return rows.slice(startIdx).map((row, idx) => {
+            const cells = row.c;
+            if (!cells) return null;
+            // Extract date - Google Sheets returns dates in special format or serial numbers
+            const extractDate = (cell) => {
+                if (!cell) return '';
+                // 1. Try formatted value (most reliable for display)
+                if (cell.f && cell.f !== '∞') return cell.f;
+                if (cell.v !== null && cell.v !== undefined) {
+                    const vs = String(cell.v);
+                    // Case: Date(2026,8,6)
+                    const m = vs.match(/Date\((\d+),(\d+),(\d+)\)/);
+                    if (m) return `${parseInt(m[1])}/${parseInt(m[2]) + 1}/${m[3]}`; // Standard Y/M/D from Google matches better
+                    // Case: Serial number (e.g. 45683)
+                    if (!isNaN(cell.v) && cell.v > 40000 && cell.v < 60000) {
+                        const d = new Date((cell.v - 25569) * 86400000);
+                        return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+                    }
+                    return vs;
+                }
+                return '';
+            };
+            // Prefers 'f' (formatted) for barcode to keep leading zeros
+            const barcode = cells[0]?.f || cells[0]?.v?.toString() || '';
+            return {
+                barcode: barcode.trim(),
+                productName: cells[1]?.v || cells[1]?.f || '',
+                brand: cells[2]?.v || '',
+                discount: cells[3]?.v || cells[3]?.f || '',
+                priceBefore: cells[4]?.v || cells[4]?.f || '',
+                save: cells[5]?.v || cells[5]?.f || '',
+                priceAfter: cells[6]?.v || cells[6]?.f || '',
+                startDate: extractDate(cells[8]),
+                endDate: extractDate(cells[9]),
+                arDescription: cells[10]?.v || '',
+                type: cells[11]?.v || '',
+                category: cells[12]?.v || ''
+            };
+        }).filter(item => item && item.barcode);
+    },
+    /**
+     * Parse date string safely (handles MM/DD/YYYY and other formats)
+     */
+    parseDate(dateStr) {
+        if (!dateStr || dateStr === '∞' || String(dateStr).toLowerCase().includes('inf') || dateStr === '') {
+            return null;
+        }
+        try {
+            // 1. Try standard date parse
+            let date = new Date(dateStr);
+            if (!isNaN(date.getTime())) return date;
+            // 2. Manual parse for D/M/Y or M/D/Y
+            const parts = String(dateStr).split(/[\/\-.]/);
+            if (parts.length === 3) {
+                const p0 = parseInt(parts[0]);
+                const p1 = parseInt(parts[1]);
+                const y = parseInt(parts[2]);
+                if (y > 1000) {
+                    if (p0 > 12) return new Date(y, p1 - 1, p0); // D/M/Y
+                    return new Date(y, p0 - 1, p1); // M/D/Y (Default)
+                }
+            }
+            return null;
+        } catch (e) {
+            return null;
         }
     },
     /**
-     * Parse Google Sheets API response
+     * Get status object for an offer
      */
-    parseGoogleSheetsData(data) {
-        const rows = data.table.rows;
-        const cols = data.table.cols;
-        // Skip header row, map data
-        return rows.slice(1).map(row => {
-            const cells = row.c;
+    getOfferStatus(offer) {
+        // Special case: Fixed/Static type
+        if (offer.type === 'ثابت') {
             return {
-                barcode: cells[0]?.v?.toString() || '',
-                productName: cells[1]?.v || '',
-                brand: cells[2]?.v || '',
-                discount: cells[3]?.v || '',
-                priceBefore: cells[4]?.v || '',
-                save: cells[5]?.v || '',
-                priceAfter: cells[6]?.v || '',
-                brandOrProduct: cells[7]?.v || '',
-                fromDate: cells[8]?.v || '',
-                toDate: cells[9]?.v || '',
-                arDescription: cells[10]?.v || '',
-                type: cells[11]?.v || '',
-                category: cells[12]?.v || '',
-                magazine: cells[13]?.v || ''
+                status: 'active',
+                label: '✅ ساري',
+                color: '#27ae60',
+                message: 'عرض مستمر'
             };
-        }).filter(item => item.barcode);
+        }
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        // Parse dates safely
+        const startDate = this.parseDate(offer.startDate);
+        const endDate = this.parseDate(offer.endDate);
+        // Check if not started yet
+        if (startDate && startDate > today) {
+            const diff = Math.ceil((startDate - today) / 86400000);
+            return {
+                status: 'not_started',
+                label: '🔜 لم يبدأ',
+                color: '#95a5a6',
+                message: `بعد ${diff} يوم`
+            };
+        }
+        // Check if expired
+        if (endDate && endDate < today) {
+            return {
+                status: 'expired',
+                label: '❌ منتهي',
+                color: '#e74c3c',
+                message: 'انتهى'
+            };
+        }
+        // Active offer with end date
+        if (endDate) {
+            const diff = Math.ceil((endDate - today) / 86400000);
+            if (diff <= 3) {
+                return {
+                    status: 'ending_soon',
+                    label: '⚡ ينتهي قريباً',
+                    color: '#f39c12',
+                    message: `${diff} يوم`
+                };
+            }
+            return {
+                status: 'active',
+                label: '✅ ساري',
+                color: '#27ae60',
+                message: `${diff} يوم`
+            };
+        }
+        // Active offer without end date (Continuous)
+        return {
+            status: 'active',
+            label: '✅ ساري',
+            color: '#27ae60',
+            message: 'مستمر'
+        };
     },
-    /**
-     * Get sample fallback data
-     */
     getSampleData() {
         return [
             {
@@ -145,20 +303,7 @@ export const Scanner = {
                 save: '9.6',
                 priceAfter: '38.47',
                 arDescription: 'بخاخ أديداس آيس دايف الطبيعي 100 مل',
-                category: 'COSMETICS',
-                type: 'ثابت'
-            },
-            {
-                barcode: '3337875597197',
-                productName: 'CERAVE FOAMING CLEANSER 236 ML',
-                brand: 'CERAVE',
-                discount: '40.00%',
-                priceBefore: '71',
-                save: '',
-                priceAfter: '42.65',
-                arDescription: 'غسول سيرافي الرغوي 236 مل',
-                category: 'MEDICAL',
-                type: 'ثابت'
+                category: 'COSMETICS'
             }
         ];
     },
@@ -167,65 +312,94 @@ export const Scanner = {
      */
     async start() {
         await this.init();
+        this.isMobile = this.checkIsMobile();
         const modal = document.getElementById('scannerModal');
+        const cameraSection = document.getElementById('cameraSection');
+        const cameraActions = document.getElementById('cameraActions');
+        const searchDivider = document.getElementById('searchDivider');
+        const modalTitle = document.getElementById('scannerModalTitle');
+        const searchInput = document.getElementById('manualSearchInput');
         modal.classList.add('active');
+        // Desktop mode - search only, no camera
+        if (!this.isMobile) {
+            modalTitle.textContent = '🔍 البحث عن العروض';
+            cameraSection.style.display = 'none';
+            cameraActions.style.display = 'none';
+            searchDivider.style.display = 'none';
+            // Focus on search input
+            setTimeout(() => searchInput?.focus(), 100);
+            return;
+        }
+        // Mobile mode - camera + search
+        modalTitle.textContent = '📷 مسح الباركود';
+        cameraSection.style.display = 'block';
+        cameraActions.style.display = 'flex';
+        searchDivider.style.display = 'flex';
         try {
+            if (typeof Html5Qrcode === 'undefined') {
+                await this.loadHtml5QrcodeLib();
+            }
             this.scanner = new Html5Qrcode('scannerPreview');
             const config = {
-                fps: 10,
-                qrbox: { width: 250, height: 150 },
-                aspectRatio: 1.0,
-                formatsToSupport: [
-                    Html5QrcodeSupportedFormats.EAN_13,
-                    Html5QrcodeSupportedFormats.EAN_8,
-                    Html5QrcodeSupportedFormats.UPC_A,
-                    Html5QrcodeSupportedFormats.UPC_E,
-                    Html5QrcodeSupportedFormats.CODE_128,
-                    Html5QrcodeSupportedFormats.CODE_39,
-                    Html5QrcodeSupportedFormats.QR_CODE
-                ]
+                fps: 20,
+                qrbox: { width: 300, height: 150 },
+                aspectRatio: 1.777778,
+                experimentalFeatures: {
+                    useBarCodeDetectorIfSupported: true
+                }
             };
             await this.scanner.start(
                 { facingMode: 'environment' },
                 config,
                 (decodedText) => this.onScanSuccess(decodedText),
-                (errorMessage) => { } // Ignore scan errors
+                () => { }
             );
             this.isScanning = true;
         } catch (error) {
             console.error('Scanner start error:', error);
-            UI.showToast?.('Camera access denied or not available', 'error');
-            this.stop();
+            cameraSection.style.display = 'none';
+            cameraActions.style.display = 'none';
+            searchDivider.style.display = 'none';
+            modalTitle.textContent = '🔍 البحث عن العروض';
+            setTimeout(() => searchInput?.focus(), 100);
         }
     },
-    /**
-     * Stop scanning
-     */
+    loadHtml5QrcodeLib() {
+        return new Promise((resolve, reject) => {
+            if (typeof Html5Qrcode !== 'undefined') {
+                resolve();
+                return;
+            }
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/html5-qrcode';
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    },
     async stop() {
         if (this.scanner && this.isScanning) {
             try {
                 await this.scanner.stop();
-            } catch (e) {
-                console.warn('Scanner already stopped');
-            }
+            } catch (e) { }
         }
         this.isScanning = false;
-        const modal = document.getElementById('scannerModal');
-        modal?.classList.remove('active');
+        document.getElementById('scannerModal')?.classList.remove('active');
     },
-    /**
-     * Switch between front and back camera
-     */
     async switchCamera() {
         if (!this.scanner || !this.isScanning) return;
         try {
             await this.scanner.stop();
-            // Toggle camera
             const currentFacing = this.scanner.getState()?.facingMode || 'environment';
             const newFacing = currentFacing === 'environment' ? 'user' : 'environment';
             await this.scanner.start(
                 { facingMode: newFacing },
-                { fps: 10, qrbox: { width: 250, height: 150 } },
+                {
+                    fps: 20,
+                    qrbox: { width: 300, height: 150 },
+                    aspectRatio: 1.777778,
+                    experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+                },
                 (decodedText) => this.onScanSuccess(decodedText),
                 () => { }
             );
@@ -233,99 +407,142 @@ export const Scanner = {
             console.error('Camera switch error:', error);
         }
     },
-    /**
-     * Handle successful barcode scan
-     */
     onScanSuccess(barcode) {
         console.log('📷 Scanned barcode:', barcode);
-        // Stop scanning
+        this.playBeepSound();
         this.stop();
-        // Lookup offer
         const offer = this.lookupOffer(barcode);
-        // Show result
         this.showResult(barcode, offer);
     },
-    /**
-     * Lookup offer by barcode
-     */
+    playBeepSound() {
+        try {
+            if (!this.audioContext) {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            const ctx = this.audioContext;
+            const oscillator = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            oscillator.frequency.value = 1800;
+            oscillator.type = 'sine';
+            gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+            oscillator.start(ctx.currentTime);
+            oscillator.stop(ctx.currentTime + 0.1);
+        } catch (e) {
+            console.log('Beep error:', e);
+        }
+    },
     lookupOffer(barcode) {
         return offersData.find(item => item.barcode === barcode);
     },
-    /**
-     * Show scan result
-     */
+    searchByName(query) {
+        const lowerQuery = query.toLowerCase();
+        return offersData.filter(item =>
+            item.productName?.toLowerCase().includes(lowerQuery) ||
+            item.arDescription?.toLowerCase().includes(lowerQuery) ||
+            item.brand?.toLowerCase().includes(lowerQuery) ||
+            item.category?.toLowerCase().includes(lowerQuery)
+        );
+    },
+    manualSearch() {
+        const input = document.getElementById('manualSearchInput');
+        const query = input?.value?.trim();
+        if (!query) return;
+        this.stop();
+        let offer = this.lookupOffer(query);
+        if (offer) {
+            this.showResult(query, offer);
+        } else {
+            const results = this.searchByName(query);
+            if (results.length === 1) {
+                this.showResult(results[0].barcode, results[0]);
+            } else if (results.length > 1) {
+                this.showMultipleResults(results);
+            } else {
+                this.showResult(query, null);
+            }
+        }
+        if (input) input.value = '';
+    },
+    showMultipleResults(results) {
+        const modal = document.getElementById('offerResultModal');
+        const title = document.getElementById('offerResultTitle');
+        const content = document.getElementById('offerResultContent');
+        title.textContent = `🔍 تم العثور على ${results.length} نتائج`;
+        title.style.color = '#3498db';
+        let html = '<div class="search-results">';
+        results.forEach((item, index) => {
+            html += `
+                <div class="search-result-item" onclick="window.Scanner.selectResult(${index})" style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); cursor: pointer;">
+                    <div style="font-weight: bold; color: #667eea;">${item.brand || ''}</div>
+                    <div style="color: #fff; margin: 5px 0;">${item.productName}</div>
+                    <div style="font-size: 0.9em; color: #2ecc71;">${item.priceAfter} SAR <span style="text-decoration: line-through; color: #95a5a6; font-size: 0.8em; margin-left:10px;">${item.priceBefore} SAR</span></div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        content.innerHTML = html;
+        modal.classList.add('active');
+        this.searchResults = results;
+        window.Scanner = this; // Ensure onclick works
+    },
+    selectResult(index) {
+        if (this.searchResults && this.searchResults[index]) {
+            this.showResult(this.searchResults[index].barcode, this.searchResults[index]);
+        }
+    },
     showResult(barcode, offer) {
         const modal = document.getElementById('offerResultModal');
         const title = document.getElementById('offerResultTitle');
         const content = document.getElementById('offerResultContent');
         if (offer) {
-            title.textContent = '🎉 Offer Found!';
+            const status = this.getOfferStatus(offer);
+            title.textContent = '🎉 تم العثور على العرض!';
             title.style.color = '#27ae60';
             content.innerHTML = `
                 <div class="offer-card">
-                    <div class="offer-product">
-                        <span class="offer-brand">${offer.brand}</span>
-                        <h3>${offer.productName}</h3>
-                        <p class="offer-ar">${offer.arDescription || ''}</p>
+                    <div class="offer-status-banner" style="background: ${status.color}; padding: 10px; border-radius: 10px; margin-bottom: 15px; text-align: center; color: white;">
+                        <span style="font-weight: bold;">${status.label}</span> | <span>${status.message}</span>
                     </div>
-                    
-                    <div class="offer-pricing">
-                        <div class="price-row original">
-                            <span>Original Price:</span>
-                            <span class="price strikethrough">${offer.priceBefore} SAR</span>
-                        </div>
-                        <div class="price-row discount">
-                            <span>Discount:</span>
-                            <span class="discount-badge">${offer.discount}</span>
-                        </div>
-                        ${offer.save ? `
-                        <div class="price-row save">
-                            <span>You Save:</span>
-                            <span class="save-amount">${offer.save} SAR</span>
-                        </div>
-                        ` : ''}
-                        <div class="price-row final">
-                            <span>Final Price:</span>
-                            <span class="price final-price">${offer.priceAfter} SAR</span>
-                        </div>
+                    <div class="offer-product" style="text-align: center; margin-bottom: 15px;">
+                        <span style="background: #667eea; padding: 2px 8px; border-radius: 10px; font-size: 0.8em; color: white;">${offer.brand}</span>
+                        <h3 style="color: white; margin: 10px 0;">${offer.productName}</h3>
+                        <p style="color: #95a5a6; font-size: 0.9em;">${offer.arDescription || ''}</p>
                     </div>
-                    
-                    <div class="offer-meta">
-                        <span class="category-badge">${offer.category || 'General'}</span>
-                        ${offer.type === 'NEW' ? '<span class="new-badge">NEW</span>' : ''}
-                        ${offer.magazine === 'MAGAZINE' ? '<span class="magazine-badge">📰 In Magazine</span>' : ''}
+                    <div class="offer-pricing" style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: #95a5a6;">السعر الأصلي:</span>
+                            <span style="text-decoration: line-through; color: #e74c3c;">${offer.priceBefore} SAR</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: #95a5a6;">الخصم:</span>
+                            <span style="background: #e74c3c; padding: 2px 6px; border-radius: 5px; font-size: 0.9em; color: white;">${offer.discount}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; margin-top: 10px;">
+                            <span style="font-weight: bold; color: white;">السعر العرض:</span>
+                            <span style="font-size: 1.4em; font-weight: bold; color: #2ecc71;">${offer.priceAfter} SAR</span>
+                        </div>
                     </div>
                 </div>
             `;
         } else {
-            title.textContent = '❌ No Offer Found';
+            title.textContent = '❌ لم يتم العثور على العرض';
             title.style.color = '#e74c3c';
             content.innerHTML = `
-                <div class="no-offer">
-                    <div class="barcode-display">
-                        <span>Scanned Barcode:</span>
-                        <code>${barcode}</code>
+                <div style="text-align: center; color: white; padding: 20px;">
+                    <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-bottom: 15px; font-family: monospace;">
+                        ${barcode}
                     </div>
-                    <p>This product does not have an active offer at the moment.</p>
+                    <p>هذا المنتج لا يوجد له عرض حالياً في قاعدة البيانات.</p>
                 </div>
             `;
         }
         modal.classList.add('active');
     },
-    /**
-     * Close offer result modal
-     */
     closeOfferResult() {
-        const modal = document.getElementById('offerResultModal');
-        modal?.classList.remove('active');
+        document.getElementById('offerResultModal')?.classList.remove('active');
     }
 };
-// Auto-init when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    // Add scan button click handler if exists
-    const scanBtn = document.getElementById('scanBarcodeBtn');
-    if (scanBtn) {
-        scanBtn.addEventListener('click', () => Scanner.start());
-    }
-});
 export default Scanner;
