@@ -1,276 +1,763 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Scanner</title>
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Tahoma, Arial; margin: 16px; }
-    .wrap { max-width: 980px; margin: 0 auto; }
-    .row { display: grid; grid-template-columns: 1fr; gap: 12px; }
-    .card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; }
-    #reader { width: 100%; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: right; vertical-align: top; }
-    th { background: #f9fafb; }
-    .muted { color: #6b7280; font-size: 12px; }
-    .ok { color: #065f46; }
-    .bad { color: #991b1b; }
-    .controls { display:flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    input[type="text"] { padding: 8px; border: 1px solid #e5e7eb; border-radius: 10px; min-width: 260px; }
-    button { padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; cursor: pointer; }
-  </style>
-
-  <!-- html5-qrcode library -->
-  <script src="https://unpkg.com/html5-qrcode"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>ماسح العروض | Rass1</title>
+    <!-- html5-qrcode -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0a0f;
+            min-height: 100vh;
+            color: #fff;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 12px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header h1 {
+            font-size: 1.2rem;
+        }
+        .scanner-container {
+            position: relative;
+            width: 100%;
+            height: 55vh;
+            background: #000;
+            overflow: hidden;
+        }
+        #reader {
+            width: 100% !important;
+            height: 100% !important;
+        }
+        #reader video {
+            object-fit: cover !important;
+            width: 100% !important;
+            height: 100% !important;
+        }
+        /* Scan overlay */
+        .scan-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .scan-target {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 85%;
+            height: 45%;
+            border: 3px solid #00ff88;
+            border-radius: 15px;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+        }
+        .scan-target::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 10%;
+            right: 10%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #00ff88, transparent);
+            animation: scanLine 1s ease-in-out infinite;
+        }
+        @keyframes scanLine {
+            0%,
+            100% {
+                top: 0;
+            }
+            50% {
+                top: calc(100% - 3px);
+            }
+        }
+        /* Corner decorations */
+        .corner {
+            position: absolute;
+            width: 25px;
+            height: 25px;
+            border-color: #00ff88;
+            border-style: solid;
+        }
+        .corner.tl {
+            top: -3px;
+            left: -3px;
+            border-width: 4px 0 0 4px;
+            border-radius: 10px 0 0 0;
+        }
+        .corner.tr {
+            top: -3px;
+            right: -3px;
+            border-width: 4px 4px 0 0;
+            border-radius: 0 10px 0 0;
+        }
+        .corner.bl {
+            bottom: -3px;
+            left: -3px;
+            border-width: 0 0 4px 4px;
+            border-radius: 0 0 0 10px;
+        }
+        .corner.br {
+            bottom: -3px;
+            right: -3px;
+            border-width: 0 4px 4px 0;
+            border-radius: 0 0 10px 0;
+        }
+        .hint-text {
+            position: absolute;
+            bottom: 10%;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: #00ff88;
+            font-size: 0.9rem;
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+        }
+        /* Status bar */
+        .status-bar {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            padding: 12px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+        .status-dot.ready {
+            background: #00ff88;
+        }
+        .status-dot.loading {
+            background: #ffc800;
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+        .status-text {
+            font-size: 0.9rem;
+        }
+        /* Search section */
+        .search-section {
+            padding: 15px;
+            background: linear-gradient(180deg, #16213e, #0f3460);
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+        }
+        .search-box input {
+            flex: 1;
+            padding: 14px 16px;
+            border: 2px solid #667eea;
+            border-radius: 12px;
+            background: #1a1a2e !important;
+            color: #ffffff !important;
+            font-size: 16px;
+            -webkit-appearance: none;
+            -webkit-text-fill-color: #ffffff !important;
+            opacity: 1;
+        }
+        .search-box input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+            -webkit-text-fill-color: rgba(255, 255, 255, 0.5);
+        }
+        .search-box input:focus {
+            outline: none;
+            border-color: #00ff88;
+            background: #16213e !important;
+        }
+        .btn {
+            padding: 14px 24px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            color: #000;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            -webkit-appearance: none;
+        }
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+        .modal.show {
+            display: flex;
+        }
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a2e, #0f3460);
+            border-radius: 20px;
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 85vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .modal-header h2 {
+            font-size: 1.1rem;
+        }
+        .close-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #fff;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            font-size: 1.3rem;
+            cursor: pointer;
+        }
+        .offer-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            width: 100%;
+            justify-content: space-between;
+        }
+        .product-info {
+            margin-bottom: 15px;
+        }
+        .product-info .brand {
+            color: #667eea;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .product-info h3 {
+            margin: 5px 0;
+            font-size: 1.1rem;
+        }
+        .product-info .desc {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+        }
+        .price-card {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .price-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .price-row:last-child {
+            border: none;
+        }
+        .price-row.final {
+            font-size: 1.15rem;
+            font-weight: 700;
+        }
+        .old {
+            text-decoration: line-through;
+            color: rgba(255, 255, 255, 0.4);
+        }
+        .new {
+            color: #00ff88;
+            font-weight: 700;
+        }
+        .discount {
+            background: #e74c3c;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+        }
+        .no-offer {
+            text-align: center;
+            padding: 25px;
+        }
+        .no-offer .icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+        .barcode-display {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: monospace;
+            text-align: center;
+            word-break: break-all;
+        }
+        .btn-full {
+            width: 100%;
+            margin-top: 15px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+        }
+        /* Hide html5-qrcode default UI */
+        #reader__dashboard_section_csr,
+        #reader__dashboard_section_swaplink,
+        #reader__status_span,
+        #reader__header_message {
+            display: none !important;
+        }
+        #reader__scan_region {
+            border: none !important;
+            min-height: 100% !important;
+        }
+        #reader__scan_region video {
+            object-fit: cover !important;
+        }
+    </style>
 </head>
-
 <body>
-<div class="wrap">
-  <h2>السكانر + قراءة الشيتات</h2>
-  <div class="muted">
-    لازم تكون الصفحة على HTTPS (أو localhost) عشان الكاميرا تشتغل.
-  </div>
-
-  <div class="row">
-    <div class="card">
-      <h3>السكانر</h3>
-      <div id="reader"></div>
-      <div class="muted">إذا تبي توقف بعد أول قراءة، موجود خيار “Stop” في واجهة السكانر.</div>
-      <hr/>
-      <div class="controls">
-        <input id="manualInput" type="text" placeholder="أو اكتب الكود يدويًا ثم Enter" />
-        <button id="btnSearch">بحث</button>
-        <span id="status" class="muted"></span>
-      </div>
-      <div class="muted">آخر كود مقروء: <span id="lastCode">—</span></div>
-    </div>
-
-    <div class="card">
-      <h3>النتائج</h3>
-      <div id="results"></div>
-    </div>
-  </div>
-</div>
-
-<script>
-  // ====== إعدادات الشيتات (حسب روابطك) ======
-  const SHEETS = [
-    {
-      name: "Sheet 1",
-      id: "1-_6mN6DpmuUbpgy3q3h-RXRjPepfhhcdIx2K3oybCzw",
-      gid: "682108686"
-    },
-    {
-      name: "Sheet 2",
-      id: "1xd6gpkII3lxnr1h1mbGTYiomR3Q1HpAZltHD8nDXCI0",
-      gid: "0"
-    }
-  ];
-
-  // رابط تصدير CSV من Google Sheets (شغال إذا الشيت public/anyone-with-link)
-  // مثال صيغة export?format=csv&gid=... :contentReference[oaicite:2]{index=2}
-  function sheetCsvUrl(fileId, gid) {
-    return `https://docs.google.com/spreadsheets/d/${fileId}/export?format=csv&gid=${gid}`;
-  }
-
-  // ====== تحميل بيانات الشيتات ======
-  const cache = new Map(); // key: name => { headers, rows }
-
-  async function loadSheet(sheet) {
-    const key = sheet.name;
-    if (cache.has(key)) return cache.get(key);
-
-    const url = sheetCsvUrl(sheet.id, sheet.gid);
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) {
-      throw new Error(`فشل تحميل ${sheet.name}. تأكد الشيت public/anyone-with-link. HTTP ${res.status}`);
-    }
-    const csvText = await res.text();
-    const { headers, rows } = parseCsvToTable(csvText);
-    const data = { headers, rows };
-    cache.set(key, data);
-    return data;
-  }
-
-  async function loadAllSheets() {
-    const loaded = [];
-    for (const s of SHEETS) loaded.push(await loadSheet(s));
-    return loaded;
-  }
-
-  // ====== CSV Parser بسيط (يدعم quotes بشكل معقول) ======
-  function parseCsvToTable(csv) {
-    const lines = csv.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n").filter(l => l.length);
-    const rows = lines.map(parseCsvLine);
-    const headers = rows.shift() || [];
-    return { headers, rows };
-  }
-
-  function parseCsvLine(line) {
-    const out = [];
-    let cur = "";
-    let inQuotes = false;
-
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-
-      if (ch === '"') {
-        // double quote escape
-        if (inQuotes && line[i + 1] === '"') {
-          cur += '"';
-          i++;
-        } else {
-          inQuotes = !inQuotes;
-        }
-      } else if (ch === "," && !inQuotes) {
-        out.push(cur);
-        cur = "";
-      } else {
-        cur += ch;
-      }
-    }
-    out.push(cur);
-    return out.map(x => x.trim());
-  }
-
-  // ====== البحث بالكود المقروء داخل الشيتين ======
-  function findMatches(allSheetsData, code) {
-    const needle = (code || "").trim();
-    if (!needle) return [];
-
-    const matches = [];
-
-    allSheetsData.forEach((data, idx) => {
-      const sheetMeta = SHEETS[idx];
-      const headers = data.headers;
-      data.rows.forEach((row, rIdx) => {
-        // 1) مطابقة في أول عمود
-        const firstCol = (row[0] || "").trim();
-        // 2) أو أي خلية تطابق الكود بالكامل
-        const anyCell = row.some(c => (c || "").trim() === needle);
-
-        if (firstCol === needle || anyCell) {
-          const obj = {};
-          headers.forEach((h, i) => obj[h || `col_${i+1}`] = row[i] ?? "");
-          matches.push({
-            sheet: sheetMeta.name,
-            rowIndex: rIdx + 2, // +1 header, +1 1-based
-            data: obj
-          });
-        }
-      });
-    });
-
-    return matches;
-  }
-
-  // ====== عرض النتائج ======
-  function renderResults(code, matches) {
-    const el = document.getElementById("results");
-    if (!code) {
-      el.innerHTML = `<div class="muted">اقرأ كود أو اكتب يدويًا.</div>`;
-      return;
-    }
-
-    if (!matches.length) {
-      el.innerHTML = `<div class="bad">ما لقيت أي نتيجة للكود: <b>${escapeHtml(code)}</b></div>`;
-      return;
-    }
-
-    let html = `<div class="ok">تم العثور على <b>${matches.length}</b> نتيجة للكود: <b>${escapeHtml(code)}</b></div><br/>`;
-
-    matches.forEach((m) => {
-      html += `
-        <div class="card" style="margin-bottom:10px;">
-          <div><b>${escapeHtml(m.sheet)}</b> — Row: ${m.rowIndex}</div>
-          <div style="overflow:auto; margin-top:8px;">
-            <table>
-              <thead><tr><th>الحقل</th><th>القيمة</th></tr></thead>
-              <tbody>
-                ${Object.entries(m.data).map(([k,v]) => `
-                  <tr><td>${escapeHtml(k)}</td><td>${escapeHtml(String(v ?? ""))}</td></tr>
-                `).join("")}
-              </tbody>
-            </table>
-          </div>
+    <header class="header">
+        <h1>🛒 ماسح العروض</h1>
+    </header>
+    <!-- Scanner -->
+    <div class="scanner-container">
+        <div id="reader"></div>
+        <div class="scan-overlay">
+            <div class="scan-target">
+                <div class="corner tl"></div>
+                <div class="corner tr"></div>
+                <div class="corner bl"></div>
+                <div class="corner br"></div>
+            </div>
+            <div class="hint-text">📷 وجّه الكاميرا نحو الباركود</div>
         </div>
-      `;
-    });
+    </div>
+    <!-- Status -->
+    <div class="status-bar">
+        <div class="status-dot ready" id="statusDot"></div>
+        <span class="status-text" id="statusText">جاري التحميل...</span>
+    </div>
+    <!-- Search -->
+    <div class="search-section">
+        <div class="search-box">
+            <input type="text" id="input" placeholder="أو اكتب الباركود / اسم المنتج" autocomplete="off">
+            <button class="btn" id="searchBtn">🔍</button>
+        </div>
+    </div>
+    <!-- Modal -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">🎉 عرض!</h2>
+                <button class="close-btn" id="closeBtn">&times;</button>
+            </div>
+            <div id="modalBody"></div>
+            <button class="btn btn-full" id="againBtn">🔍 بحث جديد</button>
+        </div>
+    </div>
+    <script>
+        // ===== OPTIMIZED FOR SPEED =====
+        let offers = [];
+        let scanner = null;
+        let audioCtx = null;
+        let lastScan = 0;
+        const input = document.getElementById('input');
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalBody = document.getElementById('modalBody');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
 
-    el.innerHTML = html;
-  }
+        // ===== INIT =====
+        async function init() {
+            statusText.textContent = '⏳ جاري تحميل البيانات...';
+            await loadOffers();
+            startScanner();
+        }
 
-  function escapeHtml(s) {
-    return s.replace(/[&<>"']/g, (c) => ({
-      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-    }[c]));
-  }
+        // ===== LOAD DATA =====
+        async function loadOffers() {
+            try {
+                offers = [];
 
-  // ====== تشغيل السكانر ======
-  let allSheetsDataPromise = null;
+                // ===== SHEET 1 (spreadsheet 1 + gid=682108686) =====
+                {
+                    const id = '1-_6mN6DpmuUbpgy3q3h-RXRjPepfhhcdIx2K3oybCzw';
+                    const gid = '682108686';
+                    const res = await fetch(`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json&gid=${gid}`);
+                    const txt = await res.text();
+                    const json = txt.match(/setResponse\(([\s\S]*)\);?/)?.[1];
+                    if (json) {
+                        const data = JSON.parse(json);
+                        const sheetOffers = data.table.rows.slice(1).map(r => {
+                            const c = r.c;
+                            const getDate = (cell) => {
+                                if (!cell) return '';
+                                // 1. Try formatted value (most reliable for strings like '1/26/2025')
+                                if (cell.f && cell.f !== '∞') return cell.f;
+                                if (cell.v !== null && cell.v !== undefined) {
+                                    const vs = String(cell.v);
+                                    // Case: Date(2026,8,6)
+                                    const m = vs.match(/Date\((\d+),(\d+),(\d+)\)/);
+                                    if (m) return `${parseInt(m[2]) + 1}/${m[3]}/${m[1]}`;
+                                    // Case: Serial number (e.g. 45683)
+                                    if (!isNaN(cell.v) && cell.v > 40000 && cell.v < 60000) {
+                                        const d = new Date((cell.v - 25569) * 86400000);
+                                        return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+                                    }
+                                    return vs;
+                                }
+                                return '';
+                            };
+                            return {
+                                barcode: c[0]?.v?.toString() || '',
+                                name: c[1]?.v || '',
+                                brand: c[2]?.v || '',
+                                discount: c[3]?.f || c[3]?.v || '',
+                                priceBefore: c[4]?.f || c[4]?.v || '',
+                                save: c[5]?.f || c[5]?.v || '',
+                                priceAfter: c[6]?.f || c[6]?.v || '',
+                                from: getDate(c[8]),
+                                end: getDate(c[9]),
+                                arName: c[10]?.v || '',
+                                type: c[11]?.v || '',
+                                cat: c[12]?.v || ''
+                            };
+                        }).filter(o => o.barcode);
+                        offers = offers.concat(sheetOffers);
+                    }
+                }
 
-  async function handleCode(code) {
-    document.getElementById("lastCode").textContent = code;
-    setStatus("جاري البحث...");
-    try {
-      if (!allSheetsDataPromise) allSheetsDataPromise = loadAllSheets();
-      const allSheetsData = await allSheetsDataPromise;
-      const matches = findMatches(allSheetsData, code);
-      renderResults(code, matches);
-      setStatus("تم.");
-    } catch (e) {
-      renderResults(code, []);
-      setStatus(e.message || String(e), true);
-    }
-  }
+                // ===== SHEET 2 (spreadsheet 2 + gid=0) =====
+                {
+                    const id = '1xd6gpkII3lxnr1h1mbGTYiomR3Q1HpAZltHD8nDXCI0';
+                    const gid = '0';
+                    const res = await fetch(`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json&gid=${gid}`);
+                    const txt = await res.text();
+                    const json = txt.match(/setResponse\(([\s\S]*)\);?/)?.[1];
+                    if (json) {
+                        const data = JSON.parse(json);
+                        const sheetOffers = data.table.rows.slice(1).map(r => {
+                            const c = r.c;
+                            const getDate = (cell) => {
+                                if (!cell) return '';
+                                // 1. Try formatted value (most reliable for strings like '1/26/2025')
+                                if (cell.f && cell.f !== '∞') return cell.f;
+                                if (cell.v !== null && cell.v !== undefined) {
+                                    const vs = String(cell.v);
+                                    // Case: Date(2026,8,6)
+                                    const m = vs.match(/Date\((\d+),(\d+),(\d+)\)/);
+                                    if (m) return `${parseInt(m[2]) + 1}/${m[3]}/${m[1]}`;
+                                    // Case: Serial number (e.g. 45683)
+                                    if (!isNaN(cell.v) && cell.v > 40000 && cell.v < 60000) {
+                                        const d = new Date((cell.v - 25569) * 86400000);
+                                        return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+                                    }
+                                    return vs;
+                                }
+                                return '';
+                            };
+                            return {
+                                barcode: c[0]?.v?.toString() || '',
+                                name: c[1]?.v || '',
+                                brand: c[2]?.v || '',
+                                discount: c[3]?.f || c[3]?.v || '',
+                                priceBefore: c[4]?.f || c[4]?.v || '',
+                                save: c[5]?.f || c[5]?.v || '',
+                                priceAfter: c[6]?.f || c[6]?.v || '',
+                                from: getDate(c[8]),
+                                end: getDate(c[9]),
+                                arName: c[10]?.v || '',
+                                type: c[11]?.v || '',
+                                cat: c[12]?.v || ''
+                            };
+                        }).filter(o => o.barcode);
+                        offers = offers.concat(sheetOffers);
+                    }
+                }
 
-  function setStatus(msg, isError = false) {
-    const el = document.getElementById("status");
-    el.textContent = msg || "";
-    el.className = isError ? "bad" : "muted";
-  }
+                console.log('✅ Loaded', offers.length, 'offers');
 
-  // واجهة html5-qrcode (جاهزة وتعرض Start/Stop)
-  // الاستخدام شائع عبر Html5QrcodeScanner + render :contentReference[oaicite:3]{index=3}
-  function startScanner() {
-    const onScanSuccess = (decodedText, decodedResult) => {
-      // عشان ما يكرر نفس الكود بسرعة:
-      if (decodedText && decodedText !== window.__lastSeen) {
-        window.__lastSeen = decodedText;
-        handleCode(decodedText);
-      }
-    };
+            } catch (e) {
+                console.error('Error loading data:', e);
+            }
+        }
 
-    const onScanFailure = (error) => {
-      // تجاهل (القراءة تفشل كثير أثناء الحركة)
-    };
+        // ===== ULTRA FAST SCANNER =====
+        function startScanner() {
+            statusText.textContent = '⏳ جاري تشغيل الكاميرا...';
+            statusDot.className = 'status-dot loading';
+            // SIMPLE RELIABLE CONFIG
+            const config = {
+                fps: 25,
+                qrbox: { width: 300, height: 130 },
+                aspectRatio: 1.777778
+            };
+            scanner = new Html5Qrcode("reader");
+            scanner.start(
+                { facingMode: "environment" },
+                config,
+                onSuccess,
+                onError
+            ).then(() => {
+                statusText.textContent = '✅ جاهز - امسح الباركود';
+                statusDot.className = 'status-dot ready';
+            }).catch(err => {
+                console.error(err);
+                statusText.textContent = '❌ خطأ في الكاميرا';
+                statusDot.className = 'status-dot loading';
+            });
+        }
+        function onSuccess(code) {
+            // Prevent duplicate scans (debounce 1 second)
+            const now = Date.now();
+            if (now - lastScan < 1000) return;
+            lastScan = now;
+            console.log('📷', code);
+            beep();
+            // Pause scanner
+            scanner.pause(true);
+            const offer = offers.find(o => o.barcode === code);
+            showResult(code, offer);
+        }
+        function onError() {
+            // Ignore - fires when no barcode detected
+        }
+        function resumeScanner() {
+            if (scanner) {
+                try {
+                    scanner.resume();
+                } catch (e) {
+                    // Restart if resume fails
+                    scanner.stop().then(() => startScanner());
+                }
+            }
+        }
 
-    const scanner = new Html5QrcodeScanner(
-      "reader",
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      /* verbose= */ false
-    );
+        // ===== BEEP =====
+        function beep() {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                // Quick double beep like Nahdi
+                const beepOnce = (freq, delay) => {
+                    setTimeout(() => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.frequency.value = freq;
+                        osc.type = 'sine';
+                        gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+                        osc.start();
+                        osc.stop(audioCtx.currentTime + 0.08);
+                    }, delay);
+                };
+                beepOnce(1800, 0);
+                beepOnce(2400, 80);
+            } catch (e) { }
+        }
 
-    scanner.render(onScanSuccess, onScanFailure);
-  }
+        // ===== DATE UTILS =====
+        function parseDate(s) {
+            if (!s || s === '∞' || String(s).toLowerCase().includes('inf')) return null;
+            // 1. Standard parse
+            let d = new Date(s);
+            if (!isNaN(d.getTime())) return d;
+            // 2. Manual parse for D/M/Y or M/D/Y
+            const p = String(s).split(/[\/\-.]/);
+            if (p.length === 3) {
+                const d1 = parseInt(p[0]);
+                const d2 = parseInt(p[1]);
+                const y = parseInt(p[2]);
+                if (y > 1000) {
+                    if (d1 > 12) return new Date(y, d2 - 1, d1); // Definitely D/M/Y
+                    return new Date(y, d1 - 1, d2); // Default to M/D/Y
+                }
+            }
+            return null;
+        }
+        function getStatus(offer) {
+            // Check if Type is Fixed
+            if (offer.type === 'ثابت') return { label: '✅ ساري', msg: 'مستمر', color: '#27ae60' };
+            const now = new Date(); now.setHours(0, 0, 0, 0);
+            const start = parseDate(offer.from);
+            const end = parseDate(offer.end);
+            if (start && start > now) {
+                const diff = Math.ceil((start - now) / 86400000);
+                return { label: '🔜 لم يبدأ', msg: `بعد ${diff} يوم`, color: '#95a5a6' };
+            }
+            if (end) {
+                const diff = Math.ceil((end - now) / 86400000);
+                if (diff < 0) return { label: '❌ منتهي', msg: 'انتهى', color: '#e74c3c' };
+                if (diff <= 3) return { label: '⚡ ينتهي قريباً', msg: `${diff} يوم`, color: '#f39c12' };
+                return { label: '✅ ساري', msg: `${diff} يوم`, color: '#27ae60' };
+            }
+            return { label: '✅ ساري', msg: 'مستمر', color: '#27ae60' };
+        }
 
-  // Manual search
-  document.getElementById("btnSearch").addEventListener("click", () => {
-    const code = document.getElementById("manualInput").value.trim();
-    handleCode(code);
-  });
-  document.getElementById("manualInput").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      const code = e.target.value.trim();
-      handleCode(code);
-    }
-  });
+        // ===== SHOW RESULT =====
+        function showResult(code, offer) {
+            if (offer) {
+                const st = getStatus(offer);
+                modalTitle.textContent = '🎉 عرض!';
+                modalTitle.style.color = '#00ff88';
+                modalBody.innerHTML = `
+                    <div class="offer-badge" style="background:${st.color}">
+                        <span>${st.label}</span>
+                        <span>${st.msg}</span>
+                    </div>
+                    <div class="product-info">
+                        <div class="brand">${offer.brand}</div>
+                        <h3>${offer.name}</h3>
+                        <p class="desc">${offer.arName}</p>
+                    </div>
+                    <div class="price-card">
+                        <div class="price-row">
+                            <span>السعر:</span>
+                            <span class="old">${offer.priceBefore} ر.س</span>
+                        </div>
+                        <div class="price-row">
+                            <span>الخصم:</span>
+                            <span class="discount">${offer.discount}</span>
+                        </div>
+                        ${offer.save ? `<div class="price-row"><span>وفّر:</span><span class="new">${offer.save} ر.س</span></div>` : ''}
+                        <div class="price-row final">
+                            <span>الآن:</span>
+                            <span class="new">${offer.priceAfter} ر.س</span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                modalTitle.textContent = '❌ لا يوجد عرض';
+                modalTitle.style.color = '#e74c3c';
+                modalBody.innerHTML = `
+                    <div class="no-offer">
+                        <div class="icon">📦</div>
+                        <div class="barcode-display">${code}</div>
+                        <p style="color:rgba(255,255,255,0.6)">هذا المنتج بدون عرض حالياً</p>
+                    </div>
+                `;
+            }
+            modal.classList.add('show');
+        }
 
-  // init
-  startScanner();
-  renderResults("", []);
-</script>
+        // ===== SEARCH =====
+        function search() {
+            const q = input.value.trim();
+            if (!q) return;
+            const byCode = offers.find(o => o.barcode === q);
+            if (byCode) {
+                beep();
+                showResult(q, byCode);
+                input.value = '';
+                return;
+            }
+            const ql = q.toLowerCase();
+            const results = offers.filter(o =>
+                o.name?.toLowerCase().includes(ql) ||
+                o.arName?.toLowerCase().includes(ql) ||
+                o.brand?.toLowerCase().includes(ql)
+            );
+            if (results.length === 1) {
+                beep();
+                showResult(results[0].barcode, results[0]);
+            } else if (results.length > 1) {
+                modalTitle.textContent = `🔍 ${results.length} نتيجة`;
+                modalTitle.style.color = '#667eea';
+                let html = '<div style="max-height:50vh;overflow:auto;-webkit-overflow-scrolling:touch">';
+                results.forEach((o, i) => {
+                    html += `<div onclick="pick(${i})" style="background:rgba(0,0,0,0.3);border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;border:1px solid rgba(102,126,234,0.3)">
+                        <div style="color:#667eea;font-size:0.75rem">${o.brand}</div>
+                        <div style="margin:3px 0">${o.name}</div>
+                        <div><span class="old">${o.priceBefore}</span> → <span class="new">${o.priceAfter} ر.س</span></div>
+                    </div>`;
+                });
+                html += '</div>';
+                modalBody.innerHTML = html;
+                modal.classList.add('show');
+                window._r = results;
+            } else {
+                showResult(q, null);
+            }
+            input.value = '';
+        }
+        window.pick = i => showResult(window._r[i].barcode, window._r[i]);
+
+        // ===== CLOSE =====
+        function closeModal() {
+            modal.classList.remove('show');
+            resumeScanner();
+            input.focus();
+        }
+
+        // ===== EVENTS - ROBUST INPUT HANDLING =====
+        // 1. Pause scanner when user wants to type
+        input.addEventListener('focus', () => {
+            console.log('🖊️ Input focused - pausing scanner');
+            if (scanner) {
+                try { scanner.pause(true); } catch (e) { }
+            }
+        });
+        // 2. Search on Enter
+        input.addEventListener('keypress', e => {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // Prevent form submission
+                input.blur(); // Hide keyboard
+                search();
+            }
+        });
+        // 3. Search Button
+        document.getElementById('searchBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            search();
+        });
+        // 4. Close Modal
+        document.getElementById('closeBtn').addEventListener('click', closeModal);
+        document.getElementById('againBtn').addEventListener('click', closeModal);
+        // 5. Resume (if needed) when input loses focus AND is empty
+        input.addEventListener('blur', () => {
+            // Optional: resume if empty
+            if (!input.value) {
+                resumeScanner();
+            }
+        });
+
+        // ===== START =====
+        init();
+    </script>
 </body>
 </html>
-
