@@ -1,969 +1,1097 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Rass 1 Hub - Scanner</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rass 1 Hub - Scanner</title>
+  <link rel="icon" href="logo.png" type="image/png">
 
-    <link rel="icon" href="logo.png" type="image/png">
+  <style>
+    :root{
+      --primary:#561C2C;
+      --primary-light:#7a2840;
+      --accent:#8DC63F;
+      --danger:#ef4444;
+      --warn:#f59e0b;
+      --info:#3b82f6;
+      --bg1:#0b1220;
+      --bg2:#020617;
+      --card:rgba(15,23,42,0.9);
+      --border:rgba(148,163,184,0.25);
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
+      min-height:100vh;
+      background:radial-gradient(circle at top, var(--bg1) 0%, var(--bg2) 55%, #000 100%);
+      color:var(--text);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+    }
+    .wrap{max-width:520px;width:100%}
+    .top{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px}
+    .top img{height:64px;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.45))}
+    .title{text-align:center;margin-bottom:14px}
+    .title h1{font-size:18px;color:#f9fafb;margin-bottom:5px}
+    .title p{font-size:12px;color:var(--muted);line-height:1.5}
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:16px;
+      box-shadow:0 18px 50px rgba(0,0,0,0.7);
+    }
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .btn{
+      border:none;border-radius:999px;padding:12px 16px;
+      cursor:pointer;font-weight:700;font-size:13px;
+      display:inline-flex;align-items:center;justify-content:center;gap:8px;
+      transition:.25s;flex:1;min-width:180px;
+      user-select:none;
+    }
+    .btn.primary{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff}
+    .btn.primary:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(86,28,44,0.55)}
+    .btn.ghost{background:transparent;color:var(--text);border:1px solid rgba(148,163,184,0.45)}
+    .btn.ghost:hover{background:rgba(15,23,42,0.85)}
+    .btn.danger{background:linear-gradient(135deg,#b91c1c,#ef4444);color:#fff}
+    .btn.info{background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff}
+    .btn:disabled{opacity:.6;cursor:not-allowed;transform:none!important;box-shadow:none!important}
 
-    <style>
-        :root {
-            --primary:#561C2C;
-            --primary-light:#7a2840;
-            --accent:#8DC63F;
-            --accent-dark:#6fa329;
-            --danger:#e74c3c;
-            --gray:#666;
-        }
+    .status{
+      margin-top:12px;
+      background:rgba(2,6,23,0.6);
+      border:1px solid rgba(148,163,184,0.25);
+      border-radius:14px;
+      padding:10px 12px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .status-line{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      font-size:12px;color:var(--muted);
+    }
+    .pill{
+      font-size:11px;font-weight:800;letter-spacing:.2px;
+      padding:4px 10px;border-radius:999px;color:#fff;white-space:nowrap;
+    }
+    .pill.ok{background:#16a34a}
+    .pill.warn{background:#f59e0b}
+    .pill.err{background:#ef4444}
+    .pill.info{background:#3b82f6}
 
-        *{box-sizing:border-box;margin:0;padding:0}
-        body{
-            font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
-            min-height:100vh;
-            background:radial-gradient(circle at top,#1f2937 0%,#020617 55%,#000 100%);
-            color:#e5e7eb;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            padding:20px;
-        }
+    /* Modal */
+    .modal{
+      position:fixed;inset:0;
+      background:rgba(2,6,23,0.92);
+      backdrop-filter:blur(7px);
+      display:flex;align-items:center;justify-content:center;
+      opacity:0;visibility:hidden;
+      transition:.25s;
+      z-index:9999;
+      padding:14px;
+    }
+    .modal.active{opacity:1;visibility:visible}
+    .modal-box{
+      width:100%;max-width:560px;
+      background:radial-gradient(circle at top, #111827 0%, #020617 55%, #000 100%);
+      border:1px solid rgba(148,163,184,0.35);
+      border-radius:18px;
+      padding:14px;
+      box-shadow:0 25px 70px rgba(0,0,0,0.85);
+    }
+    .modal-head{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      margin-bottom:10px;
+    }
+    .modal-head h2{font-size:15px}
+    .x{
+      background:transparent;border:none;color:var(--muted);
+      font-size:22px;cursor:pointer;line-height:1;
+      padding:4px 8px;border-radius:10px;
+    }
+    .x:hover{color:#fff;background:rgba(148,163,184,0.15)}
+    .preview{
+      width:100%;
+      aspect-ratio:16/10;
+      border-radius:16px;
+      overflow:hidden;
+      background:#000;
+      position:relative;
+      border:1px solid rgba(148,163,184,0.25);
+    }
+    /* Overlay مناسب للباركود (مستطيل عريض) */
+    .preview::after{
+      content:'';
+      position:absolute;
+      left:10%;
+      right:10%;
+      top:36%;
+      bottom:36%;
+      border-radius:14px;
+      border:2px dashed rgba(248,250,252,0.55);
+      box-shadow:0 0 0 999px rgba(0,0,0,0.35);
+      pointer-events:none;
+    }
+    .hint{margin-top:8px;text-align:center;color:var(--muted);font-size:12px;line-height:1.5}
+    .manual{
+      margin-top:12px;
+      background:rgba(2,6,23,0.55);
+      border:1px solid rgba(148,163,184,0.25);
+      border-radius:16px;
+      padding:10px;
+    }
+    .divider{
+      display:flex;align-items:center;justify-content:center;gap:10px;
+      color:var(--muted);font-size:11px;margin-bottom:8px;
+    }
+    .divider:before,.divider:after{
+      content:'';
+      flex:1;height:1px;
+      background:linear-gradient(to left, transparent, rgba(148,163,184,0.7));
+    }
+    .divider:after{background:linear-gradient(to right, transparent, rgba(148,163,184,0.7))}
+    .manual-row{display:flex;gap:8px;flex-wrap:wrap}
+    .manual-row input{
+      flex:1;min-width:180px;
+      padding:11px 12px;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,0.35);
+      background:rgba(15,23,42,0.9);
+      color:var(--text);
+      font-size:13px;
+      outline:none;
+    }
+    .manual-row input:focus{
+      border-color:rgba(122,40,64,0.9);
+      box-shadow:0 0 0 2px rgba(122,40,64,0.35);
+    }
+    .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 
-        .wrapper{
-            max-width:420px;
-            width:100%;
-        }
-
-        .logo{
-            text-align:center;
-            margin-bottom:12px;
-        }
-        .logo img{
-            height:70px;
-            filter:drop-shadow(0 2px 6px rgba(0,0,0,0.4));
-        }
-        .title{
-            text-align:center;
-            margin-bottom:18px;
-        }
-        .title h1{
-            font-size:20px;
-            color:#f9fafb;
-            margin-bottom:4px;
-        }
-        .title p{
-            font-size:13px;
-            color:#9ca3af;
-        }
-
-        .card{
-            background:rgba(15,23,42,0.9);
-            border-radius:16px;
-            padding:18px 18px 20px;
-            box-shadow:0 18px 45px rgba(0,0,0,0.6);
-            border:1px solid rgba(148,163,184,0.25);
-        }
-
-        .main-actions{
-            display:flex;
-            flex-direction:column;
-            gap:10px;
-            margin-bottom:10px;
-        }
-
-        .btn{
-            width:100%;
-            border:none;
-            border-radius:999px;
-            padding:12px 18px;
-            font-weight:600;
-            font-size:14px;
-            cursor:pointer;
-            display:inline-flex;
-            align-items:center;
-            justify-content:center;
-            gap:8px;
-            transition:.25s;
-        }
-        .btn-primary{
-            background:linear-gradient(135deg,var(--primary),var(--primary-light));
-            color:#fff;
-        }
-        .btn-primary:hover{
-            transform:translateY(-1px);
-            box-shadow:0 6px 18px rgba(86,28,44,0.6);
-        }
-        .btn-outline{
-            background:transparent;
-            color:#e5e7eb;
-            border:1px solid rgba(148,163,184,0.5);
-        }
-        .btn-outline:hover{
-            background:rgba(15,23,42,0.8);
-        }
-
-        .hint{
-            text-align:center;
-            font-size:11px;
-            color:#9ca3af;
-            margin-top:4px;
-        }
-
-        /* ======= Scanner Modals / Layout ======= */
-        .scanner-modal{
-            position:fixed;
-            inset:0;
-            background:rgba(15,23,42,0.9);
-            backdrop-filter:blur(6px);
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            opacity:0;
-            visibility:hidden;
-            transition:.25s;
-            z-index:9999;
-        }
-        .scanner-modal.active{
-            opacity:1;
-            visibility:visible;
-        }
-        .scanner-modal-content{
-            width:100%;
-            max-width:480px;
-            background:radial-gradient(circle at top,#111827 0%,#020617 55%,#000 100%);
-            border-radius:18px;
-            padding:16px 16px 18px;
-            border:1px solid rgba(148,163,184,0.4);
-            box-shadow:0 22px 60px rgba(0,0,0,0.8);
-            position:relative;
-            color:#e5e7eb;
-        }
-        .scanner-header{
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            margin-bottom:10px;
-        }
-        .scanner-header h2{
-            font-size:16px;
-        }
-        .scanner-close-btn{
-            border:none;
-            background:transparent;
-            color:#9ca3af;
-            font-size:22px;
-            cursor:pointer;
-            line-height:1;
-        }
-        .scanner-close-btn:hover{
-            color:#e5e7eb;
-        }
-
-        .scanner-preview{
-            width:100%;
-            aspect-ratio:3/2;
-            border-radius:16px;
-            overflow:hidden;
-            background:#000;
-            position:relative;
-        }
-        .scanner-preview::after{
-            content:'';
-            position:absolute;
-            inset:16px;
-            border-radius:14px;
-            border:2px dashed rgba(248,250,252,0.4);
-            box-shadow:0 0 0 999px rgba(0,0,0,0.3);
-            pointer-events:none;
-        }
-
-        .scanner-hint{
-            font-size:12px;
-            color:#9ca3af;
-            margin-top:8px;
-            text-align:center;
-        }
-
-        .manual-search-section{
-            margin-top:14px;
-        }
-        .manual-search-divider{
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            gap:8px;
-            color:#9ca3af;
-            font-size:11px;
-            margin-bottom:8px;
-        }
-        .manual-search-divider::before,
-        .manual-search-divider::after{
-            content:'';
-            flex:1;
-            height:1px;
-            background:linear-gradient(to left,transparent,rgba(148,163,184,0.7));
-        }
-        .manual-search-divider::after{
-            background:linear-gradient(to right,transparent,rgba(148,163,184,0.7));
-        }
-
-        .manual-search-input{
-            display:flex;
-            gap:8px;
-        }
-
-        .manual-search-input input{
-            flex:1;
-            padding:10px 12px;
-            border-radius:999px;
-            border:1px solid rgba(148,163,184,0.4);
-            background:rgba(15,23,42,0.9);
-            color:#e5e7eb;
-            font-size:13px;
-        }
-        .manual-search-input input:focus{
-            outline:none;
-            border-color:var(--primary-light);
-            box-shadow:0 0 0 1px rgba(124,58,237,0.6);
-        }
-
-        .scanner-btn{
-            border-radius:999px;
-            border:none;
-            padding:10px 16px;
-            font-size:13px;
-            cursor:pointer;
-            font-weight:600;
-            display:inline-flex;
-            align-items:center;
-            justify-content:center;
-            gap:6px;
-        }
-        .scanner-btn.primary{
-            background:linear-gradient(135deg,var(--primary),var(--primary-light));
-            color:#fff;
-        }
-        .scanner-btn.secondary{
-            background:rgba(15,23,42,0.9);
-            border:1px solid rgba(148,163,184,0.5);
-            color:#e5e7eb;
-        }
-        .scanner-btn.danger{
-            background:linear-gradient(135deg,#b91c1c,#ef4444);
-            color:#fff;
-        }
-
-        .scanner-actions{
-            display:flex;
-            gap:8px;
-            margin-top:12px;
-            flex-wrap:wrap;
-        }
-
-        .offer-result{
-            max-width:520px;
-            background:radial-gradient(circle at top,#111827 0%,#020617 55%,#000 100%);
-        }
-        .offer-content{
-            margin-top:10px;
-            font-size:14px;
-        }
-        .offer-card{
-            background:linear-gradient(145deg,rgba(15,23,42,0.95),rgba(15,23,42,0.6));
-            border-radius:16px;
-            padding:14px;
-            border:1px solid rgba(148,163,184,0.3);
-        }
-        .search-results{
-            max-height:320px;
-            overflow-y:auto;
-        }
-
-        @media (max-width:480px){
-            .scanner-modal-content{
-                margin:12px;
-                padding:14px;
-            }
-            .scanner-preview::after{
-                inset:12px;
-            }
-        }
-    </style>
+    /* Result modal */
+    .result-body{margin-top:10px}
+    .offer-card{
+      background:linear-gradient(145deg,rgba(15,23,42,0.95),rgba(15,23,42,0.6));
+      border:1px solid rgba(148,163,184,0.3);
+      border-radius:16px;
+      padding:12px;
+    }
+    .banner{
+      padding:8px 10px;border-radius:12px;color:#fff;
+      display:flex;justify-content:center;gap:10px;align-items:center;
+      font-weight:800;font-size:12px;margin-bottom:10px;
+    }
+    .kv{
+      display:flex;justify-content:space-between;gap:10px;
+      padding:7px 8px;border-radius:12px;
+      background:rgba(2,6,23,0.55);
+      border:1px solid rgba(148,163,184,0.22);
+      margin-top:8px;
+      font-size:13px;
+    }
+    .kv span:first-child{color:var(--muted)}
+    .big{
+      font-size:18px;font-weight:900;color:#22c55e;
+    }
+    .strike{color:#f87171;text-decoration:line-through;font-weight:800}
+    .tag{
+      display:inline-block;
+      padding:3px 10px;border-radius:999px;
+      background:#4f46e5;color:#fff;
+      font-size:11px;font-weight:900;
+      margin-bottom:8px;
+    }
+    .results-list{
+      max-height:320px;overflow:auto;
+      border-radius:14px;border:1px solid rgba(148,163,184,0.25);
+      background:rgba(2,6,23,0.55);
+    }
+    .res-item{
+      padding:10px 12px;border-bottom:1px solid rgba(148,163,184,0.2);
+      cursor:pointer;
+    }
+    .res-item:hover{background:rgba(148,163,184,0.12)}
+    .res-item .b{font-weight:900;color:#a5b4fc;font-size:12px}
+    .res-item .n{margin-top:4px;color:#e5e7eb;font-size:13px}
+    .res-item .p{margin-top:6px;color:#22c55e;font-weight:900;font-size:12px}
+    .mini{color:var(--muted);font-size:11px;margin-right:8px;text-decoration:line-through}
+  </style>
 </head>
-<body>
-    <div class="wrapper">
-        <div class="logo">
-            <img src="logo.png" alt="Rass 1 Hub" onerror="this.style.display='none'">
-        </div>
-        <div class="title">
-            <h1>Rass 1 Hub - Scanner</h1>
-            <p>مسح باركود العروض وربطها بقاعدة Google Sheets</p>
-        </div>
 
-        <div class="card">
-            <div class="main-actions">
-                <button class="btn btn-primary" onclick="Scanner.start()">
-                    📷 ابدأ مسح الباركود
-                </button>
-                <button class="btn btn-outline" onclick="Scanner.manualSearchFromHome()">
-                    🔍 بحث يدوي عن عرض
-                </button>
-            </div>
-            <div class="hint">
-                الصفحة مستقلة باسم <strong>scanner.html</strong><br>
-                تأكد أن الشيت في Google Sheets قابل للعرض لأي شخص معه الرابط.
-            </div>
-        </div>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <img src="logo.png" alt="Rass 1 Hub" onerror="this.style.display='none'">
     </div>
 
-    <script>
-    // === Barcode Scanner Module for Rass1 Hub (Standalone) ===
+    <div class="title">
+      <h1>Rass 1 Hub — Scanner</h1>
+      <p>يفتح الكاميرا مباشرة لمسح الباركود + يبحث بالعروض من Google Sheets</p>
+    </div>
 
+    <div class="card">
+      <div class="row">
+        <button id="openScannerBtn" class="btn primary">📷 فتح الكاميرا الآن</button>
+        <button id="openSearchBtn" class="btn ghost">🔍 بحث يدوي</button>
+      </div>
+
+      <div class="status">
+        <div class="status-line">
+          <span>قاعدة العروض (Google Sheets)</span>
+          <span id="dbPill" class="pill info">... جاري التحميل</span>
+        </div>
+        <div class="status-line">
+          <span>الكاميرا / السكانر</span>
+          <span id="camPill" class="pill info">جاهز</span>
+        </div>
+        <div class="status-line" id="statusMsg" style="justify-content:flex-start;gap:8px;">
+          <span style="color:var(--muted);font-size:11px;line-height:1.6;">
+            إذا الشيت مو Public أو مو “Published”، بيظهر هنا سبب المشكلة.
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scanner Modal -->
+  <div id="scannerModal" class="modal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h2 id="scannerTitle">📷 مسح الباركود</h2>
+        <button class="x" id="closeScanner">×</button>
+      </div>
+
+      <div id="cameraArea">
+        <div id="scannerPreview" class="preview"></div>
+        <div class="hint" id="scanHint">وجّه الكاميرا على باركود المنتج (EAN/UPC/Code128...)</div>
+      </div>
+
+      <div class="manual">
+        <div class="divider" id="divider">أو ابحث يدوياً</div>
+        <div class="manual-row">
+          <input id="manualInput" type="text" placeholder="أدخل الباركود أو اسم المنتج..." />
+          <button id="manualBtn" class="btn info" style="min-width:130px;flex:0">بحث</button>
+        </div>
+      </div>
+
+      <div class="actions" id="cameraActions">
+        <button id="switchCam" class="btn ghost" style="min-width:160px">🔄 تبديل الكاميرا</button>
+        <button id="stopScan" class="btn danger" style="min-width:160px">إيقاف</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Result Modal -->
+  <div id="resultModal" class="modal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h2 id="resultTitle">النتيجة</h2>
+        <button class="x" id="closeResult">×</button>
+      </div>
+      <div class="result-body" id="resultBody"></div>
+      <div class="actions">
+        <button id="scanAgain" class="btn primary" style="min-width:160px">📷 مسح جديد</button>
+        <button id="closeResult2" class="btn ghost" style="min-width:160px">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ====== CONFIG ======
+    const SHEET_ID = '1-_6mN6DpmuUbpgy3q3h-RXRjPepfhhcdIx2K3oybCzw';
+    const SHEET_GID = 0;
+
+    // ====== STATE ======
     let offersData = [];
+    let offersLoaded = false;
 
-    const Scanner = {
-        scanner: null,
-        isScanning: false,
-        audioContext: null,
-        isMobile: false,
-        currentFacing: 'environment',
-        searchResults: [],
-        _offersLoaded: false,
+    // ====== UI HELPERS ======
+    const UI = {
+      dbPill: () => document.getElementById('dbPill'),
+      camPill: () => document.getElementById('camPill'),
+      statusMsg: () => document.getElementById('statusMsg'),
 
-        checkIsMobile() {
-            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-                || (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
-        },
-
-        async init() {
-            if (!document.getElementById('scannerModal')) {
-                this.createScannerModal();
-            }
-            if (!this._offersLoaded) {
-                await this.loadOffersData();
-                this._offersLoaded = true;
-            }
-        },
-
-        createScannerModal() {
-            const modalHTML = `
-                <div id="scannerModal" class="scanner-modal">
-                    <div class="scanner-modal-content">
-                        <div class="scanner-header">
-                            <h2 id="scannerModalTitle">📷 Scan Barcode</h2>
-                            <button id="closeScannerBtn" class="scanner-close-btn">&times;</button>
-                        </div>
-                        
-                        <div id="cameraSection">
-                            <div id="scannerPreview" class="scanner-preview"></div>
-                            <p class="scanner-hint">وجّه الكاميرا على باركود المنتج</p>
-                        </div>
-                        
-                        <div class="manual-search-section">
-                            <div class="manual-search-divider" id="searchDivider">
-                                <span>أو ابحث يدوياً</span>
-                            </div>
-                            <div class="manual-search-input">
-                                <input type="text" id="manualSearchInput" placeholder="أدخل الباركود أو اسم المنتج..." />
-                                <button id="manualSearchBtn" class="scanner-btn primary">🔍 بحث</button>
-                            </div>
-                        </div>
-                        
-                        <div class="scanner-actions" id="cameraActions">
-                            <button id="switchCameraBtn" class="scanner-btn secondary">🔄 تبديل الكاميرا</button>
-                            <button id="stopScanBtn" class="scanner-btn danger">إيقاف المسح</button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="offerResultModal" class="scanner-modal">
-                    <div class="scanner-modal-content offer-result">
-                        <div class="scanner-header">
-                            <h2 id="offerResultTitle">🎉 Offer Found!</h2>
-                            <button id="closeOfferBtn" class="scanner-close-btn">&times;</button>
-                        </div>
-                        <div id="offerResultContent" class="offer-content"></div>
-                        <div class="scanner-actions">
-                            <button id="scanAgainBtn" class="scanner-btn primary">🔍 بحث جديد</button>
-                            <button id="closeOfferResultBtn" class="scanner-btn secondary">إغلاق</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', modalHTML);
-            this.bindEvents();
-        },
-
-        bindEvents() {
-            document.getElementById('closeScannerBtn')?.addEventListener('click', () => this.stop());
-            document.getElementById('stopScanBtn')?.addEventListener('click', () => this.stop());
-            document.getElementById('closeOfferBtn')?.addEventListener('click', () => this.closeOfferResult());
-            document.getElementById('closeOfferResultBtn')?.addEventListener('click', () => this.closeOfferResult());
-            document.getElementById('scanAgainBtn')?.addEventListener('click', () => {
-                this.closeOfferResult();
-                this.start();
-            });
-            document.getElementById('switchCameraBtn')?.addEventListener('click', () => this.switchCamera());
-
-            const manualInput = document.getElementById('manualSearchInput');
-            const manualBtn = document.getElementById('manualSearchBtn');
-
-            if (manualInput) {
-                manualInput.addEventListener('focus', () => {
-                    if (this.isScanning && this.scanner) {
-                        try { this.scanner.pause(true); } catch (e) {}
-                    }
-                });
-
-                manualInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        manualInput.blur();
-                        this.manualSearch();
-                    }
-                });
-            }
-
-            if (manualBtn) {
-                manualBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    manualInput?.blur();
-                    this.manualSearch();
-                });
-            }
-
-            document.getElementById('scannerModal')?.addEventListener('click', (e) => {
-                if (e.target.id === 'scannerModal') this.stop();
-            });
-        },
-
-        async loadOffersData() {
-            try {
-                const sheetId = '1-_6mN6DpmuUbpgy3q3h-RXRjPepfhhcdIx2K3oybCzw';
-                const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&gid=0`;
-                console.log('🔄 Fetching offers from:', url);
-                const response = await fetch(url);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const text = await response.text();
-                const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?/);
-                if (!match || !match[1]) {
-                    throw new Error('Unexpected response format from Google Sheets');
-                }
-                const data = JSON.parse(match[1]);
-                offersData = this.parseGoogleSheetsData(data);
-                console.log(`✅ Offers loaded: ${offersData.length}`);
-                if (!offersData.length) {
-                    console.warn('⚠️ لا توجد بيانات عروض في الشيت (أو لم يتم التعرف على الأعمدة)');
-                }
-            } catch (error) {
-                console.error('❌ Google Sheets Load Error:', error);
-                offersData = this.getSampleData();
-                console.log('💡 Using fallback sample data (local).');
-            }
-        },
-
-        parseGoogleSheetsData(data) {
-            if (!data?.table?.rows) return [];
-            const rows = data.table.rows;
-            const cols = data.table.cols.map(c => (c.label || '').toString().trim());
-            console.log('📋 Sheet headers:', cols);
-
-            // helper to find index by keywords
-            const findIndex = (keywords) => {
-                const lowerCols = cols.map(c => c.toLowerCase());
-                for (let i = 0; i < lowerCols.length; i++) {
-                    for (const k of keywords) {
-                        if (lowerCols[i].includes(k)) return i;
-                    }
-                }
-                return -1;
-            };
-
-            const idx = {
-                barcode: findIndex(['barcode','باركود','code','كود']),
-                productName: findIndex(['product','اسم','المنتج','الوصف بالانج']),
-                brand: findIndex(['brand','ماركة','شركة']),
-                discount: findIndex(['discount','خصم','نسبة']),
-                priceBefore: findIndex(['before','السعر قبل','price before']),
-                save: findIndex(['save','توفير','فرق']),
-                priceAfter: findIndex(['after','السعر بعد','price after']),
-                startDate: findIndex(['start','بداية','from','من']),
-                endDate: findIndex(['end','نهاية','to','إلى']),
-                arDescription: findIndex(['arabic','وصف عربي','الاسم العربي','الوصف']),
-                type: findIndex(['type','نوع','فئة العرض']),
-                category: findIndex(['category','تصنيف','قسم'])
-            };
-
-            // fallback to fixed positions if not detected
-            const fallback = {
-                barcode: 0,
-                productName: 1,
-                brand: 2,
-                discount: 3,
-                priceBefore: 4,
-                save: 5,
-                priceAfter: 6,
-                startDate: 8,
-                endDate: 9,
-                arDescription: 10,
-                type: 11,
-                category: 12
-            };
-
-            const getIdx = (key) => (idx[key] !== -1 ? idx[key] : fallback[key]);
-
-            const extractDate = (cell) => {
-                if (!cell) return '';
-                if (cell.f && cell.f !== '∞') return cell.f;
-                if (cell.v !== null && cell.v !== undefined) {
-                    const vs = String(cell.v);
-                    const m = vs.match(/Date\((\d+),(\d+),(\d+)\)/);
-                    if (m) return `${parseInt(m[1])}/${parseInt(m[2]) + 1}/${m[3]}`;
-                    if (!isNaN(cell.v) && cell.v > 40000 && cell.v < 60000) {
-                        const d = new Date((cell.v - 25569) * 86400000);
-                        return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
-                    }
-                    return vs;
-                }
-                return '';
-            };
-
-            // detect if first row is header (non-numeric barcode)
-            const firstRow = rows[0];
-            const fvCell = firstRow?.c?.[getIdx('barcode')];
-            const fv = fvCell?.f || fvCell?.v;
-            const firstLooksLikeBarcode =
-                fv && !isNaN(String(fv).replace(/\D/g, '')) && String(fv).replace(/\D/g, '').length >= 6;
-            const startIdx = firstLooksLikeBarcode ? 0 : 1;
-
-            const items = rows.slice(startIdx).map((row) => {
-                const cells = row.c || [];
-                const getCell = (i) => (i >= 0 && i < cells.length ? cells[i] : null);
-
-                const bcCell = getCell(getIdx('barcode'));
-                const barcode = (bcCell?.f || bcCell?.v || '').toString().trim();
-                if (!barcode) return null;
-
-                return {
-                    barcode,
-                    productName: (getCell(getIdx('productName'))?.v || getCell(getIdx('productName'))?.f || '').toString(),
-                    brand: (getCell(getIdx('brand'))?.v || '').toString(),
-                    discount: (getCell(getIdx('discount'))?.v || getCell(getIdx('discount'))?.f || '').toString(),
-                    priceBefore: (getCell(getIdx('priceBefore'))?.v || getCell(getIdx('priceBefore'))?.f || '').toString(),
-                    save: (getCell(getIdx('save'))?.v || getCell(getIdx('save'))?.f || '').toString(),
-                    priceAfter: (getCell(getIdx('priceAfter'))?.v || getCell(getIdx('priceAfter'))?.f || '').toString(),
-                    startDate: extractDate(getCell(getIdx('startDate'))),
-                    endDate: extractDate(getCell(getIdx('endDate'))),
-                    arDescription: (getCell(getIdx('arDescription'))?.v || '').toString(),
-                    type: (getCell(getIdx('type'))?.v || '').toString(),
-                    category: (getCell(getIdx('category'))?.v || '').toString()
-                };
-            }).filter(Boolean);
-
-            console.log('✅ Parsed offers from sheet:', items.length);
-            return items;
-        },
-
-        parseDate(dateStr) {
-            if (!dateStr || dateStr === '∞' || String(dateStr).toLowerCase().includes('inf')) {
-                return null;
-            }
-            try {
-                let date = new Date(dateStr);
-                if (!isNaN(date.getTime())) return date;
-                const parts = String(dateStr).split(/[\/\-.]/);
-                if (parts.length === 3) {
-                    const p0 = parseInt(parts[0]);
-                    const p1 = parseInt(parts[1]);
-                    const y = parseInt(parts[2]);
-                    if (y > 1000) {
-                        if (p0 > 12) return new Date(y, p1 - 1, p0);
-                        return new Date(y, p0 - 1, p1);
-                    }
-                }
-                return null;
-            } catch {
-                return null;
-            }
-        },
-
-        getOfferStatus(offer) {
-            if (offer.type === 'ثابت') {
-                return {
-                    status: 'active',
-                    label: '✅ ساري',
-                    color: '#27ae60',
-                    message: 'عرض مستمر'
-                };
-            }
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const startDate = this.parseDate(offer.startDate);
-            const endDate = this.parseDate(offer.endDate);
-
-            if (startDate && startDate > today) {
-                const diff = Math.ceil((startDate - today) / 86400000);
-                return {
-                    status: 'not_started',
-                    label: '🔜 لم يبدأ',
-                    color: '#95a5a6',
-                    message: `بعد ${diff} يوم`
-                };
-            }
-
-            if (endDate && endDate < today) {
-                return {
-                    status: 'expired',
-                    label: '❌ منتهي',
-                    color: '#e74c3c',
-                    message: 'انتهى'
-                };
-            }
-
-            if (endDate) {
-                const diff = Math.ceil((endDate - today) / 86400000);
-                if (diff <= 3) {
-                    return {
-                        status: 'ending_soon',
-                        label: '⚡ ينتهي قريباً',
-                        color: '#f39c12',
-                        message: `${diff} يوم`
-                    };
-                }
-                return {
-                    status: 'active',
-                    label: '✅ ساري',
-                    color: '#27ae60',
-                    message: `${diff} يوم`
-                };
-            }
-
-            return {
-                status: 'active',
-                label: '✅ ساري',
-                color: '#27ae60',
-                message: 'مستمر'
-            };
-        },
-
-        getSampleData() {
-            return [
-                {
-                    barcode: '3616303321932',
-                    productName: 'ADIDAS ICE DIVE NATURAL SPRAY 100ML',
-                    brand: 'ADIDAS',
-                    discount: '20.00%',
-                    priceBefore: '48',
-                    save: '9.6',
-                    priceAfter: '38.47',
-                    arDescription: 'بخاخ أديداس آيس دايف الطبيعي 100 مل',
-                    category: 'COSMETICS',
-                    type: 'ثابت'
-                }
-            ];
-        },
-
-        async loadHtml5QrcodeLib() {
-            if (typeof Html5Qrcode !== 'undefined') return;
-            await new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = 'https://unpkg.com/html5-qrcode';
-                script.onload = resolve;
-                script.onerror = reject;
-                document.head.appendChild(script);
-            });
-        },
-
-        async start() {
-            await this.init();
-
-            if (typeof Html5Qrcode === 'undefined') {
-                try {
-                    await this.loadHtml5QrcodeLib();
-                } catch (e) {
-                    console.error('Failed to load Html5Qrcode:', e);
-                }
-            }
-
-            this.isMobile = this.checkIsMobile();
-            const modal = document.getElementById('scannerModal');
-            const cameraSection = document.getElementById('cameraSection');
-            const cameraActions = document.getElementById('cameraActions');
-            const searchDivider = document.getElementById('searchDivider');
-            const modalTitle = document.getElementById('scannerModalTitle');
-            const searchInput = document.getElementById('manualSearchInput');
-
-            modal.classList.add('active');
-
-            if (!this.isMobile || typeof Html5Qrcode === 'undefined') {
-                modalTitle.textContent = '🔍 البحث عن العروض';
-                cameraSection.style.display = 'none';
-                cameraActions.style.display = 'none';
-                searchDivider.style.display = 'none';
-                setTimeout(() => searchInput?.focus(), 100);
-                return;
-            }
-
-            modalTitle.textContent = '📷 مسح الباركود';
-            cameraSection.style.display = 'block';
-            cameraActions.style.display = 'flex';
-            searchDivider.style.display = 'flex';
-
-            try {
-                this.scanner = new Html5Qrcode('scannerPreview');
-                this.currentFacing = 'environment';
-                await this._startCamera();
-            } catch (error) {
-                console.error('Scanner start error:', error);
-                cameraSection.style.display = 'none';
-                cameraActions.style.display = 'none';
-                searchDivider.style.display = 'none';
-                modalTitle.textContent = '🔍 البحث عن العروض';
-                setTimeout(() => searchInput?.focus(), 100);
-            }
-        },
-
-        async _startCamera() {
-            if (!this.scanner) return;
-            const config = {
-                fps: 20,
-                qrbox: { width: 300, height: 150 },
-                aspectRatio: 1.777778,
-                experimentalFeatures: { useBarCodeDetectorIfSupported: true }
-            };
-            await this.scanner.start(
-                { facingMode: this.currentFacing || 'environment' },
-                config,
-                (decodedText) => this.onScanSuccess(decodedText),
-                () => {}
-            );
-            this.isScanning = true;
-        },
-
-        async stop() {
-            if (this.scanner && this.isScanning) {
-                try {
-                    await this.scanner.stop();
-                } catch (e) {}
-            }
-            this.isScanning = false;
-            document.getElementById('scannerModal')?.classList.remove('active');
-        },
-
-        async switchCamera() {
-            if (!this.scanner) return;
-            try {
-                if (this.isScanning) {
-                    await this.scanner.stop();
-                }
-                this.isScanning = false;
-                this.currentFacing = this.currentFacing === 'environment' ? 'user' : 'environment';
-                await this._startCamera();
-            } catch (error) {
-                console.error('Camera switch error:', error);
-            }
-        },
-
-        onScanSuccess(barcode) {
-            console.log('📷 Scanned barcode:', barcode);
-            this.playBeepSound();
-            this.stop();
-            const offer = this.lookupOffer(barcode);
-            this.showResult(barcode, offer);
-        },
-
-        playBeepSound() {
-            try {
-                if (!this.audioContext) {
-                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                const ctx = this.audioContext;
-                const oscillator = ctx.createOscillator();
-                const gainNode = ctx.createGain();
-                oscillator.connect(gainNode);
-                gainNode.connect(ctx.destination);
-                oscillator.frequency.value = 1800;
-                oscillator.type = 'sine';
-                gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-                oscillator.start(ctx.currentTime);
-                oscillator.stop(ctx.currentTime + 0.1);
-            } catch (e) {
-                console.log('Beep error:', e);
-            }
-        },
-
-        lookupOffer(barcode) {
-            return offersData.find(item => item.barcode === barcode);
-        },
-
-        searchByName(query) {
-            const lowerQuery = query.toLowerCase();
-            return offersData.filter(item =>
-                item.productName?.toLowerCase().includes(lowerQuery) ||
-                item.arDescription?.toLowerCase().includes(lowerQuery) ||
-                item.brand?.toLowerCase().includes(lowerQuery) ||
-                item.category?.toLowerCase().includes(lowerQuery)
-            );
-        },
-
-        manualSearch() {
-            const input = document.getElementById('manualSearchInput');
-            const query = input?.value?.trim();
-            if (!query) return;
-
-            this.stop();
-
-            let offer = this.lookupOffer(query);
-            if (offer) {
-                this.showResult(query, offer);
-            } else {
-                const results = this.searchByName(query);
-                if (results.length === 1) {
-                    this.showResult(results[0].barcode, results[0]);
-                } else if (results.length > 1) {
-                    this.showMultipleResults(results);
-                } else {
-                    this.showResult(query, null);
-                }
-            }
-            if (input) input.value = '';
-        },
-
-        manualSearchFromHome() {
-            this.init().then(() => {
-                const modal = document.getElementById('scannerModal');
-                const cameraSection = document.getElementById('cameraSection');
-                const cameraActions = document.getElementById('cameraActions');
-                const searchDivider = document.getElementById('searchDivider');
-                const modalTitle = document.getElementById('scannerModalTitle');
-                const searchInput = document.getElementById('manualSearchInput');
-
-                modal.classList.add('active');
-                modalTitle.textContent = '🔍 البحث عن العروض';
-                cameraSection.style.display = 'none';
-                cameraActions.style.display = 'none';
-                searchDivider.style.display = 'none';
-                setTimeout(() => searchInput?.focus(), 100);
-            });
-        },
-
-        showMultipleResults(results) {
-            const modal = document.getElementById('offerResultModal');
-            const title = document.getElementById('offerResultTitle');
-            const content = document.getElementById('offerResultContent');
-
-            title.textContent = `🔍 تم العثور على ${results.length} نتائج`;
-            title.style.color = '#3498db';
-
-            let html = '<div class="search-results">';
-            results.forEach((item, index) => {
-                html += `
-                    <div class="search-result-item" onclick="Scanner.selectResult(${index})"
-                        style="padding: 12px; border-bottom: 1px solid rgba(148,163,184,0.3); cursor: pointer;">
-                        <div style="font-weight: bold; color: #a5b4fc;">${item.brand || ''}</div>
-                        <div style="color: #e5e7eb; margin: 5px 0;">${item.productName}</div>
-                        <div style="font-size: 0.9em; color: #2ecc71;">
-                            ${item.priceAfter} SAR
-                            <span style="text-decoration: line-through; color: #9ca3af; font-size: 0.8em; margin-right:8px;">
-                                ${item.priceBefore} SAR
-                            </span>
-                        </div>
-                    </div>
-                `;
-            });
-            html += '</div>';
-
-            content.innerHTML = html;
-            modal.classList.add('active');
-            this.searchResults = results;
-        },
-
-        selectResult(index) {
-            if (this.searchResults && this.searchResults[index]) {
-                this.showResult(this.searchResults[index].barcode, this.searchResults[index]);
-            }
-        },
-
-        showResult(barcode, offer) {
-            const modal = document.getElementById('offerResultModal');
-            const title = document.getElementById('offerResultTitle');
-            const content = document.getElementById('offerResultContent');
-
-            if (offer) {
-                const status = this.getOfferStatus(offer);
-                title.textContent = '🎉 تم العثور على العرض!';
-                title.style.color = '#27ae60';
-                content.innerHTML = `
-                    <div class="offer-card">
-                        <div class="offer-status-banner"
-                             style="background:${status.color}; padding: 8px 10px; border-radius: 10px; margin-bottom: 12px; text-align: center; color: white; font-size: 13px;">
-                            <span style="font-weight: bold;">${status.label}</span>
-                            <span style="margin-inline:6px;">|</span>
-                            <span>${status.message}</span>
-                        </div>
-                        <div class="offer-product" style="text-align: center; margin-bottom: 12px;">
-                            <span style="background: #4f46e5; padding: 2px 8px; border-radius: 10px; font-size: 0.8em; color: white;">
-                                ${offer.brand}
-                            </span>
-                            <h3 style="color: white; margin: 10px 0 6px; font-size: 15px;">
-                                ${offer.productName}
-                            </h3>
-                            <p style="color: #9ca3af; font-size: 0.9em;">
-                                ${offer.arDescription || ''}
-                            </p>
-                        </div>
-                        <div class="offer-pricing" style="background: rgba(15,23,42,0.85); padding: 12px; border-radius: 12px; font-size: 13px;">
-                            <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-                                <span style="color:#9ca3af;">السعر الأصلي:</span>
-                                <span style="text-decoration: line-through; color: #f87171;">
-                                    ${offer.priceBefore} SAR
-                                </span>
-                            </div>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-                                <span style="color:#9ca3af;">الخصم:</span>
-                                <span style="background:#ef4444; padding:2px 8px; border-radius:999px; font-size:0.85em; color:white;">
-                                    ${offer.discount}
-                                </span>
-                            </div>
-                            <div style="display:flex; justify-content:space-between; border-top:1px solid rgba(148,163,184,0.5); padding-top:8px; margin-top:8px;">
-                                <span style="font-weight:bold; color:#e5e7eb;">سعر العرض:</span>
-                                <span style="font-size:1.3em; font-weight:bold; color:#22c55e;">
-                                    ${offer.priceAfter} SAR
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            } else {
-                title.textContent = '❌ لم يتم العثور على العرض';
-                title.style.color = '#e74c3c';
-                content.innerHTML = `
-                    <div style="text-align:center; color:#e5e7eb; padding:18px 10px;">
-                        <div style="background: rgba(15,23,42,0.85); padding: 12px; border-radius: 12px; margin-bottom: 12px; font-family: monospace; font-size: 13px;">
-                            ${barcode}
-                        </div>
-                        <p style="font-size:13px; color:#d1d5db;">
-                            هذا المنتج لا يوجد له عرض حالياً في قاعدة البيانات.
-                        </p>
-                    </div>
-                `;
-            }
-
-            modal.classList.add('active');
-        },
-
-        closeOfferResult() {
-            document.getElementById('offerResultModal')?.classList.remove('active');
-        }
+      setDb(status, text){
+        const pill = UI.dbPill();
+        pill.className = 'pill ' + status;
+        pill.textContent = text;
+      },
+      setCam(status, text){
+        const pill = UI.camPill();
+        pill.className = 'pill ' + status;
+        pill.textContent = text;
+      },
+      setMsg(msg, color='var(--muted)'){
+        const el = UI.statusMsg();
+        el.innerHTML = `<span style="color:${color};font-size:11px;line-height:1.6;">${msg}</span>`;
+      },
+      open(id){ document.getElementById(id)?.classList.add('active'); },
+      close(id){ document.getElementById(id)?.classList.remove('active'); },
     };
 
-    window.Scanner = Scanner;
+    // ====== CSV PARSER (robust enough) ======
+    function parseCSV(text){
+      const rows = [];
+      let cur = '';
+      let inQuotes = false;
+      let row = [];
 
-    // يفتح السكانر مباشرة عند تحميل الصفحة
-    document.addEventListener('DOMContentLoaded', () => {
-        Scanner.start();
+      for(let i=0;i<text.length;i++){
+        const ch = text[i];
+        const next = text[i+1];
+
+        if(ch === '"' && inQuotes && next === '"'){
+          cur += '"'; i++;
+          continue;
+        }
+        if(ch === '"'){
+          inQuotes = !inQuotes;
+          continue;
+        }
+        if(ch === ',' && !inQuotes){
+          row.push(cur); cur = '';
+          continue;
+        }
+        if((ch === '\n' || ch === '\r') && !inQuotes){
+          if(ch === '\r' && next === '\n') i++;
+          row.push(cur); cur = '';
+          if(row.length > 1 || (row.length === 1 && row[0].trim() !== '')){
+            rows.push(row);
+          }
+          row = [];
+          continue;
+        }
+        cur += ch;
+      }
+      // last
+      if(cur.length || row.length){
+        row.push(cur);
+        if(row.length > 1 || (row.length === 1 && row[0].trim() !== '')){
+          rows.push(row);
+        }
+      }
+      return rows;
+    }
+
+    // ====== SHEETS LOADERS (3 طرق) ======
+    function gvizUrl(){
+      return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${SHEET_GID}`;
+    }
+    function exportCsvUrl(){
+      return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}`;
+    }
+    function publishedCsvUrl(){
+      // إذا الشيت "Published to web" غالباً هذا يشتغل
+      return `https://docs.google.com/spreadsheets/d/e/${SHEET_ID}/pub?output=csv`;
+    }
+
+    async function fetchText(url){
+      const r = await fetch(url, { cache: 'no-store' });
+      const t = await r.text();
+      return { ok: r.ok, status: r.status, text: t };
+    }
+
+    function looksLikeLoginHtml(t){
+      const s = (t||'').toLowerCase();
+      return s.includes('<!doctype html') && (s.includes('accounts.google.com') || s.includes('signin') || s.includes('service-login'));
+    }
+
+    function parseOffersFromGviz(gvizText){
+      const match = gvizText.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?/);
+      if(!match || !match[1]) throw new Error('GVIZ format mismatch');
+      const data = JSON.parse(match[1]);
+      if(!data?.table?.rows) return [];
+
+      const cols = (data.table.cols || []).map(c => (c.label || '').toString().trim());
+      const rows = data.table.rows;
+
+      // find index by keywords in headers (Arabic/English)
+      const findIndex = (keywords) => {
+        const lower = cols.map(c => c.toLowerCase());
+        for(let i=0;i<lower.length;i++){
+          for(const k of keywords){
+            if(lower[i].includes(k)) return i;
+          }
+        }
+        return -1;
+      };
+
+      const idx = {
+        barcode: findIndex(['barcode','باركود','code','كود']),
+        productName: findIndex(['product','اسم','المنتج','name','الوصف']),
+        brand: findIndex(['brand','ماركة','شركة']),
+        discount: findIndex(['discount','خصم','نسبة']),
+        priceBefore: findIndex(['before','السعر قبل','price before','old']),
+        save: findIndex(['save','توفير','فرق']),
+        priceAfter: findIndex(['after','السعر بعد','price after','new']),
+        startDate: findIndex(['start','بداية','from','من']),
+        endDate: findIndex(['end','نهاية','to','إلى']),
+        arDescription: findIndex(['arabic','عربي','الوصف العربي','ar']),
+        type: findIndex(['type','نوع']),
+        category: findIndex(['category','تصنيف','قسم'])
+      };
+
+      const fallback = {
+        barcode: 0,
+        productName: 1,
+        brand: 2,
+        discount: 3,
+        priceBefore: 4,
+        save: 5,
+        priceAfter: 6,
+        startDate: 8,
+        endDate: 9,
+        arDescription: 10,
+        type: 11,
+        category: 12
+      };
+
+      const getIdx = (key) => (idx[key] !== -1 ? idx[key] : fallback[key]);
+
+      const extractDate = (cell) => {
+        if(!cell) return '';
+        if(cell.f && cell.f !== '∞') return cell.f;
+        if(cell.v !== null && cell.v !== undefined){
+          const vs = String(cell.v);
+          const m = vs.match(/Date\((\d+),(\d+),(\d+)\)/);
+          if(m) return `${parseInt(m[1])}/${parseInt(m[2])+1}/${m[3]}`;
+          if(!isNaN(cell.v) && cell.v > 40000 && cell.v < 60000){
+            const d = new Date((cell.v - 25569) * 86400000);
+            return `${d.getMonth()+1}/${d.getDate()}/${d.getFullYear()}`;
+          }
+          return vs;
+        }
+        return '';
+      };
+
+      // detect header row (if first row barcode looks non-numeric)
+      const first = rows[0]?.c?.[getIdx('barcode')];
+      const fv = (first?.f || first?.v || '').toString();
+      const firstLooksBarcode = fv && fv.replace(/\D/g,'').length >= 6;
+      const startAt = firstLooksBarcode ? 0 : 1;
+
+      const items = rows.slice(startAt).map(row => {
+        const c = row.c || [];
+        const cell = (i) => (i>=0 && i<c.length ? c[i] : null);
+
+        const bcCell = cell(getIdx('barcode'));
+        const barcode = (bcCell?.f || bcCell?.v || '').toString().trim();
+        if(!barcode) return null;
+
+        return {
+          barcode,
+          productName: (cell(getIdx('productName'))?.v || cell(getIdx('productName'))?.f || '').toString().trim(),
+          brand: (cell(getIdx('brand'))?.v || cell(getIdx('brand'))?.f || '').toString().trim(),
+          discount: (cell(getIdx('discount'))?.v || cell(getIdx('discount'))?.f || '').toString().trim(),
+          priceBefore: (cell(getIdx('priceBefore'))?.v || cell(getIdx('priceBefore'))?.f || '').toString().trim(),
+          save: (cell(getIdx('save'))?.v || cell(getIdx('save'))?.f || '').toString().trim(),
+          priceAfter: (cell(getIdx('priceAfter'))?.v || cell(getIdx('priceAfter'))?.f || '').toString().trim(),
+          startDate: extractDate(cell(getIdx('startDate'))),
+          endDate: extractDate(cell(getIdx('endDate'))),
+          arDescription: (cell(getIdx('arDescription'))?.v || cell(getIdx('arDescription'))?.f || '').toString().trim(),
+          type: (cell(getIdx('type'))?.v || cell(getIdx('type'))?.f || '').toString().trim(),
+          category: (cell(getIdx('category'))?.v || cell(getIdx('category'))?.f || '').toString().trim(),
+        };
+      }).filter(Boolean);
+
+      return items;
+    }
+
+    function parseOffersFromCsv(csvText){
+      const rows = parseCSV(csvText);
+      if(!rows.length) return [];
+
+      const header = rows[0].map(h => (h||'').toString().trim());
+      const lower = header.map(h => h.toLowerCase());
+
+      const find = (keywords) => {
+        for(let i=0;i<lower.length;i++){
+          for(const k of keywords){
+            if(lower[i].includes(k)) return i;
+          }
+        }
+        return -1;
+      };
+
+      const idx = {
+        barcode: find(['barcode','باركود','code','كود']),
+        productName: find(['product','اسم','المنتج','name','الوصف']),
+        brand: find(['brand','ماركة','شركة']),
+        discount: find(['discount','خصم','نسبة']),
+        priceBefore: find(['before','السعر قبل','price before','old']),
+        save: find(['save','توفير','فرق']),
+        priceAfter: find(['after','السعر بعد','price after','new']),
+        startDate: find(['start','بداية','from','من']),
+        endDate: find(['end','نهاية','to','إلى']),
+        arDescription: find(['arabic','عربي','الوصف العربي','ar']),
+        type: find(['type','نوع']),
+        category: find(['category','تصنيف','قسم'])
+      };
+
+      const fallback = {
+        barcode: 0,
+        productName: 1,
+        brand: 2,
+        discount: 3,
+        priceBefore: 4,
+        save: 5,
+        priceAfter: 6,
+        startDate: 8,
+        endDate: 9,
+        arDescription: 10,
+        type: 11,
+        category: 12
+      };
+      const getIdx = (key) => (idx[key] !== -1 ? idx[key] : fallback[key]);
+
+      const items = rows.slice(1).map(r => {
+        const v = (i) => (i>=0 && i<r.length ? (r[i]||'').toString().trim() : '');
+        const barcode = v(getIdx('barcode'));
+        if(!barcode) return null;
+        return {
+          barcode,
+          productName: v(getIdx('productName')),
+          brand: v(getIdx('brand')),
+          discount: v(getIdx('discount')),
+          priceBefore: v(getIdx('priceBefore')),
+          save: v(getIdx('save')),
+          priceAfter: v(getIdx('priceAfter')),
+          startDate: v(getIdx('startDate')),
+          endDate: v(getIdx('endDate')),
+          arDescription: v(getIdx('arDescription')),
+          type: v(getIdx('type')),
+          category: v(getIdx('category')),
+        };
+      }).filter(Boolean);
+
+      return items;
+    }
+
+    async function loadOffers(){
+      UI.setDb('info','... جاري التحميل');
+      UI.setMsg('جاري تحميل العروض من Google Sheets...');
+
+      // 1) GVIZ
+      try{
+        const { ok, status, text } = await fetchText(gvizUrl());
+        if(!ok) throw new Error(`GVIZ HTTP ${status}`);
+        if(looksLikeLoginHtml(text)) throw new Error('GVIZ needs permission (login page)');
+        const items = parseOffersFromGviz(text);
+        if(items.length){
+          offersData = items;
+          offersLoaded = true;
+          UI.setDb('ok', `✅ تم تحميل ${items.length}`);
+          UI.setMsg('تم تحميل العروض بنجاح ✅');
+          return;
+        }
+        // إذا رجعت فاضية نجرّب CSV
+      }catch(e){
+        console.warn('GVIZ load failed:', e);
+      }
+
+      // 2) Export CSV
+      try{
+        const { ok, status, text } = await fetchText(exportCsvUrl());
+        if(!ok) throw new Error(`CSV export HTTP ${status}`);
+        if(looksLikeLoginHtml(text)) throw new Error('CSV export needs permission (login page)');
+        const items = parseOffersFromCsv(text);
+        if(items.length){
+          offersData = items;
+          offersLoaded = true;
+          UI.setDb('ok', `✅ تم تحميل ${items.length}`);
+          UI.setMsg('تم تحميل العروض بنجاح ✅');
+          return;
+        }
+      }catch(e){
+        console.warn('CSV export failed:', e);
+      }
+
+      // 3) Published CSV (قد لا يعمل إلا لو Published to web)
+      try{
+        const { ok, status, text } = await fetchText(publishedCsvUrl());
+        if(!ok) throw new Error(`Published CSV HTTP ${status}`);
+        if(looksLikeLoginHtml(text)) throw new Error('Published CSV needs publish-to-web');
+        const items = parseOffersFromCsv(text);
+        if(items.length){
+          offersData = items;
+          offersLoaded = true;
+          UI.setDb('ok', `✅ تم تحميل ${items.length}`);
+          UI.setMsg('تم تحميل العروض بنجاح ✅');
+          return;
+        }
+      }catch(e){
+        console.warn('Published CSV failed:', e);
+      }
+
+      // fallback
+      offersData = sampleData();
+      offersLoaded = true;
+      UI.setDb('warn', '⚠️ فشل الشيت — تم استخدام داتا تجريبية');
+      UI.setMsg('فشل تحميل الشيت (غالباً الشيت غير Public/Published). تم تشغيل بيانات تجريبية مؤقتاً.', 'var(--warn)');
+    }
+
+    function sampleData(){
+      return [{
+        barcode:'3616303321932',
+        productName:'ADIDAS ICE DIVE NATURAL SPRAY 100ML',
+        brand:'ADIDAS',
+        discount:'20%',
+        priceBefore:'48',
+        save:'9.6',
+        priceAfter:'38.47',
+        arDescription:'بخاخ أديداس آيس دايف الطبيعي 100 مل',
+        category:'COSMETICS',
+        type:'ثابت'
+      }];
+    }
+
+    // ====== OFFER STATUS ======
+    function parseDateSafe(dateStr){
+      if(!dateStr) return null;
+      const s = String(dateStr).trim();
+      if(!s || s === '∞' || s.toLowerCase().includes('inf')) return null;
+
+      let d = new Date(s);
+      if(!isNaN(d.getTime())) return d;
+
+      const parts = s.split(/[\/\-.]/);
+      if(parts.length === 3){
+        const p0 = parseInt(parts[0],10);
+        const p1 = parseInt(parts[1],10);
+        const y  = parseInt(parts[2],10);
+        if(y > 1000){
+          if(p0 > 12) return new Date(y, p1-1, p0);
+          return new Date(y, p0-1, p1);
+        }
+      }
+      return null;
+    }
+
+    function offerStatus(offer){
+      if((offer.type||'').trim() === 'ثابت'){
+        return { label:'✅ ساري', color:'#16a34a', msg:'عرض مستمر' };
+      }
+      const today = new Date(); today.setHours(0,0,0,0);
+      const start = parseDateSafe(offer.startDate);
+      const end   = parseDateSafe(offer.endDate);
+
+      if(start && start > today){
+        const diff = Math.ceil((start - today)/86400000);
+        return { label:'🔜 لم يبدأ', color:'#64748b', msg:`بعد ${diff} يوم` };
+      }
+      if(end && end < today){
+        return { label:'❌ منتهي', color:'#ef4444', msg:'انتهى' };
+      }
+      if(end){
+        const diff = Math.ceil((end - today)/86400000);
+        if(diff <= 3) return { label:'⚡ ينتهي قريباً', color:'#f59e0b', msg:`${diff} يوم` };
+        return { label:'✅ ساري', color:'#16a34a', msg:`${diff} يوم` };
+      }
+      return { label:'✅ ساري', color:'#16a34a', msg:'مستمر' };
+    }
+
+    // ====== SCANNER ======
+    const Scanner = {
+      html5: null,
+      scanning: false,
+      facing: 'environment',
+      audioCtx: null,
+      formatsReady: false,
+
+      async ensureLib(){
+        if(window.Html5Qrcode && window.Html5QrcodeSupportedFormats) return;
+        await new Promise((resolve, reject)=>{
+          const s = document.createElement('script');
+          s.src = 'https://unpkg.com/html5-qrcode';
+          s.onload = resolve;
+          s.onerror = reject;
+          document.head.appendChild(s);
+        });
+      },
+
+      isMobile(){
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+          || (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
+      },
+
+      async init(){
+        if(!offersLoaded) await loadOffers();
+        await this.ensureLib();
+
+        // جهّز formatsToSupport (1D barcodes + QR)
+        this.formats = [
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+          Html5QrcodeSupportedFormats.UPC_EAN_EXTENSION,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.CODE_93,
+          Html5QrcodeSupportedFormats.ITF,
+          Html5QrcodeSupportedFormats.CODABAR,
+          Html5QrcodeSupportedFormats.PDF_417,
+          Html5QrcodeSupportedFormats.DATA_MATRIX,
+          Html5QrcodeSupportedFormats.QR_CODE,
+          Html5QrcodeSupportedFormats.AZTEC
+        ];
+      },
+
+      beep(){
+        try{
+          if(!this.audioCtx){
+            this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          }
+          const ctx = this.audioCtx;
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.connect(g); g.connect(ctx.destination);
+          o.frequency.value = 1700;
+          o.type = 'sine';
+          g.gain.setValueAtTime(0.25, ctx.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.12);
+          o.start(ctx.currentTime);
+          o.stop(ctx.currentTime + 0.12);
+        }catch(e){}
+      },
+
+      findOfferByBarcode(barcode){
+        const b = String(barcode||'').trim();
+        // بعض الأجهزة ترجع باركود مع spaces أو \n
+        return offersData.find(x => String(x.barcode||'').trim() === b);
+      },
+
+      searchByName(query){
+        const q = String(query||'').toLowerCase();
+        return offersData.filter(x => {
+          const a = (x.productName||'').toLowerCase();
+          const b = (x.arDescription||'').toLowerCase();
+          const c = (x.brand||'').toLowerCase();
+          const d = (x.category||'').toLowerCase();
+          return a.includes(q)||b.includes(q)||c.includes(q)||d.includes(q);
+        });
+      },
+
+      showScanner(mode='camera'){
+        UI.open('scannerModal');
+
+        const cameraArea = document.getElementById('cameraArea');
+        const cameraActions = document.getElementById('cameraActions');
+        const divider = document.getElementById('divider');
+        const title = document.getElementById('scannerTitle');
+
+        if(mode === 'search'){
+          title.textContent = '🔍 البحث عن العروض';
+          cameraArea.style.display = 'none';
+          cameraActions.style.display = 'none';
+          divider.style.display = 'none';
+          setTimeout(()=>document.getElementById('manualInput')?.focus(), 150);
+        }else{
+          title.textContent = '📷 مسح الباركود';
+          cameraArea.style.display = 'block';
+          cameraActions.style.display = 'flex';
+          divider.style.display = 'flex';
+        }
+      },
+
+      async startCamera(){
+        await this.init();
+
+        this.showScanner('camera');
+
+        // بعض المتصفحات تمنع الكاميرا بدون تفاعل — نعرض حالة واضحة
+        UI.setCam('info','تشغيل...');
+
+        // Desktop: الكاميرا تشتغل عادي لو متاحة — ما نمنعها
+        // لكن لو فشلت، يتحول تلقائياً للبحث اليدوي
+        try{
+          // clean previous instance
+          if(this.html5){
+            try{ await this.html5.stop(); }catch(e){}
+            this.html5 = null;
+            this.scanning = false;
+          }
+
+          // create instance with formats support
+          this.html5 = new Html5Qrcode('scannerPreview', {
+            formatsToSupport: this.formats,
+            verbose: false
+          });
+
+          // qrbox مناسب للباركود (مستطيل عريض) ويتكيف مع الشاشة
+          const cfg = {
+            fps: 12,
+            aspectRatio: 1.6,
+            qrbox: (viewfinderWidth, viewfinderHeight) => {
+              const w = Math.min(380, Math.floor(viewfinderWidth * 0.82));
+              const h = Math.min(170, Math.floor(viewfinderHeight * 0.26));
+              return { width: w, height: h };
+            },
+            rememberLastUsedCamera: true,
+            experimentalFeatures: {
+              useBarCodeDetectorIfSupported: true
+            }
+          };
+
+          // محاولة اختيار كاميرا خلفية بالـ deviceId (أقوى من facingMode أحياناً)
+          let cameraConfig = { facingMode: this.facing };
+
+          try{
+            const cams = await Html5Qrcode.getCameras();
+            if(cams && cams.length){
+              // يفضّل back/environment label
+              const back = cams.find(c => (c.label||'').toLowerCase().includes('back'))
+                        || cams.find(c => (c.label||'').toLowerCase().includes('rear'))
+                        || cams.find(c => (c.label||'').toLowerCase().includes('environment'))
+                        || cams[cams.length - 1]; // غالباً آخر كاميرا هي الخلفية
+              if(back && back.id){
+                cameraConfig = { deviceId: { exact: back.id } };
+              }
+            }
+          }catch(e){}
+
+          const onSuccess = (decodedText) => {
+            const code = String(decodedText||'').trim();
+            if(!code) return;
+            this.beep();
+            this.stopCamera(true);
+            this.showResultFor(code);
+          };
+
+          await this.html5.start(
+            cameraConfig,
+            cfg,
+            onSuccess,
+            () => {}
+          );
+
+          this.scanning = true;
+          UI.setCam('ok','✅ تعمل');
+        }catch(err){
+          console.error('Camera start error:', err);
+          this.scanning = false;
+          UI.setCam('err','❌ فشل');
+          // يفتح البحث اليدوي تلقائياً
+          this.showScanner('search');
+
+          const msg = (err && err.name) ? err.name : (err && err.message ? err.message : 'Unknown');
+          UI.setMsg(`تعذر تشغيل الكاميرا: ${msg}. (إذا المتصفح يمنع التشغيل التلقائي، اضغط زر "فتح الكاميرا الآن")`, 'var(--warn)');
+        }
+      },
+
+      async stopCamera(keepModal=false){
+        try{
+          if(this.html5 && this.scanning){
+            await this.html5.stop();
+          }
+        }catch(e){}
+        this.scanning = false;
+        if(!keepModal){
+          UI.close('scannerModal');
+        }
+      },
+
+      async switchCamera(){
+        // تبديل بين user/environment
+        this.facing = (this.facing === 'environment') ? 'user' : 'environment';
+        if(!this.html5){
+          await this.startCamera();
+          return;
+        }
+        try{
+          await this.stopCamera(true);
+        }catch(e){}
+        await this.startCamera();
+      },
+
+      manualSearch(){
+        const input = document.getElementById('manualInput');
+        const q = (input?.value||'').trim();
+        if(!q) return;
+
+        // وقف الكاميرا لو شغالة
+        this.stopCamera(true);
+
+        // إذا باركود
+        const exact = this.findOfferByBarcode(q);
+        if(exact){
+          UI.close('scannerModal');
+          this.showOffer(exact, q);
+          input.value='';
+          return;
+        }
+
+        // بحث نصي
+        const list = this.searchByName(q);
+        if(list.length === 1){
+          UI.close('scannerModal');
+          this.showOffer(list[0], list[0].barcode);
+        }else if(list.length > 1){
+          UI.close('scannerModal');
+          this.showMultiple(list);
+        }else{
+          UI.close('scannerModal');
+          this.showNotFound(q);
+        }
+        input.value='';
+      },
+
+      showResultFor(barcode){
+        const offer = this.findOfferByBarcode(barcode);
+        if(offer) this.showOffer(offer, barcode);
+        else this.showNotFound(barcode);
+      },
+
+      showOffer(offer, barcode){
+        const st = offerStatus(offer);
+        document.getElementById('resultTitle').textContent = '🎉 تم العثور على العرض!';
+        const body = document.getElementById('resultBody');
+        body.innerHTML = `
+          <div class="offer-card">
+            <div class="banner" style="background:${st.color}">
+              <span>${st.label}</span>
+              <span>|</span>
+              <span>${st.msg}</span>
+            </div>
+
+            <div class="tag">${(offer.brand||'').trim() || '—'}</div>
+            <div style="font-weight:900;font-size:14px;color:#fff;line-height:1.45">
+              ${(offer.productName||'').trim() || '—'}
+            </div>
+            <div style="margin-top:6px;color:var(--muted);font-size:12px;line-height:1.5">
+              ${(offer.arDescription||'').trim() || ''}
+            </div>
+
+            <div class="kv">
+              <span>الباركود</span>
+              <span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:900">${barcode}</span>
+            </div>
+
+            <div class="kv">
+              <span>السعر الأصلي</span>
+              <span class="strike">${offer.priceBefore || '—'} SAR</span>
+            </div>
+
+            <div class="kv">
+              <span>الخصم</span>
+              <span style="background:#ef4444;color:#fff;padding:2px 10px;border-radius:999px;font-weight:900;font-size:12px">
+                ${offer.discount || '—'}
+              </span>
+            </div>
+
+            <div class="kv" style="align-items:baseline">
+              <span>سعر العرض</span>
+              <span class="big">${offer.priceAfter || '—'} SAR</span>
+            </div>
+
+            <div class="kv">
+              <span>التصنيف</span>
+              <span>${offer.category || '—'}</span>
+            </div>
+          </div>
+        `;
+        UI.open('resultModal');
+      },
+
+      showNotFound(barcode){
+        document.getElementById('resultTitle').textContent = '❌ لم يتم العثور على العرض';
+        const body = document.getElementById('resultBody');
+        body.innerHTML = `
+          <div class="offer-card">
+            <div class="banner" style="background:#ef4444">❌ غير موجود</div>
+            <div class="kv">
+              <span>المدخل</span>
+              <span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:900">${barcode}</span>
+            </div>
+            <div style="margin-top:10px;color:var(--muted);font-size:12px;line-height:1.6;text-align:center">
+              هذا المنتج لا يوجد له عرض حالياً في قاعدة البيانات.
+            </div>
+          </div>
+        `;
+        UI.open('resultModal');
+      },
+
+      showMultiple(list){
+        document.getElementById('resultTitle').textContent = `🔍 تم العثور على ${list.length} نتائج`;
+        const body = document.getElementById('resultBody');
+        body.innerHTML = `
+          <div class="results-list">
+            ${list.map((x,i)=>`
+              <div class="res-item" data-i="${i}">
+                <div class="b">${x.brand || ''}</div>
+                <div class="n">${x.productName || ''}</div>
+                <div class="p">
+                  ${x.priceAfter || '—'} SAR
+                  <span class="mini">${x.priceBefore || ''} SAR</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        UI.open('resultModal');
+
+        // click handlers
+        setTimeout(()=>{
+          document.querySelectorAll('.res-item').forEach(el=>{
+            el.addEventListener('click', ()=>{
+              const i = parseInt(el.getAttribute('data-i'),10);
+              const offer = list[i];
+              if(offer) this.showOffer(offer, offer.barcode);
+            });
+          });
+        }, 0);
+      }
+    };
+
+    // ====== BIND EVENTS ======
+    document.getElementById('openScannerBtn').addEventListener('click', ()=>Scanner.startCamera());
+    document.getElementById('openSearchBtn').addEventListener('click', async ()=>{
+      if(!offersLoaded) await loadOffers();
+      Scanner.showScanner('search');
     });
-    </script>
+
+    document.getElementById('closeScanner').addEventListener('click', ()=>Scanner.stopCamera(false));
+    document.getElementById('stopScan').addEventListener('click', ()=>Scanner.stopCamera(false));
+    document.getElementById('switchCam').addEventListener('click', ()=>Scanner.switchCamera());
+
+    document.getElementById('manualBtn').addEventListener('click', (e)=>{
+      e.preventDefault();
+      Scanner.manualSearch();
+    });
+
+    document.getElementById('manualInput').addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter'){
+        e.preventDefault();
+        Scanner.manualSearch();
+      }
+    });
+
+    document.getElementById('closeResult').addEventListener('click', ()=>UI.close('resultModal'));
+    document.getElementById('closeResult2').addEventListener('click', ()=>UI.close('resultModal'));
+    document.getElementById('scanAgain').addEventListener('click', async ()=>{
+      UI.close('resultModal');
+      await Scanner.startCamera();
+    });
+
+    // اغلاق بالضغط خارج الصندوق
+    document.getElementById('scannerModal').addEventListener('click', (e)=>{
+      if(e.target.id === 'scannerModal') Scanner.stopCamera(false);
+    });
+    document.getElementById('resultModal').addEventListener('click', (e)=>{
+      if(e.target.id === 'resultModal') UI.close('resultModal');
+    });
+
+    // ====== AUTO START ======
+    document.addEventListener('DOMContentLoaded', async ()=>{
+      UI.setCam('info','تشغيل...');
+      await loadOffers();
+      // فتح الكاميرا مباشرة
+      await Scanner.startCamera();
+    });
+  </script>
 </body>
 </html>
