@@ -400,22 +400,41 @@
         const modalBody = document.getElementById('modalBody');
         const statusDot = document.getElementById('statusDot');
         const statusText = document.getElementById('statusText');
-        // ===== NORMALIZE BARCODE =====
+        // ===== EXTRACT BARCODE FROM CELL =====
+        function extractBarcode(cell) {
+            if (!cell) return '';
+            // 1. جرب القيمة المنسقة أولاً (غالباً تحافظ على النص الأصلي)
+            if (cell.f && !cell.f.includes('E+') && !cell.f.includes('e+')) {
+                return normalizeBarcode(cell.f);
+            }
+            // 2. استخدم القيمة الخام
+            return normalizeBarcode(cell.v);
+        }
+        // ===== NORMALIZE BARCODE - COMPREHENSIVE =====
         function normalizeBarcode(code) {
-            if (!code) return '';
+            if (code === null || code === undefined) return '';
+            // إذا كان رقم، حوله مباشرة
+            if (typeof code === 'number') {
+                // تأكد من عدم فقدان الدقة للأرقام الكبيرة
+                if (code > Number.MAX_SAFE_INTEGER) {
+                    // للأرقام الكبيرة جداً
+                    return Math.round(code).toLocaleString('fullwide', { useGrouping: false });
+                }
+                return Math.round(code).toString();
+            }
             let s = String(code).trim();
             // تحويل الصيغة العلمية إلى رقم كامل
-            if (s.includes('E+') || s.includes('e+') || s.includes('E-') || s.includes('e-')) {
+            if (/[eE][+\-]?\d+/.test(s)) {
                 try {
                     const num = parseFloat(s);
-                    if (!isNaN(num)) {
+                    if (!isNaN(num) && isFinite(num)) {
                         s = num.toLocaleString('fullwide', { useGrouping: false });
                     }
                 } catch (e) { }
             }
-            // إزالة أي أحرف غير رقمية (ما عدا الأرقام)
+            // إزالة أي أحرف غير رقمية
             s = s.replace(/[^\d]/g, '');
-            // إزالة الأصفار الزائدة من البداية
+            // إزالة الأصفار الزائدة من البداية (لكن احتفظ بصفر واحد على الأقل)
             s = s.replace(/^0+/, '') || '0';
             return s;
         }
@@ -459,7 +478,7 @@
                                 return '';
                             };
                             return {
-                                barcode: normalizeBarcode(c[0]?.v),
+                                barcode: extractBarcode(c[0]),
                                 name: c[1]?.v || '',
                                 brand: c[2]?.v || '',
                                 discount: c[3]?.f || c[3]?.v || '',
@@ -506,7 +525,7 @@
                                 return '';
                             };
                             return {
-                                barcode: normalizeBarcode(c[0]?.v),
+                                barcode: extractBarcode(c[0]),
                                 name: c[1]?.v || '',
                                 brand: c[2]?.v || '',
                                 discount: c[3]?.f || c[3]?.v || '',
@@ -524,6 +543,9 @@
                     }
                 }
                 console.log('✅ Loaded', offers.length, 'offers');
+                // عرض أول 5 باركودات للتحقق
+                console.log('📋 Sample barcodes:', offers.slice(0, 5).map(o => o.barcode));
+                console.log('📋 Sample names:', offers.slice(0, 5).map(o => o.name));
             } catch (e) {
                 console.error('Error loading data:', e);
             }
