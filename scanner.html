@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Rass 1 Hub - Scanner</title>
 
-    <!-- Favicon (اختياري نفس حق الهب) -->
     <link rel="icon" href="logo.png" type="image/png">
 
     <style>
@@ -16,7 +15,6 @@
             --accent-dark:#6fa329;
             --danger:#e74c3c;
             --gray:#666;
-            --bg:#0f172a;
         }
 
         *{box-sizing:border-box;margin:0;padding:0}
@@ -111,7 +109,7 @@
             margin-top:4px;
         }
 
-        /* ======= Scanner Modals / Layout (من كودك مع بعض الترتيب) ======= */
+        /* ======= Scanner Modals / Layout ======= */
         .scanner-modal{
             position:fixed;
             inset:0;
@@ -315,21 +313,14 @@
             </div>
             <div class="hint">
                 هذه الصفحة مستقلة عن النظام الرئيسي<br>
-                فقط ارفع الملف باسم <strong>scanner.html</strong> في Netlify.
+                فقط احفظها باسم <strong>scanner.html</strong> وارفعها في Netlify.
             </div>
         </div>
     </div>
 
-    <!-- Html5Qrcode Library -->
-    <script src="https://unpkg.com/html5-qrcode"></script>
-
     <script>
-    /**
-     * Barcode Scanner Module for Rass1 Hub
-     * Adapted for plain HTML page (no modules)
-     */
+    // === Barcode Scanner Module for Rass1 Hub (Standalone) ===
 
-    // Offers data - loaded from Google Sheets
     let offersData = [];
 
     const Scanner = {
@@ -339,6 +330,7 @@
         isMobile: false,
         currentFacing: 'environment',
         searchResults: [],
+        _offersLoaded: false,
 
         checkIsMobile() {
             return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
@@ -346,11 +338,9 @@
         },
 
         async init() {
-            // Create scanner modal if not exists
             if (!document.getElementById('scannerModal')) {
                 this.createScannerModal();
             }
-            // Load offers once
             if (!this._offersLoaded) {
                 await this.loadOffersData();
                 this._offersLoaded = true;
@@ -366,13 +356,11 @@
                             <button id="closeScannerBtn" class="scanner-close-btn">&times;</button>
                         </div>
                         
-                        <!-- Camera Section (Mobile) -->
                         <div id="cameraSection">
                             <div id="scannerPreview" class="scanner-preview"></div>
                             <p class="scanner-hint">وجّه الكاميرا على باركود المنتج</p>
                         </div>
                         
-                        <!-- Manual Search Section -->
                         <div class="manual-search-section">
                             <div class="manual-search-divider" id="searchDivider">
                                 <span>أو ابحث يدوياً</span>
@@ -469,4 +457,457 @@
             } catch (error) {
                 console.error('❌ Google Sheets Load Error:', error);
                 offersData = this.getSampleData();
-                console.log('💡 Using fallback s
+                console.log('💡 Using fallback sample data.');
+            }
+        },
+
+        parseGoogleSheetsData(data) {
+            if (!data?.table?.rows) return [];
+            const rows = data.table.rows;
+            const firstVal = rows[0]?.c?.[0]?.f || rows[0]?.c?.[0]?.v;
+            const startIdx = (firstVal && !isNaN(String(firstVal).replace(/\D/g, ''))) ? 0 : 1;
+
+            return rows.slice(startIdx).map((row) => {
+                const cells = row.c;
+                if (!cells) return null;
+
+                const extractDate = (cell) => {
+                    if (!cell) return '';
+                    if (cell.f && cell.f !== '∞') return cell.f;
+                    if (cell.v !== null && cell.v !== undefined) {
+                        const vs = String(cell.v);
+                        const m = vs.match(/Date\((\d+),(\d+),(\d+)\)/);
+                        if (m) return `${parseInt(m[1])}/${parseInt(m[2]) + 1}/${m[3]}`;
+                        if (!isNaN(cell.v) && cell.v > 40000 && cell.v < 60000) {
+                            const d = new Date((cell.v - 25569) * 86400000);
+                            return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+                        }
+                        return vs;
+                    }
+                    return '';
+                };
+
+                const barcode = cells[0]?.f || cells[0]?.v?.toString() || '';
+                return {
+                    barcode: barcode.trim(),
+                    productName: cells[1]?.v || cells[1]?.f || '',
+                    brand: cells[2]?.v || '',
+                    discount: cells[3]?.v || cells[3]?.f || '',
+                    priceBefore: cells[4]?.v || cells[4]?.f || '',
+                    save: cells[5]?.v || cells[5]?.f || '',
+                    priceAfter: cells[6]?.v || cells[6]?.f || '',
+                    startDate: extractDate(cells[8]),
+                    endDate: extractDate(cells[9]),
+                    arDescription: cells[10]?.v || '',
+                    type: cells[11]?.v || '',
+                    category: cells[12]?.v || ''
+                };
+            }).filter(item => item && item.barcode);
+        },
+
+        parseDate(dateStr) {
+            if (!dateStr || dateStr === '∞' || String(dateStr).toLowerCase().includes('inf')) {
+                return null;
+            }
+            try {
+                let date = new Date(dateStr);
+                if (!isNaN(date.getTime())) return date;
+                const parts = String(dateStr).split(/[\/\-.]/);
+                if (parts.length === 3) {
+                    const p0 = parseInt(parts[0]);
+                    const p1 = parseInt(parts[1]);
+                    const y = parseInt(parts[2]);
+                    if (y > 1000) {
+                        if (p0 > 12) return new Date(y, p1 - 1, p0);
+                        return new Date(y, p0 - 1, p1);
+                    }
+                }
+                return null;
+            } catch {
+                return null;
+            }
+        },
+
+        getOfferStatus(offer) {
+            if (offer.type === 'ثابت') {
+                return {
+                    status: 'active',
+                    label: '✅ ساري',
+                    color: '#27ae60',
+                    message: 'عرض مستمر'
+                };
+            }
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const startDate = this.parseDate(offer.startDate);
+            const endDate = this.parseDate(offer.endDate);
+
+            if (startDate && startDate > today) {
+                const diff = Math.ceil((startDate - today) / 86400000);
+                return {
+                    status: 'not_started',
+                    label: '🔜 لم يبدأ',
+                    color: '#95a5a6',
+                    message: `بعد ${diff} يوم`
+                };
+            }
+
+            if (endDate && endDate < today) {
+                return {
+                    status: 'expired',
+                    label: '❌ منتهي',
+                    color: '#e74c3c',
+                    message: 'انتهى'
+                };
+            }
+
+            if (endDate) {
+                const diff = Math.ceil((endDate - today) / 86400000);
+                if (diff <= 3) {
+                    return {
+                        status: 'ending_soon',
+                        label: '⚡ ينتهي قريباً',
+                        color: '#f39c12',
+                        message: `${diff} يوم`
+                    };
+                }
+                return {
+                    status: 'active',
+                    label: '✅ ساري',
+                    color: '#27ae60',
+                    message: `${diff} يوم`
+                };
+            }
+
+            return {
+                status: 'active',
+                label: '✅ ساري',
+                color: '#27ae60',
+                message: 'مستمر'
+            };
+        },
+
+        getSampleData() {
+            return [
+                {
+                    barcode: '3616303321932',
+                    productName: 'ADIDAS ICE DIVE NATURAL SPRAY 100ML',
+                    brand: 'ADIDAS',
+                    discount: '20.00%',
+                    priceBefore: '48',
+                    save: '9.6',
+                    priceAfter: '38.47',
+                    arDescription: 'بخاخ أديداس آيس دايف الطبيعي 100 مل',
+                    category: 'COSMETICS',
+                    type: 'ثابت'
+                }
+            ];
+        },
+
+        async loadHtml5QrcodeLib() {
+            if (typeof Html5Qrcode !== 'undefined') return;
+            await new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://unpkg.com/html5-qrcode';
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        },
+
+        async start() {
+            await this.init();
+
+            // تأكد من تحميل مكتبة Html5Qrcode
+            if (typeof Html5Qrcode === 'undefined') {
+                try {
+                    await this.loadHtml5QrcodeLib();
+                } catch (e) {
+                    console.error('Failed to load Html5Qrcode:', e);
+                }
+            }
+
+            this.isMobile = this.checkIsMobile();
+            const modal = document.getElementById('scannerModal');
+            const cameraSection = document.getElementById('cameraSection');
+            const cameraActions = document.getElementById('cameraActions');
+            const searchDivider = document.getElementById('searchDivider');
+            const modalTitle = document.getElementById('scannerModalTitle');
+            const searchInput = document.getElementById('manualSearchInput');
+
+            modal.classList.add('active');
+
+            // لو مو موبايل أو ما فيه مكتبة → بحث يدوي فقط
+            if (!this.isMobile || typeof Html5Qrcode === 'undefined') {
+                modalTitle.textContent = '🔍 البحث عن العروض';
+                cameraSection.style.display = 'none';
+                cameraActions.style.display = 'none';
+                searchDivider.style.display = 'none';
+                setTimeout(() => searchInput?.focus(), 100);
+                return;
+            }
+
+            // موبايل + مكتبة جاهزة → شغّل الكاميرا
+            modalTitle.textContent = '📷 مسح الباركود';
+            cameraSection.style.display = 'block';
+            cameraActions.style.display = 'flex';
+            searchDivider.style.display = 'flex';
+
+            try {
+                this.scanner = new Html5Qrcode('scannerPreview');
+                this.currentFacing = 'environment';
+                await this._startCamera();
+            } catch (error) {
+                console.error('Scanner start error:', error);
+                cameraSection.style.display = 'none';
+                cameraActions.style.display = 'none';
+                searchDivider.style.display = 'none';
+                modalTitle.textContent = '🔍 البحث عن العروض';
+                setTimeout(() => searchInput?.focus(), 100);
+            }
+        },
+
+        async _startCamera() {
+            if (!this.scanner) return;
+            const config = {
+                fps: 20,
+                qrbox: { width: 300, height: 150 },
+                aspectRatio: 1.777778,
+                experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+            };
+            await this.scanner.start(
+                { facingMode: this.currentFacing || 'environment' },
+                config,
+                (decodedText) => this.onScanSuccess(decodedText),
+                () => {}
+            );
+            this.isScanning = true;
+        },
+
+        async stop() {
+            if (this.scanner && this.isScanning) {
+                try {
+                    await this.scanner.stop();
+                } catch (e) {}
+            }
+            this.isScanning = false;
+            document.getElementById('scannerModal')?.classList.remove('active');
+        },
+
+        async switchCamera() {
+            if (!this.scanner) return;
+            try {
+                if (this.isScanning) {
+                    await this.scanner.stop();
+                }
+                this.isScanning = false;
+                this.currentFacing = this.currentFacing === 'environment' ? 'user' : 'environment';
+                await this._startCamera();
+            } catch (error) {
+                console.error('Camera switch error:', error);
+            }
+        },
+
+        onScanSuccess(barcode) {
+            console.log('📷 Scanned barcode:', barcode);
+            this.playBeepSound();
+            this.stop();
+            const offer = this.lookupOffer(barcode);
+            this.showResult(barcode, offer);
+        },
+
+        playBeepSound() {
+            try {
+                if (!this.audioContext) {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                const ctx = this.audioContext;
+                const oscillator = ctx.createOscillator();
+                const gainNode = ctx.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(ctx.destination);
+                oscillator.frequency.value = 1800;
+                oscillator.type = 'sine';
+                gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+                oscillator.start(ctx.currentTime);
+                oscillator.stop(ctx.currentTime + 0.1);
+            } catch (e) {
+                console.log('Beep error:', e);
+            }
+        },
+
+        lookupOffer(barcode) {
+            return offersData.find(item => item.barcode === barcode);
+        },
+
+        searchByName(query) {
+            const lowerQuery = query.toLowerCase();
+            return offersData.filter(item =>
+                item.productName?.toLowerCase().includes(lowerQuery) ||
+                item.arDescription?.toLowerCase().includes(lowerQuery) ||
+                item.brand?.toLowerCase().includes(lowerQuery) ||
+                item.category?.toLowerCase().includes(lowerQuery)
+            );
+        },
+
+        manualSearch() {
+            const input = document.getElementById('manualSearchInput');
+            const query = input?.value?.trim();
+            if (!query) return;
+
+            this.stop();
+
+            let offer = this.lookupOffer(query);
+            if (offer) {
+                this.showResult(query, offer);
+            } else {
+                const results = this.searchByName(query);
+                if (results.length === 1) {
+                    this.showResult(results[0].barcode, results[0]);
+                } else if (results.length > 1) {
+                    this.showMultipleResults(results);
+                } else {
+                    this.showResult(query, null);
+                }
+            }
+            if (input) input.value = '';
+        },
+
+        manualSearchFromHome() {
+            this.init().then(() => {
+                const modal = document.getElementById('scannerModal');
+                const cameraSection = document.getElementById('cameraSection');
+                const cameraActions = document.getElementById('cameraActions');
+                const searchDivider = document.getElementById('searchDivider');
+                const modalTitle = document.getElementById('scannerModalTitle');
+                const searchInput = document.getElementById('manualSearchInput');
+
+                modal.classList.add('active');
+                modalTitle.textContent = '🔍 البحث عن العروض';
+                cameraSection.style.display = 'none';
+                cameraActions.style.display = 'none';
+                searchDivider.style.display = 'none';
+                setTimeout(() => searchInput?.focus(), 100);
+            });
+        },
+
+        showMultipleResults(results) {
+            const modal = document.getElementById('offerResultModal');
+            const title = document.getElementById('offerResultTitle');
+            const content = document.getElementById('offerResultContent');
+
+            title.textContent = `🔍 تم العثور على ${results.length} نتائج`;
+            title.style.color = '#3498db';
+
+            let html = '<div class="search-results">';
+            results.forEach((item, index) => {
+                html += `
+                    <div class="search-result-item" onclick="Scanner.selectResult(${index})"
+                        style="padding: 12px; border-bottom: 1px solid rgba(148,163,184,0.3); cursor: pointer;">
+                        <div style="font-weight: bold; color: #a5b4fc;">${item.brand || ''}</div>
+                        <div style="color: #e5e7eb; margin: 5px 0;">${item.productName}</div>
+                        <div style="font-size: 0.9em; color: #2ecc71;">
+                            ${item.priceAfter} SAR
+                            <span style="text-decoration: line-through; color: #9ca3af; font-size: 0.8em; margin-right:8px;">
+                                ${item.priceBefore} SAR
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            content.innerHTML = html;
+            modal.classList.add('active');
+            this.searchResults = results;
+        },
+
+        selectResult(index) {
+            if (this.searchResults && this.searchResults[index]) {
+                this.showResult(this.searchResults[index].barcode, this.searchResults[index]);
+            }
+        },
+
+        showResult(barcode, offer) {
+            const modal = document.getElementById('offerResultModal');
+            const title = document.getElementById('offerResultTitle');
+            const content = document.getElementById('offerResultContent');
+
+            if (offer) {
+                const status = this.getOfferStatus(offer);
+                title.textContent = '🎉 تم العثور على العرض!';
+                title.style.color = '#27ae60';
+                content.innerHTML = `
+                    <div class="offer-card">
+                        <div class="offer-status-banner"
+                             style="background:${status.color}; padding: 8px 10px; border-radius: 10px; margin-bottom: 12px; text-align: center; color: white; font-size: 13px;">
+                            <span style="font-weight: bold;">${status.label}</span>
+                            <span style="margin-inline:6px;">|</span>
+                            <span>${status.message}</span>
+                        </div>
+                        <div class="offer-product" style="text-align: center; margin-bottom: 12px;">
+                            <span style="background: #4f46e5; padding: 2px 8px; border-radius: 10px; font-size: 0.8em; color: white;">
+                                ${offer.brand}
+                            </span>
+                            <h3 style="color: white; margin: 10px 0 6px; font-size: 15px;">
+                                ${offer.productName}
+                            </h3>
+                            <p style="color: #9ca3af; font-size: 0.9em;">
+                                ${offer.arDescription || ''}
+                            </p>
+                        </div>
+                        <div class="offer-pricing" style="background: rgba(15,23,42,0.85); padding: 12px; border-radius: 12px; font-size: 13px;">
+                            <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                                <span style="color:#9ca3af;">السعر الأصلي:</span>
+                                <span style="text-decoration: line-through; color: #f87171;">
+                                    ${offer.priceBefore} SAR
+                                </span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                                <span style="color:#9ca3af;">الخصم:</span>
+                                <span style="background:#ef4444; padding:2px 8px; border-radius:999px; font-size:0.85em; color:white;">
+                                    ${offer.discount}
+                                </span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; border-top:1px solid rgba(148,163,184,0.5); padding-top:8px; margin-top:8px;">
+                                <span style="font-weight:bold; color:#e5e7eb;">سعر العرض:</span>
+                                <span style="font-size:1.3em; font-weight:bold; color:#22c55e;">
+                                    ${offer.priceAfter} SAR
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                title.textContent = '❌ لم يتم العثور على العرض';
+                title.style.color = '#e74c3c';
+                content.innerHTML = `
+                    <div style="text-align:center; color:#e5e7eb; padding:18px 10px;">
+                        <div style="background: rgba(15,23,42,0.85); padding: 12px; border-radius: 12px; margin-bottom: 12px; font-family: monospace; font-size: 13px;">
+                            ${barcode}
+                        </div>
+                        <p style="font-size:13px; color:#d1d5db;">
+                            هذا المنتج لا يوجد له عرض حالياً في قاعدة البيانات.
+                        </p>
+                    </div>
+                `;
+            }
+
+            modal.classList.add('active');
+        },
+
+        closeOfferResult() {
+            document.getElementById('offerResultModal')?.classList.remove('active');
+        }
+    };
+
+    window.Scanner = Scanner;
+
+    // فتح الكاميرا تلقائياً عند فتح الصفحة (قد يتطلب تفاعل أو إذن من المتصفح)
+    document.addEventListener('DOMContentLoaded', () => {
+        Scanner.start();
+    });
+    </script>
+</body>
+</html>
