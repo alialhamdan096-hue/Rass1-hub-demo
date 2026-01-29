@@ -327,7 +327,37 @@ function openEmailApp() {
     document.getElementById('emailModal').style.display = 'none';
 }
 
-// Override sendEmail function
+// Override OrdersModule.sendEmail after page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Wait for the app to initialize
+    setTimeout(function() {
+        if (window.OrdersModule) {
+            const originalSendEmail = window.OrdersModule.sendEmail;
+            window.OrdersModule.sendEmail = function(branch) {
+                const items = window.State ? window.State.orderItems.filter(function(item) { return item.branch === branch; }) : [];
+                if (items.length === 0) {
+                    alert('لا توجد عناصر لهذا الفرع');
+                    return;
+                }
+                const email = BRANCH_EMAILS[branch];
+                if (!email) {
+                    alert('لم يتم العثور على إيميل الفرع: ' + branch);
+                    return;
+                }
+                const subject = 'طلب تحويل أصناف - صيدلية الرس 1';
+                let body = 'السلام عليكم\n\nنرجو تحويل الأصناف التالية:\n\n';
+                items.forEach(function(item) {
+                    body += '• ' + item.med + ' - الكمية: ' + item.qty + (item.isClient ? ' (لعميل)' : '') + '\n';
+                });
+                body += '\nوجزاكم الله خيراً\nصيدلية الرازي - الرس 1';
+                showEmailModal(email, subject, body);
+            };
+            console.log('Email popup override installed!');
+        }
+    }, 1000);
+});
+
+// Backup function
 window.sendEmailPopup = function(branch, items) {
     const email = BRANCH_EMAILS[branch];
     if (!email) {
