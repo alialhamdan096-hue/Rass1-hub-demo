@@ -207,7 +207,7 @@
     <div class="modal-overlay" id="confirmModal"><div class="modal"><div class="modal-icon" id="modalIcon">⚠️</div><div class="modal-title" id="modalTitle">Confirm</div><div class="modal-message" id="modalMessage">Are you sure?</div><div class="modal-actions"><button class="modal-cancel" onclick="UI.closeModal()">Cancel</button><button class="modal-confirm" id="modalConfirm">Confirm</button></div></div></div>
 
     <!-- Email Compose Modal -->
-    <div class="modal-overlay" id="emailModal">
+    <div class="modal-overlay" id="emailModal" style="z-index:99999">
         <div class="modal email-modal">
             <div class="email-header">
                 <span>📧 إرسال إيميل</span>
@@ -598,11 +598,13 @@ const UI = {
     // Email Modal Functions
     currentEmailData: null,
     showEmailModal(to, subject, body) {
+        console.log('showEmailModal called');
         this.currentEmailData = { to, subject, body };
         document.getElementById('emailTo').value = to;
         document.getElementById('emailSubject').value = subject;
         document.getElementById('emailBody').value = body;
         document.getElementById('emailModal').classList.add('active');
+        console.log('Modal should now be visible');
     },
     closeEmailModal() {
         document.getElementById('emailModal').classList.remove('active');
@@ -968,13 +970,22 @@ const OrdersModule = {
         document.getElementById('groupedOrders').innerHTML = Object.entries(grouped).map(([branch, items]) => `<div class="send-group"><div class="send-group-header"><span class="send-group-title">📍 ${branch}</span><span class="send-group-count">${items.length} items</span></div><div class="send-group-items">${items.map(item => `<div class="send-group-item ${item.isClient?'client':''}">• ${Utils.sanitize(item.med)} - Qty: ${item.qty}</div>`).join('')}</div><button class="btn btn-info btn-sm" onclick="OrdersModule.sendEmail('${branch}')" style="margin-top:10px">📧 Send to ${branch}</button></div>`).join('');
     },
     sendEmail(branch) {
+        console.log('sendEmail called for branch:', branch);
         const items = State.orderItems.filter(item => item.branch === branch);
-        if (items.length === 0) return;
+        if (items.length === 0) {
+            console.log('No items for branch');
+            return;
+        }
         const email = BRANCH_EMAILS[branch];
+        if (!email) {
+            alert('لم يتم العثور على إيميل الفرع: ' + branch);
+            return;
+        }
         const subject = `طلب تحويل أصناف - صيدلية الرس 1`;
         let body = `السلام عليكم\n\nنرجو تحويل الأصناف التالية:\n\n`;
         items.forEach(item => { body += `• ${item.med} - الكمية: ${item.qty}${item.isClient ? ' (لعميل)' : ''}\n`; });
         body += `\nوجزاكم الله خيراً\nصيدلية الرازي - الرس 1`;
+        console.log('Showing email modal with:', email, subject);
         UI.showEmailModal(email, subject, body);
     },
     sendAllEmails() {
