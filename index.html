@@ -187,12 +187,53 @@
             .row .form-group{flex:1}
         }
         @media print{body{background:white}.tabs,.sync,.header-row button,.actions,.pagination,.filters-row select,.alert-banner,.type-selector{display:none!important}.card{box-shadow:none;border:1px solid #ddd}}
+        /* Email Modal */
+        .email-modal{max-width:500px;width:95%;text-align:right;direction:rtl}
+        .email-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;padding-bottom:10px;border-bottom:1px solid #eee}
+        .email-header span{font-size:18px;font-weight:bold;color:var(--primary)}
+        .email-close{background:none;border:none;font-size:24px;cursor:pointer;color:#999}
+        .email-close:hover{color:#333}
+        .email-field{margin-bottom:12px}
+        .email-field label{display:block;margin-bottom:4px;font-weight:600;color:#555;font-size:13px}
+        .email-field input,.email-field textarea{width:100%;padding:10px;border:1px solid #ddd;border-radius:var(--radius-sm);font-size:14px;background:#f9f9f9;direction:rtl}
+        .email-field textarea{resize:none;font-family:inherit;line-height:1.6}
+        .email-actions{display:flex;gap:10px;margin-top:15px;flex-wrap:wrap}
+        .email-actions .btn{flex:1;min-width:100px}
     </style>
 </head>
 <body>
     <div class="toast-container" id="toastContainer"></div>
     <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><div class="loading-text">Loading...</div></div>
     <div class="modal-overlay" id="confirmModal"><div class="modal"><div class="modal-icon" id="modalIcon">⚠️</div><div class="modal-title" id="modalTitle">Confirm</div><div class="modal-message" id="modalMessage">Are you sure?</div><div class="modal-actions"><button class="modal-cancel" onclick="UI.closeModal()">Cancel</button><button class="modal-confirm" id="modalConfirm">Confirm</button></div></div></div>
+
+    <!-- Email Compose Modal -->
+    <div class="modal-overlay" id="emailModal">
+        <div class="modal email-modal">
+            <div class="email-header">
+                <span>📧 إرسال إيميل</span>
+                <button class="email-close" onclick="UI.closeEmailModal()">×</button>
+            </div>
+            <div class="email-form">
+                <div class="email-field">
+                    <label>إلى:</label>
+                    <input type="text" id="emailTo" readonly>
+                </div>
+                <div class="email-field">
+                    <label>الموضوع:</label>
+                    <input type="text" id="emailSubject" readonly>
+                </div>
+                <div class="email-field">
+                    <label>الرسالة:</label>
+                    <textarea id="emailBody" rows="8" readonly></textarea>
+                </div>
+                <div class="email-actions">
+                    <button class="btn btn-secondary" onclick="UI.closeEmailModal()">إغلاق</button>
+                    <button class="btn btn-primary" onclick="UI.copyEmail()">📋 نسخ</button>
+                    <button class="btn btn-success" onclick="UI.openMailApp()">📧 فتح تطبيق الإيميل</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 <div class="container">
     <div class="header-container">
@@ -255,7 +296,7 @@
                             <label>From Branch <span class="required">*</span></label>
                             <select id="branch">
                                 <option value="">Select branch...</option>
-                                <option>RASS2</option><option>RASS5</option><option>UNIZAH1</option><option>UNIZAH2</option><option>UNIZAH3</option><option>UNIZAH5</option>
+                                <option>RASS2</option><option>RASS5</option><option>UNIZAH1</option><option>UNIZAH2</option><option>UNIZAH3</option><option>UNIZAH4</option><option>UNIZAH5</option>
                                 <option>BADAYA1</option><option>BADAYA2</option><option>BADAYA3</option><option>BADAYA5</option><option>BADAYA.MOR</option>
                                 <option>BUKAYRIAH1</option><option>BUKAYRIAH2</option><option>BUKAYRIAH.MOR</option>
                                 <option>BURIDAH1</option><option>BURIDAH2</option>
@@ -336,6 +377,7 @@
                                 <option value="UNIZAH1">UNIZAH1</option>
                                 <option value="UNIZAH2">UNIZAH2</option>
                                 <option value="UNIZAH3">UNIZAH3</option>
+                                <option value="UNIZAH4">UNIZAH4</option>
                                 <option value="UNIZAH5">UNIZAH5</option>
                                 <option value="BADAYA1">BADAYA1</option>
                                 <option value="BADAYA2">BADAYA2</option>
@@ -480,6 +522,7 @@ const BRANCH_EMAILS = {
     'UNIZAH1': 'unizah1@alraziksa.com',
     'UNIZAH2': 'unizah2@alraziksa.com',
     'UNIZAH3': 'unizah3@alraziksa.com',
+    'UNIZAH4': 'unizah4@alraziksa.com',
     'UNIZAH5': 'unizah5@alraziksa.com',
     'BADAYA1': 'badaya1@alraziksa.com',
     'BADAYA2': 'badaya2@alraziksa.com',
@@ -551,6 +594,34 @@ const UI = {
             if(!b){b=document.createElement('span');b.className='tab-badge';t.appendChild(b)}
             b.textContent=p;
         }else if(b)b.remove();
+    },
+    // Email Modal Functions
+    currentEmailData: null,
+    showEmailModal(to, subject, body) {
+        this.currentEmailData = { to, subject, body };
+        document.getElementById('emailTo').value = to;
+        document.getElementById('emailSubject').value = subject;
+        document.getElementById('emailBody').value = body;
+        document.getElementById('emailModal').classList.add('active');
+    },
+    closeEmailModal() {
+        document.getElementById('emailModal').classList.remove('active');
+        this.currentEmailData = null;
+    },
+    copyEmail() {
+        if (!this.currentEmailData) return;
+        const text = `إلى: ${this.currentEmailData.to}\nالموضوع: ${this.currentEmailData.subject}\n\n${this.currentEmailData.body}`;
+        navigator.clipboard.writeText(text).then(() => {
+            this.showToast('تم نسخ الإيميل! 📋', 'success');
+        }).catch(() => {
+            this.showToast('فشل النسخ', 'error');
+        });
+    },
+    openMailApp() {
+        if (!this.currentEmailData) return;
+        const { to, subject, body } = this.currentEmailData;
+        window.open(`mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+        this.closeEmailModal();
     }
 };
 
@@ -904,7 +975,7 @@ const OrdersModule = {
         let body = `السلام عليكم\n\nنرجو تحويل الأصناف التالية:\n\n`;
         items.forEach(item => { body += `• ${item.med} - الكمية: ${item.qty}${item.isClient ? ' (لعميل)' : ''}\n`; });
         body += `\nوجزاكم الله خيراً\nصيدلية الرازي - الرس 1`;
-        window.open(`mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+        UI.showEmailModal(email, subject, body);
     },
     sendAllEmails() {
         const branches = [...new Set(State.orderItems.map(item => item.branch))];
