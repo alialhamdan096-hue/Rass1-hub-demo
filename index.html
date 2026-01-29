@@ -1,33 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-   <meta name="viewport" content="width=1200">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rass 1 Hub</title>
     <link rel="icon" href="logo.png" type="image/png">
-   <link rel="stylesheet" href="src/styles/style.css">
     <!-- Scanner Dependencies -->
     <script src="https://unpkg.com/html5-qrcode"></script>
-   <link rel="stylesheet" href="src/styles/scanner.css">
-    <script>
-        window.onerror = function (message, source, lineno, colno, error) {
-            var fileName = source ? source.split('/').pop() : 'Unknown';
-            alert("🚨 كشفنا خطأ!\n\n" +
-                "الرسالة: " + message + "\n" +
-                "الملف: " + fileName + "\n" +
-                "السطر: " + lineno);
-            return false;
-        };
-        window.addEventListener('unhandledrejection', function (event) {
-            alert("🚨 خطأ في الاتصال (Promise)!\n\n" + event.reason);
-        });
-        window.addEventListener('error', function (e) {
-            if (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK') {
-                alert("🚨 ملف مفقود أو رابط خطأ!\n\n" + (e.target.src || e.target.href));
-            }
-        }, true);
-    </script>
+    <link rel="stylesheet" href="src/styles/scanner.css">
 </head>
+
 <body>
     <div class="toast-container" id="toastContainer"></div>
     <div class="loading-overlay" id="loadingOverlay">
@@ -45,6 +28,68 @@
             </div>
         </div>
     </div>
+    <div class="modal-overlay" id="historyModal">
+        <div class="modal history-modal">
+            <div class="history-header">
+                <div class="history-title">📋 سجل المريض</div>
+                <button class="history-close" id="historyCloseBtn">×</button>
+            </div>
+            <div class="history-patient-info">
+                <div class="history-patient-name" id="historyPatientName"></div>
+                <div class="history-patient-phone" id="historyPatientPhone"></div>
+                <div class="history-patient-med" id="historyPatientMed"></div>
+            </div>
+            <div class="history-content" id="historyContent"></div>
+        </div>
+    </div>
+    <div class="modal-overlay" id="labelModal">
+        <div class="modal label-modal">
+            <div class="label-header">
+                <div class="label-title">🏷️ طباعة ملصق</div>
+                <button class="label-close" id="labelCloseBtn">×</button>
+            </div>
+            <div class="label-preview" id="labelPreview"></div>
+            <div class="label-actions">
+                <button class="btn btn-secondary" id="labelCancelBtn">إغلاق</button>
+                <button class="btn btn-primary" id="labelPrintBtn">🖨️ طباعة</button>
+            </div>
+        </div>
+    </div>
+    <div class="modal-overlay" id="exportModal">
+        <div class="modal export-modal">
+            <div class="export-header">
+                <div class="export-title">📊 تصدير Excel</div>
+                <button class="export-close" id="exportCloseBtn">×</button>
+            </div>
+            <div class="export-options">
+                <button class="export-option" id="exportAllBtn">
+                    <span class="export-icon">📋</span>
+                    <span class="export-label">تصدير الكل</span>
+                    <span class="export-desc">جميع البيانات</span>
+                </button>
+                <button class="export-option" id="exportRefillsBtn">
+                    <span class="export-icon">💊</span>
+                    <span class="export-label">إعادة التعبئة</span>
+                    <span class="export-desc">Refills فقط</span>
+                </button>
+                <button class="export-option" id="exportOrdersBtn">
+                    <span class="export-icon">📦</span>
+                    <span class="export-label">الطلبات</span>
+                    <span class="export-desc">Orders فقط</span>
+                </button>
+                <button class="export-option" id="exportFilteredBtn">
+                    <span class="export-icon">🔍</span>
+                    <span class="export-label">البيانات المفلترة</span>
+                    <span class="export-desc">حسب الفلتر الحالي</span>
+                </button>
+                <button class="export-option" id="exportReportBtn">
+                    <span class="export-icon">📈</span>
+                    <span class="export-label">التقرير الشهري</span>
+                    <span class="export-desc">الشهر المحدد</span>
+                </button>
+            </div>
+        </div>
+    </div>
     <div class="container">
         <div class="header-container">
             <img src="logo.png" alt="Rass 1" class="logo-img" onerror="this.style.display='none'">
@@ -57,9 +102,13 @@
             <button class="tab" data-page="reports">📈 Reports</button>
         </div>
         <div id="sync" class="sync sync-ok">✓ Connected to Google Sheets</div>
-        <div class="alert-banner hidden" id="alertBanner"><span class="alert-banner-icon">🔔</span><span
-                class="alert-banner-text" id="alertText"></span><button class="alert-banner-close"
-                onclick="document.getElementById('alertBanner').classList.add('hidden')">×</button></div>
+        <div class="alert-banner hidden" id="alertBanner">
+            <span class="alert-banner-icon">🔔</span>
+            <span class="alert-banner-text" id="alertText"></span>
+            <button class="alert-banner-close"
+                onclick="document.getElementById('alertBanner').classList.add('hidden')">×</button>
+        </div>
+        <!-- Patients Page -->
         <div id="patientsPage" class="page active">
             <div class="stats">
                 <div class="stat total">
@@ -80,15 +129,6 @@
                 </div>
             </div>
             <div class="grid">
-                <!-- ===== BARCODE SCANNER BUTTON ===== -->
-                <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                    <button id="scanBarcodeBtn" class="scan-barcode-btn"
-                        style="background: transparent; box-shadow: none;">
-                        <span class="icon">📷</span>
-                        <span>Scan Barcode for Offers</span>
-                    </button>
-                </div>
-                <!-- ===== END SCANNER BUTTON ===== -->
                 <div class="card">
                     <h3 class="card-title" id="formTitle">➕ Add New</h3>
                     <div class="type-selector">
@@ -137,6 +177,7 @@
                                     <option>UNIZAH1</option>
                                     <option>UNIZAH2</option>
                                     <option>UNIZAH3</option>
+                                    <option>UNIZAH4</option>
                                     <option>UNIZAH5</option>
                                     <option>BADAYA1</option>
                                     <option>BADAYA2</option>
@@ -175,7 +216,10 @@
                     </form>
                 </div>
                 <div class="card">
-                    <h3 class="card-title">📋 Records</h3>
+                    <div class="header-row">
+                        <h3 class="card-title" style="margin:0">📋 Records</h3>
+                        <button class="btn btn-secondary btn-sm" id="exportBtn">📊 Excel</button>
+                    </div>
                     <div class="filters-row">
                         <input type="text" id="search" placeholder="🔍 Search...">
                         <select id="typeFilter">
@@ -212,6 +256,7 @@
                 </div>
             </div>
         </div>
+        <!-- Orders Page -->
         <div id="ordersPage" class="page">
             <div class="grid">
                 <div class="card">
@@ -266,12 +311,11 @@
                     <div class="send-section" id="sendSection" style="display:none">
                         <h3 class="card-title">📧 Ready to Send</h3>
                         <div id="groupedOrders"></div>
-                        <button class="btn btn-success" id="sendAllBtn" style="margin-top:10px">📧 Send All
-                            Emails</button>
                     </div>
                 </div>
             </div>
         </div>
+        <!-- Tracking Page -->
         <div id="trackingPage" class="page">
             <div class="stats">
                 <div class="stat total">
@@ -299,6 +343,7 @@
                 <div class="track-grid" id="trackGrid"></div>
             </div>
         </div>
+        <!-- Reports Page -->
         <div id="reportsPage" class="page">
             <div class="card">
                 <div class="header-row">
@@ -420,12 +465,33 @@
             </div>
         </div>
     </div>
-   <script type="module" src="/src/main.js"></script>
+
+    <!-- Floating Scanner Button -->
+    <button id="scanBarcodeBtn" class="floating-scanner-btn" title="Scan Barcode for Offers">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+            <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+            <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+            <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+            <line x1="7" y1="12" x2="17" y2="12"></line>
+            <line x1="12" y1="7" x2="12" y2="17"></line>
+        </svg>
+    </button>
+
+    <iframe id="printFrame" style="display:none;position:absolute;width:0;height:0;border:0;"></iframe>
+    <script type="module" src="/src/main.js"></script>
     <!-- Scanner Module -->
     <script type="module">
-        import { Scanner } from './js/modules/scanner.js';
+        import { Scanner } from './src/modules/scanner.js';
         window.Scanner = Scanner;
         document.getElementById('scanBarcodeBtn').addEventListener('click', () => Scanner.start());
     </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => { });
+        }
+    </script>
 </body>
+
 </html>
