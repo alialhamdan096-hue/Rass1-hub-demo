@@ -898,8 +898,15 @@ const OrdersModule = {
     },
     sendEmail(branch) {
         const items = State.orderItems.filter(item => item.branch === branch);
-        if (items.length === 0) return;
+        if (items.length === 0) {
+            UI.showToast('لا توجد عناصر لهذا الفرع', 'warning');
+            return;
+        }
         const email = BRANCH_EMAILS[branch];
+        if (!email) {
+            UI.showToast('لم يتم العثور على إيميل الفرع: ' + branch, 'error');
+            return;
+        }
         const subject = `طلب تحويل أصناف`;
         let body = `السلام عليكم\n\nنرجو تحويل الأصناف التالية:\n\n`;
         items.forEach(item => { body += `• ${item.med} - الكمية: ${item.qty}${item.isClient ? ' (لعميل)' : ''}\n`; });
@@ -908,8 +915,13 @@ const OrdersModule = {
         const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
         const width = 600, height = 700;
         const left = (screen.width - width) / 2, top = (screen.height - height) / 2;
-        window.gmailWindowRef = window.open(gmailUrl, 'gmailCompose', `width=${width},height=${height},left=${left},top=${top},popup=true`);
-        if (window.gmailWindowRef) window.gmailWindowRef.focus();
+        const popup = window.open(gmailUrl, 'gmailCompose_' + branch, `width=${width},height=${height},left=${left},top=${top},popup=yes,scrollbars=yes,resizable=yes`);
+        if (popup) {
+            popup.focus();
+            UI.showToast('تم فتح نافذة الإيميل ✉️', 'success');
+        } else {
+            UI.showToast('تم حظر النافذة المنبثقة - الرجاء السماح بها', 'error');
+        }
     },
     sendAllEmails() {
         const branches = [...new Set(State.orderItems.map(item => item.branch))];
