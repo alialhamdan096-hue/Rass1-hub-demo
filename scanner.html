@@ -449,22 +449,22 @@
             try {
                 offers = [];
                 
-                // ===== جلب روابط الشيتات من السحابة أو localStorage =====
-                let sheetUrls = [];
-                const configUrl = localStorage.getItem('configSheetUrl');
+                // ===== رابط Web App الثابت =====
+                var CLOUD_CONFIG_URL = 'https://script.google.com/macros/s/AKfycbwRn2gbYehvxImxkLAjLRmFeXW89UL3Eoo_lmo2LKQvfqLOQECYLJwSB_usPk12bvW-_w/exec';
                 
-                if (configUrl) {
-                    try {
-                        statusText.textContent = '⏳ جاري تحميل الإعدادات...';
-                        const configRes = await fetch(configUrl);
-                        const configData = await configRes.json();
-                        if (Array.isArray(configData) && configData.length > 0) {
-                            sheetUrls = configData;
-                            console.log('☁️ Loaded', sheetUrls.length, 'sheet URLs from cloud');
-                        }
-                    } catch (e) {
-                        console.warn('⚠️ Could not load from cloud, using localStorage');
+                // ===== جلب روابط الشيتات من السحابة =====
+                let sheetUrls = [];
+                
+                try {
+                    statusText.textContent = '⏳ جاري تحميل الإعدادات...';
+                    const configRes = await fetch(CLOUD_CONFIG_URL);
+                    const configData = await configRes.json();
+                    if (Array.isArray(configData) && configData.length > 0) {
+                        sheetUrls = configData;
+                        console.log('☁️ Loaded', sheetUrls.length, 'sheet URLs from cloud');
                     }
+                } catch (e) {
+                    console.warn('⚠️ Could not load from cloud, using localStorage');
                 }
                 
                 // Fallback to localStorage
@@ -794,4 +794,3 @@
     </script>
 </body>
 </html>
-
