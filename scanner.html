@@ -400,30 +400,15 @@
         const modalBody = document.getElementById('modalBody');
         const statusDot = document.getElementById('statusDot');
         const statusText = document.getElementById('statusText');
-        // ===== EXTRACT BARCODE FROM CELL =====
+        // ===== EXTRACT BARCODE FROM CELL - SIMPLE & FAST =====
         function extractBarcode(cell) {
             if (!cell) return '';
-            // 1. جرب القيمة المنسقة أولاً (غالباً تحافظ على النص الأصلي)
-            if (cell.f && !cell.f.includes('E+') && !cell.f.includes('e+')) {
-                return normalizeBarcode(cell.f);
-            }
-            // 2. استخدم القيمة الخام
-            return normalizeBarcode(cell.v);
-        }
-        // ===== NORMALIZE BARCODE - COMPREHENSIVE =====
-        function normalizeBarcode(code) {
-            if (code === null || code === undefined) return '';
-            // إذا كان رقم، حوله مباشرة
-            if (typeof code === 'number') {
-                // تأكد من عدم فقدان الدقة للأرقام الكبيرة
-                if (code > Number.MAX_SAFE_INTEGER) {
-                    // للأرقام الكبيرة جداً
-                    return Math.round(code).toLocaleString('fullwide', { useGrouping: false });
-                }
-                return Math.round(code).toString();
-            }
-            let s = String(code).trim();
-            // تحويل الصيغة العلمية إلى رقم كامل
+            // استخدم القيمة مباشرة
+            let v = cell.v;
+            if (v === null || v === undefined) return '';
+            // تحويل لنص
+            let s = String(v);
+            // معالجة الصيغة العلمية فقط وقت التحميل
             if (/[eE][+\-]?\d+/.test(s)) {
                 try {
                     const num = parseFloat(s);
@@ -432,11 +417,7 @@
                     }
                 } catch (e) { }
             }
-            // إزالة أي أحرف غير رقمية
-            s = s.replace(/[^\d]/g, '');
-            // إزالة الأصفار الزائدة من البداية (لكن احتفظ بصفر واحد على الأقل)
-            s = s.replace(/^0+/, '') || '0';
-            return s;
+            return s.replace(/[^\d]/g, '');
         }
         // ===== INIT =====
         async function init() {
@@ -584,12 +565,11 @@
             const now = Date.now();
             if (now - lastScan < 1000) return;
             lastScan = now;
-            const normalizedCode = normalizeBarcode(code);
-            console.log('📷', code, '→', normalizedCode);
+            console.log('📷', code);
             beep();
-            // Pause scanner
+            // Pause scanner temporarily
             scanner.pause(true);
-            const offer = offers.find(o => o.barcode === normalizedCode);
+            const offer = offers.find(o => o.barcode === code);
             showResult(code, offer);
         }
         function onError() {
@@ -714,8 +694,8 @@
         function search() {
             const q = input.value.trim();
             if (!q) return;
-            const normalizedQ = normalizeBarcode(q);
-            const byCode = offers.find(o => o.barcode === normalizedQ);
+            // بحث مباشر بدون معالجة
+            const byCode = offers.find(o => o.barcode === q);
             if (byCode) {
                 beep();
                 showResult(q, byCode);
@@ -752,43 +732,30 @@
             input.value = '';
         }
         window.pick = i => showResult(window._r[i].barcode, window._r[i]);
-        // ===== CLOSE =====
+        // ===== CLOSE - بدون focus على الـ input =====
         function closeModal() {
             modal.classList.remove('show');
             resumeScanner();
-            input.focus();
+            // لا نعمل focus على input عشان ما تطلع الكيبورد
         }
-        // ===== EVENTS - ROBUST INPUT HANDLING =====
-        // 1. Pause scanner when user wants to type
-        input.addEventListener('focus', () => {
-            console.log('🖊️ Input focused - pausing scanner');
-            if (scanner) {
-                try { scanner.pause(true); } catch (e) { }
-            }
-        });
-        // 2. Search on Enter
+        // ===== EVENTS =====
+        // الكاميرا تشتغل دائماً - ما توقف لما يكتب المستخدم
+        // 1. Search on Enter
         input.addEventListener('keypress', e => {
             if (e.key === 'Enter') {
-                e.preventDefault(); // Prevent form submission
-                input.blur(); // Hide keyboard
+                e.preventDefault();
+                input.blur();
                 search();
             }
         });
-        // 3. Search Button
+        // 2. Search Button
         document.getElementById('searchBtn').addEventListener('click', (e) => {
             e.preventDefault();
             search();
         });
-        // 4. Close Modal
+        // 3. Close Modal
         document.getElementById('closeBtn').addEventListener('click', closeModal);
         document.getElementById('againBtn').addEventListener('click', closeModal);
-        // 5. Resume (if needed) when input loses focus AND is empty
-        input.addEventListener('blur', () => {
-            // Optional: resume if empty
-            if (!input.value) {
-                resumeScanner();
-            }
-        });
         // ===== START =====
         init();
     </script>
