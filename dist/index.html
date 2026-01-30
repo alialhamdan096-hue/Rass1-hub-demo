@@ -120,56 +120,277 @@
         <div id="emailBody"></div>
     </div>
 
-    <!-- Scanner Sheets Modal -->
+    <!-- Scanner Sheets Modal - تخزين سحابي -->
     <div id="sheetsModal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:99999;backdrop-filter:blur(3px);">
-        <div style="background:white;border-radius:16px;padding:20px;max-width:500px;width:90%;text-align:right;direction:rtl;box-shadow:0 15px 50px rgba(0,0,0,0.3);">
+        <div style="background:white;border-radius:16px;padding:20px;max-width:550px;width:90%;text-align:right;direction:rtl;box-shadow:0 15px 50px rgba(0,0,0,0.3);">
             <style>
                 .sheets-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;padding-bottom:10px;border-bottom:2px solid #e9ecef;}
                 .sheets-title{font-size:18px;font-weight:bold;color:#34a853;}
                 .sheets-close{background:#f1f3f4;border:none;width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer;color:#5f6368;}
+                .sheets-close:hover{background:#e8eaed;}
+                .sheets-config{background:#f8f9fa;border-radius:10px;padding:12px;margin-bottom:15px;border:1px solid #e9ecef;}
+                .sheets-config-label{font-size:12px;color:#666;margin-bottom:6px;display:flex;align-items:center;gap:5px;}
+                .sheets-config-input{width:100%;padding:10px 12px;border:2px solid #e9ecef;border-radius:8px;font-size:13px;direction:ltr;font-family:monospace;}
+                .sheets-config-input:focus{border-color:#34a853;outline:none;}
+                .sheets-config-status{font-size:11px;margin-top:6px;padding:4px 8px;border-radius:4px;display:inline-block;}
+                .sheets-config-status.connected{background:#d4edda;color:#155724;}
+                .sheets-config-status.disconnected{background:#f8d7da;color:#721c24;}
+                .sheets-config-status.loading{background:#fff3cd;color:#856404;}
+                .sheets-divider{border:none;border-top:1px dashed #dee2e6;margin:15px 0;}
                 .sheets-input-group{display:flex;gap:8px;margin-bottom:12px;}
                 .sheets-input{flex:1;padding:10px 12px;border:2px solid #e9ecef;border-radius:8px;font-size:14px;direction:ltr;}
                 .sheets-input:focus{border-color:#34a853;outline:none;}
-                .sheets-add-btn{padding:10px 16px;background:#34a853;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;}
+                .sheets-add-btn{padding:10px 16px;background:#34a853;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;transition:all 0.2s;}
                 .sheets-add-btn:hover{background:#2d8e47;}
-                .sheets-list{max-height:250px;overflow-y:auto;margin-bottom:15px;}
-                .sheets-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#f8f9fa;border-radius:8px;margin-bottom:8px;direction:ltr;}
+                .sheets-add-btn:disabled{background:#ccc;cursor:not-allowed;}
+                .sheets-list{max-height:200px;overflow-y:auto;margin-bottom:15px;}
+                .sheets-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#f8f9fa;border-radius:8px;margin-bottom:8px;direction:ltr;transition:all 0.2s;}
+                .sheets-item:hover{background:#e9ecef;}
                 .sheets-item-name{font-size:13px;color:#333;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-left:10px;}
-                .sheets-item-del{background:#dc3545;color:white;border:none;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:14px;}
+                .sheets-item-del{background:#dc3545;color:white;border:none;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:14px;transition:all 0.2s;}
+                .sheets-item-del:hover{background:#c82333;}
                 .sheets-empty{text-align:center;padding:30px;color:#999;}
-                .sheets-save-btn{width:100%;padding:12px;background:linear-gradient(135deg,#34a853 0%,#2d8e47 100%);color:white;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;}
+                .sheets-actions{display:flex;gap:10px;}
+                .sheets-save-btn{flex:1;padding:12px;background:linear-gradient(135deg,#34a853 0%,#2d8e47 100%);color:white;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;}
+                .sheets-save-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(52,168,83,0.3);}
+                .sheets-save-btn:disabled{background:#ccc;cursor:not-allowed;transform:none;box-shadow:none;}
+                .sheets-refresh-btn{padding:12px 16px;background:#4285f4;color:white;border:none;border-radius:10px;font-size:15px;cursor:pointer;transition:all 0.2s;}
+                .sheets-refresh-btn:hover{background:#3367d6;}
+                .sheets-refresh-btn:disabled{background:#ccc;cursor:not-allowed;}
+                .sheets-help{font-size:11px;color:#888;margin-top:10px;padding:10px;background:#f8f9fa;border-radius:8px;line-height:1.6;}
+                .sheets-help a{color:#4285f4;text-decoration:none;}
             </style>
             <div class="sheets-header">
                 <span class="sheets-title">📊 روابط Google Sheets للسكانر</span>
-                <button class="sheets-close" onclick="document.getElementById('sheetsModal').style.display='none'">×</button>
+                <button class="sheets-close" onclick="closeSheetsModal()">×</button>
             </div>
+            <!-- إعدادات شيت التخزين السحابي -->
+            <div class="sheets-config">
+                <div class="sheets-config-label">
+                    ⚙️ رابط Web App (شيت الإعدادات)
+                    <span class="sheets-config-status" id="configStatus">غير متصل</span>
+                </div>
+                <input type="text" class="sheets-config-input" id="configSheetUrl" placeholder="https://script.google.com/macros/s/.../exec" onchange="saveConfigUrl()">
+                <div class="sheets-help">
+                    💡 أنشئ شيت جديد وانشره كـ Web App للتخزين السحابي الدائم. <a href="#" onclick="showSetupInstructions(); return false;">عرض التعليمات</a>
+                </div>
+            </div>
+            <hr class="sheets-divider">
+            <!-- إضافة روابط الشيتات -->
             <div class="sheets-input-group">
                 <input type="text" class="sheets-input" id="newSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/...">
-                <button class="sheets-add-btn" onclick="addSheetUrl()">➕ أضف</button>
+                <button class="sheets-add-btn" id="addSheetBtn" onclick="addSheetUrl()">➕ أضف</button>
             </div>
-            <div class="sheets-list" id="sheetsList"></div>
-            <button class="sheets-save-btn" onclick="saveSheetsAndClose()">💾 حفظ وإغلاق</button>
+            <div class="sheets-list" id="sheetsList">
+                <div class="sheets-empty">⏳ جاري التحميل...</div>
+            </div>
+            <div class="sheets-actions">
+                <button class="sheets-refresh-btn" id="refreshBtn" onclick="loadSheetsFromCloud()">🔄</button>
+                <button class="sheets-save-btn" id="saveBtn" onclick="saveSheetsToCloud()">💾 حفظ في السحابة</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Setup Instructions Modal -->
+    <div id="setupModal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:100000;backdrop-filter:blur(3px);">
+        <div style="background:white;border-radius:16px;padding:25px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;text-align:right;direction:rtl;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <h3 style="margin:0;color:#34a853;">📖 تعليمات الإعداد</h3>
+                <button onclick="document.getElementById('setupModal').style.display='none'" style="background:#f1f3f4;border:none;width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer;">×</button>
+            </div>
+            <div style="line-height:1.8;font-size:14px;">
+                <h4 style="color:#4285f4;margin:15px 0 10px;">الخطوة 1: إنشاء شيت الإعدادات</h4>
+                <ol style="padding-right:20px;">
+                    <li>اذهب إلى <a href="https://sheets.google.com" target="_blank" style="color:#4285f4;">Google Sheets</a> وأنشئ شيت جديد</li>
+                    <li>سمّه مثلاً: <code style="background:#f4f4f4;padding:2px 6px;border-radius:4px;">Rass1 Config</code></li>
+                    <li>غيّر اسم الورقة الأولى إلى: <code style="background:#f4f4f4;padding:2px 6px;border-radius:4px;">ScannerSheets</code></li>
+                </ol>
+                <h4 style="color:#4285f4;margin:15px 0 10px;">الخطوة 2: إضافة Apps Script</h4>
+                <ol style="padding-right:20px;">
+                    <li>من القائمة: <strong>Extensions → Apps Script</strong></li>
+                    <li>احذف الكود الموجود والصق الكود التالي:</li>
+                </ol>
+                <pre style="background:#1e1e1e;color:#d4d4d4;padding:15px;border-radius:8px;font-size:11px;overflow-x:auto;direction:ltr;text-align:left;"><code>function doGet(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("ScannerSheets");
+  var data = sheet.getRange("A:A").getValues();
+  var urls = [];
+  for (var i = 0; i < data.length; i++) {
+    if (data[i][0] !== '') urls.push(data[i][0]);
+  }
+  return ContentService.createTextOutput(JSON.stringify(urls))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("ScannerSheets");
+  var data = JSON.parse(e.postData.contents);
+  sheet.getRange("A:A").clearContent();
+  if (data.urls && data.urls.length > 0) {
+    var range = sheet.getRange(1, 1, data.urls.length, 1);
+    var values = [];
+    for (var i = 0; i < data.urls.length; i++) {
+      values.push([data.urls[i]]);
+    }
+    range.setValues(values);
+  }
+  return ContentService.createTextOutput(JSON.stringify({success: true}))
+    .setMimeType(ContentService.MimeType.JSON);
+}</code></pre>
+                <h4 style="color:#4285f4;margin:15px 0 10px;">الخطوة 3: نشر كـ Web App</h4>
+                <ol style="padding-right:20px;">
+                    <li>اضغط <strong>Deploy → New deployment</strong></li>
+                    <li>اختر <strong>Web app</strong></li>
+                    <li>Execute as: <strong>Me</strong></li>
+                    <li>Who has access: <strong>Anyone</strong></li>
+                    <li>اضغط <strong>Deploy</strong></li>
+                    <li>انسخ الرابط الذي يظهر (يبدأ بـ https://script.google.com/macros/s/...)</li>
+                    <li>الصقه في خانة "رابط Web App" أعلاه</li>
+                </ol>
+                <div style="background:#d4edda;padding:12px;border-radius:8px;margin-top:15px;">
+                    ✅ <strong>تم!</strong> الآن روابط الشيتات ستُحفظ في السحابة وتبقى حتى بعد أي تحديث للموقع.
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        // إدارة روابط Google Sheets
-        var scannerSheets = JSON.parse(localStorage.getItem('scannerSheets') || '[]');
+        // =====================================================
+        // 🔧 إدارة روابط Google Sheets - تخزين سحابي
+        // =====================================================
+        var scannerSheets = [];
+        var configUrl = localStorage.getItem('configSheetUrl') || '';
+        var isLoading = false;
+
+        // تحميل رابط الـ Config عند البدء
+        document.addEventListener('DOMContentLoaded', function() {
+            var configInput = document.getElementById('configSheetUrl');
+            if (configInput && configUrl) {
+                configInput.value = configUrl;
+                loadSheetsFromCloud();
+            } else {
+                updateConfigStatus('disconnected', 'غير متصل');
+                // تحميل من localStorage كـ fallback
+                scannerSheets = JSON.parse(localStorage.getItem('scannerSheets') || '[]');
+                renderSheetsList();
+            }
+        });
+
+        function saveConfigUrl() {
+            var input = document.getElementById('configSheetUrl');
+            configUrl = input.value.trim();
+            localStorage.setItem('configSheetUrl', configUrl);
+            if (configUrl) {
+                loadSheetsFromCloud();
+            } else {
+                updateConfigStatus('disconnected', 'غير متصل');
+            }
+        }
+
+        function updateConfigStatus(status, text) {
+            var el = document.getElementById('configStatus');
+            if (el) {
+                el.className = 'sheets-config-status ' + status;
+                el.textContent = text;
+            }
+        }
+
+        function loadSheetsFromCloud() {
+            if (!configUrl) {
+                updateConfigStatus('disconnected', 'غير متصل');
+                scannerSheets = JSON.parse(localStorage.getItem('scannerSheets') || '[]');
+                renderSheetsList();
+                return;
+            }
+            isLoading = true;
+            updateConfigStatus('loading', '⏳ جاري التحميل...');
+            setButtonsState(true);
+            fetch(configUrl)
+                .then(function(response) {
+                    if (!response.ok) throw new Error('Network error');
+                    return response.json();
+                })
+                .then(function(data) {
+                    scannerSheets = Array.isArray(data) ? data : [];
+                    localStorage.setItem('scannerSheets', JSON.stringify(scannerSheets));
+                    updateConfigStatus('connected', '✅ متصل (' + scannerSheets.length + ' روابط)');
+                    renderSheetsList();
+                })
+                .catch(function(error) {
+                    console.error('Load error:', error);
+                    scannerSheets = JSON.parse(localStorage.getItem('scannerSheets') || '[]');
+                    updateConfigStatus('disconnected', '❌ خطأ في الاتصال');
+                    renderSheetsList();
+                })
+                .finally(function() {
+                    isLoading = false;
+                    setButtonsState(false);
+                });
+        }
+
+        function saveSheetsToCloud() {
+            if (!configUrl) {
+                alert('❌ الرجاء إدخال رابط Web App أولاً');
+                return;
+            }
+            isLoading = true;
+            updateConfigStatus('loading', '⏳ جاري الحفظ...');
+            setButtonsState(true);
+            fetch(configUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ urls: scannerSheets })
+            })
+                .then(function() {
+                    localStorage.setItem('scannerSheets', JSON.stringify(scannerSheets));
+                    updateConfigStatus('connected', '✅ تم الحفظ (' + scannerSheets.length + ' روابط)');
+                    showToast('✅ تم حفظ الروابط في السحابة', 'success');
+                })
+                .catch(function(error) {
+                    console.error('Save error:', error);
+                    localStorage.setItem('scannerSheets', JSON.stringify(scannerSheets));
+                    updateConfigStatus('disconnected', '❌ خطأ في الحفظ');
+                    showToast('⚠️ تم الحفظ محلياً فقط', 'warning');
+                })
+                .finally(function() {
+                    isLoading = false;
+                    setButtonsState(false);
+                });
+        }
+
+        function setButtonsState(disabled) {
+            var btns = ['addSheetBtn', 'saveBtn', 'refreshBtn'];
+            btns.forEach(function(id) {
+                var btn = document.getElementById(id);
+                if (btn) btn.disabled = disabled;
+            });
+        }
 
         function openSheetsModal() {
-            renderSheetsList();
             document.getElementById('sheetsModal').style.display = 'flex';
+            if (configUrl) {
+                loadSheetsFromCloud();
+            } else {
+                renderSheetsList();
+            }
+        }
+
+        function closeSheetsModal() {
+            document.getElementById('sheetsModal').style.display = 'none';
         }
 
         function renderSheetsList() {
             var list = document.getElementById('sheetsList');
+            if (!list) return;
             if (scannerSheets.length === 0) {
-                list.innerHTML = '<div class="sheets-empty">لا توجد روابط مضافة</div>';
+                list.innerHTML = '<div class="sheets-empty">📭 لا توجد روابط مضافة</div>';
                 return;
             }
             list.innerHTML = scannerSheets.map(function(url, i) {
-                var shortUrl = url.length > 50 ? url.substring(0, 50) + '...' : url;
-                return '<div class="sheets-item"><span class="sheets-item-name">' + shortUrl + '</span><button class="sheets-item-del" onclick="removeSheet(' + i + ')">🗑️</button></div>';
+                var shortUrl = url.length > 45 ? url.substring(0, 45) + '...' : url;
+                return '<div class="sheets-item"><span class="sheets-item-name" title="' + url + '">' + shortUrl + '</span><button class="sheets-item-del" onclick="removeSheet(' + i + ')" title="حذف">🗑️</button></div>';
             }).join('');
         }
 
@@ -186,28 +407,45 @@
                 return;
             }
             scannerSheets.push(url);
-            localStorage.setItem('scannerSheets', JSON.stringify(scannerSheets));
             input.value = '';
             renderSheetsList();
+            localStorage.setItem('scannerSheets', JSON.stringify(scannerSheets));
+            showToast('➕ تمت الإضافة - اضغط "حفظ" للمزامنة', 'info');
         }
 
         function removeSheet(index) {
             scannerSheets.splice(index, 1);
-            localStorage.setItem('scannerSheets', JSON.stringify(scannerSheets));
             renderSheetsList();
-        }
-
-        function saveSheetsAndClose() {
             localStorage.setItem('scannerSheets', JSON.stringify(scannerSheets));
-            document.getElementById('sheetsModal').style.display = 'none';
-            if (scannerSheets.length > 0) {
-                alert('✅ تم حفظ ' + scannerSheets.length + ' رابط');
-            }
+            showToast('🗑️ تم الحذف - اضغط "حفظ" للمزامنة', 'info');
         }
 
-        // جعل الروابط متاحة للسكانر
+        function showSetupInstructions() {
+            document.getElementById('setupModal').style.display = 'flex';
+        }
+
+        function showToast(message, type) {
+            var container = document.getElementById('toastContainer');
+            if (!container) return;
+            var toast = document.createElement('div');
+            toast.className = 'toast toast-' + (type || 'info');
+            toast.textContent = message;
+            toast.style.cssText = 'background:#333;color:white;padding:12px 20px;border-radius:8px;margin-bottom:10px;animation:slideIn 0.3s ease;';
+            if (type === 'success') toast.style.background = '#28a745';
+            if (type === 'warning') toast.style.background = '#ffc107; color: #333;';
+            if (type === 'error') toast.style.background = '#dc3545';
+            container.appendChild(toast);
+            setTimeout(function() {
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(function() {
+                    if (toast.parentNode) toast.parentNode.removeChild(toast);
+                }, 300);
+            }, 3000);
+        }
+
+        // ✅ جعل الروابط متاحة للسكانر
         window.getScannerSheets = function() {
-            return JSON.parse(localStorage.getItem('scannerSheets') || '[]');
+            return scannerSheets.length > 0 ? scannerSheets : JSON.parse(localStorage.getItem('scannerSheets') || '[]');
         };
     </script>
 
