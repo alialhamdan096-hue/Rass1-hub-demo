@@ -5,40 +5,66 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rass 1 Hub</title>
     <link rel="icon" href="logo.png" type="image/png">
+
     <script>
-    // فتح Gmail مباشرة بدون modal
+    // فتح Gmail مباشرة + تخزين بيانات الإيميل (للتوافق مع كود قديم يتوقع window._currentEmail/openGmailPopup)
     (function() {
         var realOpen = window.open;
+
         window.open = function(url) {
             if (url && url.indexOf('mailto:') === 0) {
                 var email = url.replace('mailto:', '').split('?')[0];
                 var params = new URLSearchParams(url.split('?')[1] || '');
                 var subject = decodeURIComponent(params.get('subject') || '');
                 var body = decodeURIComponent(params.get('body') || '');
-                
+
+                // ✅ للتوافق: نخزنها (حتى لو ما عندنا مودال)
+                window._currentEmail = { to: email, subject: subject, body: body };
+
                 // فتح Gmail مباشرة في popup
                 var gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1' +
                     '&to=' + encodeURIComponent(email) +
                     '&su=' + encodeURIComponent(subject) +
                     '&body=' + encodeURIComponent(body);
-                
+
                 var width = 600, height = 600;
                 var left = (screen.width - width) / 2;
                 var top = (screen.height - height) / 2;
-                
-                realOpen(gmailUrl, 'gmailCompose', 
+
+                realOpen(gmailUrl, 'gmailCompose',
                     'width=' + width + ',height=' + height + ',left=' + left + ',top=' + top + ',popup=yes,scrollbars=yes');
-                
+
                 return null;
             }
             return realOpen.apply(this, arguments);
         };
+
         window._realOpen = realOpen;
+
+        // ✅ تعريف احتياطي: لو سكربت الموقع ينادي openGmailPopup()
+        window.openGmailPopup = function() {
+            var email = window._currentEmail;
+            if (!email) return;
+
+            var gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1' +
+                '&to=' + encodeURIComponent(email.to) +
+                '&su=' + encodeURIComponent(email.subject || '') +
+                '&body=' + encodeURIComponent(email.body || '');
+
+            var width = 600, height = 600;
+            var left = (screen.width - width) / 2;
+            var top = (screen.height - height) / 2;
+
+            realOpen(gmailUrl, 'gmailCompose',
+                'width=' + width + ',height=' + height + ',left=' + left + ',top=' + top + ',popup=yes,scrollbars=yes');
+        };
     })();
     </script>
+
     <script type="module" crossorigin src="/assets/index-BPUQy5C5.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-BLJBIK8U.css">
 </head>
+
 <body>
     <div class="toast-container" id="toastContainer"></div>
     <div class="loading-overlay" id="loadingOverlay">
@@ -87,6 +113,13 @@
         </div>
     </div>
 
+    <!-- ✅ Email placeholders (مخفية) للتوافق لو ملف JS يتوقعها -->
+    <div id="emailModal" style="display:none;">
+        <div id="emailTo"></div>
+        <div id="emailSubject"></div>
+        <div id="emailBody"></div>
+    </div>
+
     <!-- Scanner Sheets Modal -->
     <div id="sheetsModal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:99999;backdrop-filter:blur(3px);">
         <div style="background:white;border-radius:16px;padding:20px;max-width:500px;width:90%;text-align:right;direction:rtl;box-shadow:0 15px 50px rgba(0,0,0,0.3);">
@@ -118,15 +151,16 @@
             <button class="sheets-save-btn" onclick="saveSheetsAndClose()">💾 حفظ وإغلاق</button>
         </div>
     </div>
+
     <script>
         // إدارة روابط Google Sheets
         var scannerSheets = JSON.parse(localStorage.getItem('scannerSheets') || '[]');
-        
+
         function openSheetsModal() {
             renderSheetsList();
             document.getElementById('sheetsModal').style.display = 'flex';
         }
-        
+
         function renderSheetsList() {
             var list = document.getElementById('sheetsList');
             if (scannerSheets.length === 0) {
@@ -138,7 +172,7 @@
                 return '<div class="sheets-item"><span class="sheets-item-name">' + shortUrl + '</span><button class="sheets-item-del" onclick="removeSheet(' + i + ')">🗑️</button></div>';
             }).join('');
         }
-        
+
         function addSheetUrl() {
             var input = document.getElementById('newSheetUrl');
             var url = input.value.trim();
@@ -156,22 +190,21 @@
             input.value = '';
             renderSheetsList();
         }
-        
+
         function removeSheet(index) {
             scannerSheets.splice(index, 1);
             localStorage.setItem('scannerSheets', JSON.stringify(scannerSheets));
             renderSheetsList();
         }
-        
+
         function saveSheetsAndClose() {
             localStorage.setItem('scannerSheets', JSON.stringify(scannerSheets));
             document.getElementById('sheetsModal').style.display = 'none';
-            // تحديث الصفحة لتطبيق الروابط الجديدة
             if (scannerSheets.length > 0) {
                 alert('✅ تم حفظ ' + scannerSheets.length + ' رابط');
             }
         }
-        
+
         // جعل الروابط متاحة للسكانر
         window.getScannerSheets = function() {
             return JSON.parse(localStorage.getItem('scannerSheets') || '[]');
@@ -255,6 +288,7 @@
                         <button type="button" class="btn btn-secondary" id="cancelBtn" onclick="window.resetForm()">Cancel</button>
                     </form>
                 </div>
+
                 <div class="card">
                     <h3 class="card-title">📋 Records</h3>
                     <div class="filters-row">
@@ -298,13 +332,20 @@
                         <button type="submit" class="btn btn-primary">➕ Add to List</button>
                     </form>
                 </div>
+
                 <div class="card">
                     <h3 class="card-title">📋 Transfer List</h3>
                     <div id="ordersList"></div>
                     <button class="btn btn-danger btn-sm" id="clearAllBtn" style="margin-top:10px;display:none;">🗑️ Clear All</button>
+
                     <div class="send-section" id="sendSection" style="display:none">
                         <h3 class="card-title">📧 Ready to Send</h3>
                         <div id="groupedOrders"></div>
+
+                        <!-- ✅ رجعناه للتوافق (مخفي) حتى لا يطيّح addEventListener -->
+                        <button class="btn btn-success" id="sendAllBtn" style="margin-top:10px; display:none;">
+                            📧 Send All Emails
+                        </button>
                     </div>
                 </div>
             </div>
@@ -342,21 +383,35 @@
                     <button class="report-tab" data-report="orders">📦 Transfers</button>
                 </div>
             </div>
+
             <div id="refillReport" class="report-section active">
                 <div class="report-grid">
                     <div class="report-card"><div class="report-value" id="rSent">0</div><div class="report-label">📤 Sent</div></div>
                     <div class="report-card"><div class="report-value" style="color:var(--accent)" id="rConverted">0</div><div class="report-label">✅ Converted</div></div>
                     <div class="report-card"><div class="report-value" style="color:var(--primary)" id="rRate">0%</div><div class="report-label">📊 Rate</div><div class="progress"><div class="progress-bar" id="rBar" style="width:0%;background:var(--accent)"></div></div></div>
                 </div>
+
                 <div class="card">
                     <h3 class="card-title">📋 Summary</h3>
-                    <div class="table-container"><table><thead><tr><th>Metric</th><th>Count</th><th>%</th></tr></thead><tbody id="summaryTb"></tbody></table></div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Metric</th><th>Count</th><th>%</th></tr></thead>
+                            <tbody id="summaryTb"></tbody>
+                        </table>
+                    </div>
                 </div>
+
                 <div class="card">
                     <h3 class="card-title">✅ Converted Patients</h3>
-                    <div class="table-container"><table><thead><tr><th>Patient</th><th>Phone</th><th>Medication</th><th>Reminder</th><th>Converted</th></tr></thead><tbody id="convList"></tbody></table></div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Patient</th><th>Phone</th><th>Medication</th><th>Reminder</th><th>Converted</th></tr></thead>
+                            <tbody id="convList"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
+
             <div id="ordersReport" class="report-section">
                 <div class="report-grid">
                     <div class="report-card"><div class="report-value" style="color:var(--info)" id="oTotal">0</div><div class="report-label">📦 Total</div></div>
@@ -364,8 +419,26 @@
                     <div class="report-card"><div class="report-value" style="color:var(--warning)" id="oNotDelivered">0</div><div class="report-label">⏳ Pending</div></div>
                     <div class="report-card"><div class="report-value" style="color:var(--primary)" id="oRate">0%</div><div class="report-label">📊 Rate</div><div class="progress"><div class="progress-bar" id="oBar" style="width:0%;background:var(--info)"></div></div></div>
                 </div>
-                <div class="card"><h3 class="card-title">🏢 By Branch</h3><div class="table-container"><table><thead><tr><th>Branch</th><th>Total</th><th>Delivered</th><th>Pending</th></tr></thead><tbody id="branchSummary"></tbody></table></div></div>
-                <div class="card"><h3 class="card-title">📦 Top Items</h3><div class="table-container"><table><thead><tr><th>Item Name</th><th>Count</th></tr></thead><tbody id="topMeds"></tbody></table></div></div>
+
+                <div class="card">
+                    <h3 class="card-title">🏢 By Branch</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Branch</th><th>Total</th><th>Delivered</th><th>Pending</th></tr></thead>
+                            <tbody id="branchSummary"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title">📦 Top Items</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Item Name</th><th>Count</th></tr></thead>
+                            <tbody id="topMeds"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
