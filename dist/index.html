@@ -5,6 +5,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rass 1 Hub</title>
     <link rel="icon" href="logo.png" type="image/png">
+    <script>
+    // INTERCEPT mailto: BEFORE module loads
+    var _originalWindowOpen = window.open.bind(window);
+    var _pendingMailto = null;
+
+    function handleMailto(url) {
+        console.log('INTERCEPTED mailto:', url);
+        var emailMatch = url.match(/mailto:([^?]+)/);
+        var subjectMatch = url.match(/subject=([^&]*)/);
+        var bodyMatch = url.match(/body=([^&]*)/);
+
+        if (emailMatch) {
+            var to = decodeURIComponent(emailMatch[1]);
+            var subject = subjectMatch ? decodeURIComponent(subjectMatch[1]) : '';
+            var body = bodyMatch ? decodeURIComponent(bodyMatch[1]) : '';
+            _pendingMailto = { to: to, subject: subject, body: body };
+
+            // Try to show modal if ready
+            setTimeout(function() {
+                if (typeof showEmailModal === 'function' && _pendingMailto) {
+                    showEmailModal(_pendingMailto.to, _pendingMailto.subject, _pendingMailto.body);
+                    _pendingMailto = null;
+                }
+            }, 0);
+            return true;
+        }
+        return false;
+    }
+
+    window.open = function(url) {
+        if (url && typeof url === 'string' && url.startsWith('mailto:') && !window._allowMailto) {
+            if (handleMailto(url)) return null;
+        }
+        return _originalWindowOpen.apply(window, arguments);
+    };
+    </script>
   <script type="module" crossorigin src="/assets/index-BPUQy5C5.js"></script>
   <link rel="stylesheet" crossorigin href="/assets/index-BLJBIK8U.css">
 </head>
@@ -276,28 +312,6 @@
     </div>
 
 <script>
-// INTERCEPT mailto: before anything else loads
-var _originalWindowOpen = window.open.bind(window);
-(function() {
-    window.open = function(url) {
-        if (url && typeof url === 'string' && url.startsWith('mailto:') && !window._allowMailto) {
-            console.log('Intercepted mailto:', url);
-            var emailMatch = url.match(/mailto:([^?]+)/);
-            var subjectMatch = url.match(/subject=([^&]*)/);
-            var bodyMatch = url.match(/body=([^&]*)/);
-            if (emailMatch && typeof showEmailModal === 'function') {
-                showEmailModal(
-                    decodeURIComponent(emailMatch[1]),
-                    subjectMatch ? decodeURIComponent(subjectMatch[1]) : '',
-                    bodyMatch ? decodeURIComponent(bodyMatch[1]) : ''
-                );
-                return null;
-            }
-        }
-        return _originalWindowOpen.apply(window, arguments);
-    };
-})();
-
 // Email functionality
 const BRANCH_EMAILS = {
     'RASS2': 'rass2@alraziksa.com',
@@ -326,12 +340,21 @@ const BRANCH_EMAILS = {
 let currentEmailData = null;
 
 function showEmailModal(to, subject, body) {
-    currentEmailData = { to, subject, body };
+    currentEmailData = { to: to, subject: subject, body: body };
     document.getElementById('emailTo').value = to;
     document.getElementById('emailSubject').value = subject;
     document.getElementById('emailBody').value = body;
     document.getElementById('emailModal').style.display = 'flex';
+    console.log('Email modal shown for:', to);
 }
+
+// Check for pending mailto from head script
+setInterval(function() {
+    if (window._pendingMailto) {
+        showEmailModal(_pendingMailto.to, _pendingMailto.subject, _pendingMailto.body);
+        window._pendingMailto = null;
+    }
+}, 100);
 
 function copyEmailContent() {
     if (!currentEmailData) return;
