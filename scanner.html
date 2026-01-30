@@ -444,106 +444,110 @@
             await loadOffers();
             startScanner();
         }
-        // ===== LOAD DATA =====
+        // ===== LOAD DATA - DYNAMIC FROM CLOUD =====
         async function loadOffers() {
             try {
                 offers = [];
-                // ===== SHEET 1 (spreadsheet 1 + gid=682108686) =====
-                {
-                    const id = '1-_6mN6DpmuUbpgy3q3h-RXRjPepfhhcdIx2K3oybCzw';
-                    const gid = '682108686';
-                    const res = await fetch(`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json&gid=${gid}`);
-                    const txt = await res.text();
-                    const json = txt.match(/setResponse\(([\s\S]*)\);?/)?.[1];
-                    if (json) {
-                        const data = JSON.parse(json);
-                        const sheetOffers = data.table.rows.slice(1).map(r => {
-                            const c = r.c;
-                            const getDate = (cell) => {
-                                if (!cell) return '';
-                                // 1. Try formatted value (most reliable for strings like '1/26/2025')
-                                if (cell.f && cell.f !== '∞') return cell.f;
-                                if (cell.v !== null && cell.v !== undefined) {
-                                    const vs = String(cell.v);
-                                    // Case: Date(2026,8,6)
-                                    const m = vs.match(/Date\((\d+),(\d+),(\d+)\)/);
-                                    if (m) return `${parseInt(m[2]) + 1}/${m[3]}/${m[1]}`;
-                                    // Case: Serial number (e.g. 45683)
-                                    if (!isNaN(cell.v) && cell.v > 40000 && cell.v < 60000) {
-                                        const d = new Date((cell.v - 25569) * 86400000);
-                                        return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
-                                    }
-                                    return vs;
-                                }
-                                return '';
-                            };
-                            return {
-                                barcode: extractBarcode(c[0]),
-                                name: c[1]?.v || '',
-                                brand: c[2]?.v || '',
-                                discount: c[3]?.f || c[3]?.v || '',
-                                priceBefore: c[4]?.f || c[4]?.v || '',
-                                save: c[5]?.f || c[5]?.v || '',
-                                priceAfter: c[6]?.f || c[6]?.v || '',
-                                from: getDate(c[8]),
-                                end: getDate(c[9]),
-                                arName: c[10]?.v || '',
-                                type: c[11]?.v || '',
-                                cat: c[12]?.v || ''
-                            };
-                        }).filter(o => o.barcode);
-                        offers = offers.concat(sheetOffers);
+                
+                // ===== جلب روابط الشيتات من السحابة أو localStorage =====
+                let sheetUrls = [];
+                const configUrl = localStorage.getItem('configSheetUrl');
+                
+                if (configUrl) {
+                    try {
+                        statusText.textContent = '⏳ جاري تحميل الإعدادات...';
+                        const configRes = await fetch(configUrl);
+                        const configData = await configRes.json();
+                        if (Array.isArray(configData) && configData.length > 0) {
+                            sheetUrls = configData;
+                            console.log('☁️ Loaded', sheetUrls.length, 'sheet URLs from cloud');
+                        }
+                    } catch (e) {
+                        console.warn('⚠️ Could not load from cloud, using localStorage');
                     }
                 }
-                // ===== SHEET 2 (spreadsheet 2 + gid=0) =====
-                {
-                    const id = '1xd6gpkII3lxnr1h1mbGTYiomR3Q1HpAZltHD8nDXCI0';
-                    const gid = '0';
-                    const res = await fetch(`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json&gid=${gid}`);
-                    const txt = await res.text();
-                    const json = txt.match(/setResponse\(([\s\S]*)\);?/)?.[1];
-                    if (json) {
-                        const data = JSON.parse(json);
-                        const sheetOffers = data.table.rows.slice(1).map(r => {
-                            const c = r.c;
-                            const getDate = (cell) => {
-                                if (!cell) return '';
-                                // 1. Try formatted value (most reliable for strings like '1/26/2025')
-                                if (cell.f && cell.f !== '∞') return cell.f;
-                                if (cell.v !== null && cell.v !== undefined) {
-                                    const vs = String(cell.v);
-                                    // Case: Date(2026,8,6)
-                                    const m = vs.match(/Date\((\d+),(\d+),(\d+)\)/);
-                                    if (m) return `${parseInt(m[2]) + 1}/${m[3]}/${m[1]}`;
-                                    // Case: Serial number (e.g. 45683)
-                                    if (!isNaN(cell.v) && cell.v > 40000 && cell.v < 60000) {
-                                        const d = new Date((cell.v - 25569) * 86400000);
-                                        return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+                
+                // Fallback to localStorage
+                if (sheetUrls.length === 0) {
+                    sheetUrls = JSON.parse(localStorage.getItem('scannerSheets') || '[]');
+                    console.log('💾 Loaded', sheetUrls.length, 'sheet URLs from localStorage');
+                }
+                
+                // إذا لم توجد روابط، استخدم الروابط الافتراضية
+                if (sheetUrls.length === 0) {
+                    sheetUrls = [
+                        'https://docs.google.com/spreadsheets/d/1-_6mN6DpmuUbpgy3q3h-RXRjPepfhhcdIx2K3oybCzw/edit#gid=682108686',
+                        'https://docs.google.com/spreadsheets/d/1xd6gpkII3lxnr1h1mbGTYiomR3Q1HpAZltHD8nDXCI0/edit#gid=0'
+                    ];
+                    console.log('📋 Using default sheet URLs');
+                }
+                
+                // ===== تحميل البيانات من كل شيت =====
+                for (let i = 0; i < sheetUrls.length; i++) {
+                    const url = sheetUrls[i];
+                    statusText.textContent = `⏳ جاري تحميل الشيت ${i + 1}/${sheetUrls.length}...`;
+                    
+                    try {
+                        // استخراج ID و GID من الرابط
+                        const idMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                        const gidMatch = url.match(/gid=(\d+)/);
+                        
+                        if (!idMatch) {
+                            console.warn('⚠️ Invalid sheet URL:', url);
+                            continue;
+                        }
+                        
+                        const id = idMatch[1];
+                        const gid = gidMatch ? gidMatch[1] : '0';
+                        
+                        const res = await fetch(`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json&gid=${gid}`);
+                        const txt = await res.text();
+                        const json = txt.match(/setResponse\(([\s\S]*)\);?/)?.[1];
+                        
+                        if (json) {
+                            const data = JSON.parse(json);
+                            const sheetOffers = data.table.rows.slice(1).map(r => {
+                                const c = r.c;
+                                const getDate = (cell) => {
+                                    if (!cell) return '';
+                                    if (cell.f && cell.f !== '∞') return cell.f;
+                                    if (cell.v !== null && cell.v !== undefined) {
+                                        const vs = String(cell.v);
+                                        const m = vs.match(/Date\((\d+),(\d+),(\d+)\)/);
+                                        if (m) return `${parseInt(m[2]) + 1}/${m[3]}/${m[1]}`;
+                                        if (!isNaN(cell.v) && cell.v > 40000 && cell.v < 60000) {
+                                            const d = new Date((cell.v - 25569) * 86400000);
+                                            return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+                                        }
+                                        return vs;
                                     }
-                                    return vs;
-                                }
-                                return '';
-                            };
-                            return {
-                                barcode: extractBarcode(c[0]),
-                                name: c[1]?.v || '',
-                                brand: c[2]?.v || '',
-                                discount: c[3]?.f || c[3]?.v || '',
-                                priceBefore: c[4]?.f || c[4]?.v || '',
-                                save: c[5]?.f || c[5]?.v || '',
-                                priceAfter: c[6]?.f || c[6]?.v || '',
-                                from: getDate(c[8]),
-                                end: getDate(c[9]),
-                                arName: c[10]?.v || '',
-                                type: c[11]?.v || '',
-                                cat: c[12]?.v || ''
-                            };
-                        }).filter(o => o.barcode);
-                        offers = offers.concat(sheetOffers);
+                                    return '';
+                                };
+                                return {
+                                    barcode: extractBarcode(c[0]),
+                                    name: c[1]?.v || '',
+                                    brand: c[2]?.v || '',
+                                    discount: c[3]?.f || c[3]?.v || '',
+                                    priceBefore: c[4]?.f || c[4]?.v || '',
+                                    save: c[5]?.f || c[5]?.v || '',
+                                    priceAfter: c[6]?.f || c[6]?.v || '',
+                                    from: getDate(c[8]),
+                                    end: getDate(c[9]),
+                                    arName: c[10]?.v || '',
+                                    type: c[11]?.v || '',
+                                    cat: c[12]?.v || ''
+                                };
+                            }).filter(o => o.barcode);
+                            
+                            offers = offers.concat(sheetOffers);
+                            console.log(`✅ Sheet ${i + 1}: Loaded ${sheetOffers.length} offers`);
+                        }
+                    } catch (e) {
+                        console.error(`❌ Error loading sheet ${i + 1}:`, e);
                     }
                 }
-                console.log('✅ Loaded', offers.length, 'offers');
-                // عرض أول 5 باركودات للتحقق
+                
+                console.log('✅ Total loaded:', offers.length, 'offers');
                 console.log('📋 Sample barcodes:', offers.slice(0, 5).map(o => o.barcode));
                 console.log('📋 Sample names:', offers.slice(0, 5).map(o => o.name));
             } catch (e) {
@@ -790,3 +794,4 @@
     </script>
 </body>
 </html>
+
