@@ -120,224 +120,98 @@
         <div id="emailBody"></div>
     </div>
 
-    <!-- Scanner Sheets Modal - تخزين سحابي -->
-    <div id="sheetsModal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:99999;backdrop-filter:blur(3px);">
-        <div style="background:white;border-radius:16px;padding:20px;max-width:550px;width:90%;text-align:right;direction:rtl;box-shadow:0 15px 50px rgba(0,0,0,0.3);">
-            <style>
-                .sheets-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;padding-bottom:10px;border-bottom:2px solid #e9ecef;}
-                .sheets-title{font-size:18px;font-weight:bold;color:#34a853;}
-                .sheets-close{background:#f1f3f4;border:none;width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer;color:#5f6368;}
-                .sheets-close:hover{background:#e8eaed;}
-                .sheets-config{background:#f8f9fa;border-radius:10px;padding:12px;margin-bottom:15px;border:1px solid #e9ecef;}
-                .sheets-config-label{font-size:12px;color:#666;margin-bottom:6px;display:flex;align-items:center;gap:5px;}
-                .sheets-config-input{width:100%;padding:10px 12px;border:2px solid #e9ecef;border-radius:8px;font-size:13px;direction:ltr;font-family:monospace;}
-                .sheets-config-input:focus{border-color:#34a853;outline:none;}
-                .sheets-config-status{font-size:11px;margin-top:6px;padding:4px 8px;border-radius:4px;display:inline-block;}
-                .sheets-config-status.connected{background:#d4edda;color:#155724;}
-                .sheets-config-status.disconnected{background:#f8d7da;color:#721c24;}
-                .sheets-config-status.loading{background:#fff3cd;color:#856404;}
-                .sheets-divider{border:none;border-top:1px dashed #dee2e6;margin:15px 0;}
-                .sheets-input-group{display:flex;gap:8px;margin-bottom:12px;}
-                .sheets-input{flex:1;padding:10px 12px;border:2px solid #e9ecef;border-radius:8px;font-size:14px;direction:ltr;}
-                .sheets-input:focus{border-color:#34a853;outline:none;}
-                .sheets-add-btn{padding:10px 16px;background:#34a853;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;transition:all 0.2s;}
-                .sheets-add-btn:hover{background:#2d8e47;}
-                .sheets-add-btn:disabled{background:#ccc;cursor:not-allowed;}
-                .sheets-list{max-height:200px;overflow-y:auto;margin-bottom:15px;}
-                .sheets-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#f8f9fa;border-radius:8px;margin-bottom:8px;direction:ltr;transition:all 0.2s;}
-                .sheets-item:hover{background:#e9ecef;}
-                .sheets-item-name{font-size:13px;color:#333;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-left:10px;}
-                .sheets-item-del{background:#dc3545;color:white;border:none;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:14px;transition:all 0.2s;}
-                .sheets-item-del:hover{background:#c82333;}
-                .sheets-empty{text-align:center;padding:30px;color:#999;}
-                .sheets-actions{display:flex;gap:10px;}
-                .sheets-save-btn{flex:1;padding:12px;background:linear-gradient(135deg,#34a853 0%,#2d8e47 100%);color:white;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;}
-                .sheets-save-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(52,168,83,0.3);}
-                .sheets-save-btn:disabled{background:#ccc;cursor:not-allowed;transform:none;box-shadow:none;}
-                .sheets-refresh-btn{padding:12px 16px;background:#4285f4;color:white;border:none;border-radius:10px;font-size:15px;cursor:pointer;transition:all 0.2s;}
-                .sheets-refresh-btn:hover{background:#3367d6;}
-                .sheets-refresh-btn:disabled{background:#ccc;cursor:not-allowed;}
-                .sheets-help{font-size:11px;color:#888;margin-top:10px;padding:10px;background:#f8f9fa;border-radius:8px;line-height:1.6;}
-                .sheets-help a{color:#4285f4;text-decoration:none;}
-            </style>
-            <div class="sheets-header">
-                <span class="sheets-title">📊 روابط Google Sheets للسكانر</span>
-                <button class="sheets-close" onclick="closeSheetsModal()">×</button>
-            </div>
-            <!-- إعدادات شيت التخزين السحابي -->
-            <div class="sheets-config">
-                <div class="sheets-config-label">
-                    ⚙️ رابط Web App (شيت الإعدادات)
-                    <span class="sheets-config-status" id="configStatus">غير متصل</span>
-                </div>
-                <input type="text" class="sheets-config-input" id="configSheetUrl" placeholder="https://script.google.com/macros/s/.../exec" onchange="saveConfigUrl()">
-                <div class="sheets-help">
-                    💡 أنشئ شيت جديد وانشره كـ Web App للتخزين السحابي الدائم. <a href="#" onclick="showSetupInstructions(); return false;">عرض التعليمات</a>
-                </div>
-            </div>
-            <hr class="sheets-divider">
-            <!-- إضافة روابط الشيتات -->
-            <div class="sheets-input-group">
-                <input type="text" class="sheets-input" id="newSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/...">
-                <button class="sheets-add-btn" id="addSheetBtn" onclick="addSheetUrl()">➕ أضف</button>
-            </div>
-            <div class="sheets-list" id="sheetsList">
-                <div class="sheets-empty">⏳ جاري التحميل...</div>
-            </div>
-            <div class="sheets-actions">
-                <button class="sheets-refresh-btn" id="refreshBtn" onclick="loadSheetsFromCloud()">🔄</button>
-                <button class="sheets-save-btn" id="saveBtn" onclick="saveSheetsToCloud()">💾 حفظ في السحابة</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Setup Instructions Modal -->
-    <div id="setupModal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:100000;backdrop-filter:blur(3px);">
-        <div style="background:white;border-radius:16px;padding:25px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;text-align:right;direction:rtl;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-                <h3 style="margin:0;color:#34a853;">📖 تعليمات الإعداد</h3>
-                <button onclick="document.getElementById('setupModal').style.display='none'" style="background:#f1f3f4;border:none;width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer;">×</button>
-            </div>
-            <div style="line-height:1.8;font-size:14px;">
-                <h4 style="color:#4285f4;margin:15px 0 10px;">الخطوة 1: إنشاء شيت الإعدادات</h4>
-                <ol style="padding-right:20px;">
-                    <li>اذهب إلى <a href="https://sheets.google.com" target="_blank" style="color:#4285f4;">Google Sheets</a> وأنشئ شيت جديد</li>
-                    <li>سمّه مثلاً: <code style="background:#f4f4f4;padding:2px 6px;border-radius:4px;">Rass1 Config</code></li>
-                    <li>غيّر اسم الورقة الأولى إلى: <code style="background:#f4f4f4;padding:2px 6px;border-radius:4px;">ScannerSheets</code></li>
-                </ol>
-                <h4 style="color:#4285f4;margin:15px 0 10px;">الخطوة 2: إضافة Apps Script</h4>
-                <ol style="padding-right:20px;">
-                    <li>من القائمة: <strong>Extensions → Apps Script</strong></li>
-                    <li>احذف الكود الموجود والصق الكود التالي:</li>
-                </ol>
-                <pre style="background:#1e1e1e;color:#d4d4d4;padding:15px;border-radius:8px;font-size:11px;overflow-x:auto;direction:ltr;text-align:left;"><code>function doGet(e) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("ScannerSheets");
-  var data = sheet.getRange("A:A").getValues();
-  var urls = [];
-  for (var i = 0; i < data.length; i++) {
-    if (data[i][0] !== '') urls.push(data[i][0]);
-  }
-  return ContentService.createTextOutput(JSON.stringify(urls))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-function doPost(e) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("ScannerSheets");
-  var data = JSON.parse(e.postData.contents);
-  sheet.getRange("A:A").clearContent();
-  if (data.urls && data.urls.length > 0) {
-    var range = sheet.getRange(1, 1, data.urls.length, 1);
-    var values = [];
-    for (var i = 0; i < data.urls.length; i++) {
-      values.push([data.urls[i]]);
-    }
-    range.setValues(values);
-  }
-  return ContentService.createTextOutput(JSON.stringify({success: true}))
-    .setMimeType(ContentService.MimeType.JSON);
-}</code></pre>
-                <h4 style="color:#4285f4;margin:15px 0 10px;">الخطوة 3: نشر كـ Web App</h4>
-                <ol style="padding-right:20px;">
-                    <li>اضغط <strong>Deploy → New deployment</strong></li>
-                    <li>اختر <strong>Web app</strong></li>
-                    <li>Execute as: <strong>Me</strong></li>
-                    <li>Who has access: <strong>Anyone</strong></li>
-                    <li>اضغط <strong>Deploy</strong></li>
-                    <li>انسخ الرابط الذي يظهر (يبدأ بـ https://script.google.com/macros/s/...)</li>
-                    <li>الصقه في خانة "رابط Web App" أعلاه</li>
-                </ol>
-                <div style="background:#d4edda;padding:12px;border-radius:8px;margin-top:15px;">
-                    ✅ <strong>تم!</strong> الآن روابط الشيتات ستُحفظ في السحابة وتبقى حتى بعد أي تحديث للموقع.
-                </div>
-            </div>
-        </div>
-    </div>
+    <style>
+        /* ===== أنماط صفحة العروض ===== */
+        .offers-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
+        .offers-stat { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; padding: 20px; text-align: center; color: white; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); }
+        .offers-stat.green { background: linear-gradient(135deg, #34a853 0%, #2d8e47 100%); box-shadow: 0 4px 15px rgba(52, 168, 83, 0.3); }
+        .offers-stat.blue { background: linear-gradient(135deg, #4285f4 0%, #3367d6 100%); box-shadow: 0 4px 15px rgba(66, 133, 244, 0.3); }
+        .offers-stat-num { font-size: 2.5rem; font-weight: 700; }
+        .offers-stat-label { font-size: 0.9rem; opacity: 0.9; margin-top: 5px; }
+        
+        .offers-card { background: white; border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+        .offers-card-title { font-size: 1.1rem; font-weight: 600; color: #333; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+        
+        .offers-search-box { display: flex; gap: 10px; margin-bottom: 15px; }
+        .offers-search-input { flex: 1; padding: 14px 16px; border: 2px solid #e9ecef; border-radius: 12px; font-size: 15px; transition: all 0.2s; }
+        .offers-search-input:focus { border-color: #667eea; outline: none; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+        .offers-search-btn { padding: 14px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .offers-search-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); }
+        
+        .offers-results { max-height: 300px; overflow-y: auto; }
+        .offers-result-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: #f8f9fa; border-radius: 10px; margin-bottom: 8px; transition: all 0.2s; }
+        .offers-result-item:hover { background: #e9ecef; transform: translateX(-5px); }
+        .offers-result-info { flex: 1; }
+        .offers-result-name { font-weight: 600; color: #333; margin-bottom: 3px; }
+        .offers-result-brand { font-size: 0.8rem; color: #666; }
+        .offers-result-prices { text-align: left; direction: ltr; }
+        .offers-result-old { text-decoration: line-through; color: #999; font-size: 0.85rem; }
+        .offers-result-new { color: #34a853; font-weight: 700; font-size: 1.1rem; }
+        .offers-result-discount { background: #dc3545; color: white; padding: 2px 8px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; margin-right: 8px; }
+        .offers-empty { text-align: center; padding: 40px; color: #999; }
+        .offers-empty-icon { font-size: 3rem; margin-bottom: 10px; }
+        
+        .sheets-section { margin-top: 10px; }
+        .sheets-input-row { display: flex; gap: 10px; margin-bottom: 12px; }
+        .sheets-input { flex: 1; padding: 12px 14px; border: 2px solid #e9ecef; border-radius: 10px; font-size: 14px; direction: ltr; }
+        .sheets-input:focus { border-color: #34a853; outline: none; }
+        .sheets-add-btn { padding: 12px 20px; background: #34a853; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .sheets-add-btn:hover { background: #2d8e47; }
+        .sheets-list { max-height: 180px; overflow-y: auto; margin-bottom: 15px; }
+        .sheets-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: #f8f9fa; border-radius: 8px; margin-bottom: 6px; direction: ltr; }
+        .sheets-item-url { flex: 1; font-size: 12px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-left: 10px; }
+        .sheets-item-del { background: #dc3545; color: white; border: none; width: 26px; height: 26px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .sheets-item-del:hover { background: #c82333; }
+        .sheets-actions { display: flex; gap: 10px; }
+        .sheets-save-btn { flex: 1; padding: 12px; background: linear-gradient(135deg, #34a853 0%, #2d8e47 100%); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; }
+        .sheets-save-btn:disabled { background: #ccc; cursor: not-allowed; }
+        .sheets-refresh-btn { padding: 12px 18px; background: #4285f4; color: white; border: none; border-radius: 10px; cursor: pointer; }
+        .sheets-refresh-btn:disabled { background: #ccc; cursor: not-allowed; }
+        .sheets-empty { text-align: center; padding: 20px; color: #999; font-size: 14px; }
+        .sheets-status { font-size: 12px; padding: 6px 12px; border-radius: 20px; display: inline-block; margin-bottom: 10px; }
+        .sheets-status.connected { background: #d4edda; color: #155724; }
+        .sheets-status.disconnected { background: #f8d7da; color: #721c24; }
+        .sheets-status.loading { background: #fff3cd; color: #856404; }
+    </style>
 
     <script>
         // =====================================================
-        // 🔧 إدارة روابط Google Sheets - تخزين سحابي
+        // 🏷️ نظام إدارة العروض - تخزين سحابي
         // =====================================================
+        var CLOUD_CONFIG_URL = 'https://script.google.com/macros/s/AKfycbwRn2gbYehvxImxkLAjLRmFeXW89UL3Eoo_lmo2LKQvfqLOQECYLJwSB_usPk12bvW-_w/exec';
         var scannerSheets = [];
-        var configUrl = localStorage.getItem('configSheetUrl') || '';
-        var isLoading = false;
+        var offersData = [];
+        var offersLoading = false;
 
-        // تحميل رابط الـ Config عند البدء
-        document.addEventListener('DOMContentLoaded', function() {
-            var configInput = document.getElementById('configSheetUrl');
-            if (configInput && configUrl) {
-                configInput.value = configUrl;
-                loadSheetsFromCloud();
-            } else {
-                updateConfigStatus('disconnected', 'غير متصل');
-                // تحميل من localStorage كـ fallback
-                scannerSheets = JSON.parse(localStorage.getItem('scannerSheets') || '[]');
-                renderSheetsList();
-            }
-        });
-
-        function saveConfigUrl() {
-            var input = document.getElementById('configSheetUrl');
-            configUrl = input.value.trim();
-            localStorage.setItem('configSheetUrl', configUrl);
-            if (configUrl) {
-                loadSheetsFromCloud();
-            } else {
-                updateConfigStatus('disconnected', 'غير متصل');
-            }
-        }
-
-        function updateConfigStatus(status, text) {
-            var el = document.getElementById('configStatus');
-            if (el) {
-                el.className = 'sheets-config-status ' + status;
-                el.textContent = text;
-            }
+        // تحميل البيانات عند فتح صفحة العروض
+        function initOffersPage() {
+            loadSheetsFromCloud();
         }
 
         function loadSheetsFromCloud() {
-            if (!configUrl) {
-                updateConfigStatus('disconnected', 'غير متصل');
-                scannerSheets = JSON.parse(localStorage.getItem('scannerSheets') || '[]');
-                renderSheetsList();
-                return;
-            }
-            isLoading = true;
-            updateConfigStatus('loading', '⏳ جاري التحميل...');
-            setButtonsState(true);
-            fetch(configUrl)
-                .then(function(response) {
-                    if (!response.ok) throw new Error('Network error');
-                    return response.json();
-                })
+            updateSheetsStatus('loading', '⏳ جاري التحميل...');
+            fetch(CLOUD_CONFIG_URL)
+                .then(function(r) { return r.json(); })
                 .then(function(data) {
                     scannerSheets = Array.isArray(data) ? data : [];
                     localStorage.setItem('scannerSheets', JSON.stringify(scannerSheets));
-                    updateConfigStatus('connected', '✅ متصل (' + scannerSheets.length + ' روابط)');
+                    updateSheetsStatus('connected', '✅ متصل');
                     renderSheetsList();
+                    loadAllOffers();
                 })
-                .catch(function(error) {
-                    console.error('Load error:', error);
+                .catch(function(e) {
+                    console.error('Load error:', e);
                     scannerSheets = JSON.parse(localStorage.getItem('scannerSheets') || '[]');
-                    updateConfigStatus('disconnected', '❌ خطأ في الاتصال');
+                    updateSheetsStatus('disconnected', '❌ غير متصل');
                     renderSheetsList();
-                })
-                .finally(function() {
-                    isLoading = false;
-                    setButtonsState(false);
+                    loadAllOffers();
                 });
         }
 
         function saveSheetsToCloud() {
-            if (!configUrl) {
-                alert('❌ الرجاء إدخال رابط Web App أولاً');
-                return;
-            }
-            isLoading = true;
-            updateConfigStatus('loading', '⏳ جاري الحفظ...');
-            setButtonsState(true);
-            fetch(configUrl, {
+            updateSheetsStatus('loading', '⏳ جاري الحفظ...');
+            document.getElementById('saveOffersBtn').disabled = true;
+            fetch(CLOUD_CONFIG_URL, {
                 method: 'POST',
                 mode: 'no-cors',
                 headers: { 'Content-Type': 'application/json' },
@@ -345,57 +219,42 @@ function doPost(e) {
             })
                 .then(function() {
                     localStorage.setItem('scannerSheets', JSON.stringify(scannerSheets));
-                    updateConfigStatus('connected', '✅ تم الحفظ (' + scannerSheets.length + ' روابط)');
-                    showToast('✅ تم حفظ الروابط في السحابة', 'success');
+                    updateSheetsStatus('connected', '✅ تم الحفظ');
+                    loadAllOffers();
                 })
-                .catch(function(error) {
-                    console.error('Save error:', error);
-                    localStorage.setItem('scannerSheets', JSON.stringify(scannerSheets));
-                    updateConfigStatus('disconnected', '❌ خطأ في الحفظ');
-                    showToast('⚠️ تم الحفظ محلياً فقط', 'warning');
+                .catch(function(e) {
+                    console.error('Save error:', e);
+                    updateSheetsStatus('disconnected', '❌ خطأ');
                 })
                 .finally(function() {
-                    isLoading = false;
-                    setButtonsState(false);
+                    document.getElementById('saveOffersBtn').disabled = false;
                 });
         }
 
-        function setButtonsState(disabled) {
-            var btns = ['addSheetBtn', 'saveBtn', 'refreshBtn'];
-            btns.forEach(function(id) {
-                var btn = document.getElementById(id);
-                if (btn) btn.disabled = disabled;
-            });
-        }
-
-        function openSheetsModal() {
-            document.getElementById('sheetsModal').style.display = 'flex';
-            if (configUrl) {
-                loadSheetsFromCloud();
-            } else {
-                renderSheetsList();
+        function updateSheetsStatus(status, text) {
+            var el = document.getElementById('sheetsStatus');
+            if (el) {
+                el.className = 'sheets-status ' + status;
+                el.textContent = text;
             }
-        }
-
-        function closeSheetsModal() {
-            document.getElementById('sheetsModal').style.display = 'none';
         }
 
         function renderSheetsList() {
-            var list = document.getElementById('sheetsList');
+            var list = document.getElementById('offerSheetsList');
             if (!list) return;
+            document.getElementById('sheetCountStat').textContent = scannerSheets.length;
             if (scannerSheets.length === 0) {
-                list.innerHTML = '<div class="sheets-empty">📭 لا توجد روابط مضافة</div>';
+                list.innerHTML = '<div class="sheets-empty">📭 لا توجد شيتات مضافة</div>';
                 return;
             }
             list.innerHTML = scannerSheets.map(function(url, i) {
-                var shortUrl = url.length > 45 ? url.substring(0, 45) + '...' : url;
-                return '<div class="sheets-item"><span class="sheets-item-name" title="' + url + '">' + shortUrl + '</span><button class="sheets-item-del" onclick="removeSheet(' + i + ')" title="حذف">🗑️</button></div>';
+                var short = url.length > 50 ? url.substring(0, 50) + '...' : url;
+                return '<div class="sheets-item"><span class="sheets-item-url" title="' + url + '">' + short + '</span><button class="sheets-item-del" onclick="removeOfferSheet(' + i + ')">🗑️</button></div>';
             }).join('');
         }
 
-        function addSheetUrl() {
-            var input = document.getElementById('newSheetUrl');
+        function addOfferSheet() {
+            var input = document.getElementById('newOfferSheetUrl');
             var url = input.value.trim();
             if (!url) return;
             if (!url.includes('docs.google.com/spreadsheets')) {
@@ -409,41 +268,107 @@ function doPost(e) {
             scannerSheets.push(url);
             input.value = '';
             renderSheetsList();
-            localStorage.setItem('scannerSheets', JSON.stringify(scannerSheets));
-            showToast('➕ تمت الإضافة - اضغط "حفظ" للمزامنة', 'info');
         }
 
-        function removeSheet(index) {
+        function removeOfferSheet(index) {
             scannerSheets.splice(index, 1);
             renderSheetsList();
-            localStorage.setItem('scannerSheets', JSON.stringify(scannerSheets));
-            showToast('🗑️ تم الحذف - اضغط "حفظ" للمزامنة', 'info');
         }
 
-        function showSetupInstructions() {
-            document.getElementById('setupModal').style.display = 'flex';
+        // تحميل بيانات العروض من جميع الشيتات
+        async function loadAllOffers() {
+            if (offersLoading) return;
+            offersLoading = true;
+            offersData = [];
+            document.getElementById('productCountStat').textContent = '⏳';
+            
+            var urls = scannerSheets.length > 0 ? scannerSheets : [
+                'https://docs.google.com/spreadsheets/d/1-_6mN6DpmuUbpgy3q3h-RXRjPepfhhcdIx2K3oybCzw/edit#gid=682108686',
+                'https://docs.google.com/spreadsheets/d/1xd6gpkII3lxnr1h1mbGTYiomR3Q1HpAZltHD8nDXCI0/edit#gid=0'
+            ];
+
+            for (var i = 0; i < urls.length; i++) {
+                try {
+                    var url = urls[i];
+                    var idMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                    var gidMatch = url.match(/gid=(\d+)/);
+                    if (!idMatch) continue;
+                    
+                    var id = idMatch[1];
+                    var gid = gidMatch ? gidMatch[1] : '0';
+                    
+                    var res = await fetch('https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:json&gid=' + gid);
+                    var txt = await res.text();
+                    var json = txt.match(/setResponse\(([\s\S]*)\);?/);
+                    if (json && json[1]) {
+                        var data = JSON.parse(json[1]);
+                        var rows = data.table.rows.slice(1);
+                        rows.forEach(function(r) {
+                            var c = r.c;
+                            if (c[0] && c[0].v) {
+                                offersData.push({
+                                    barcode: String(c[0].v).replace(/[^\d]/g, ''),
+                                    name: c[1]?.v || '',
+                                    brand: c[2]?.v || '',
+                                    discount: c[3]?.f || c[3]?.v || '',
+                                    priceBefore: c[4]?.f || c[4]?.v || '',
+                                    priceAfter: c[6]?.f || c[6]?.v || '',
+                                    arName: c[10]?.v || ''
+                                });
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error('Error loading sheet:', e);
+                }
+            }
+            
+            document.getElementById('productCountStat').textContent = offersData.length;
+            offersLoading = false;
         }
 
-        function showToast(message, type) {
-            var container = document.getElementById('toastContainer');
-            if (!container) return;
-            var toast = document.createElement('div');
-            toast.className = 'toast toast-' + (type || 'info');
-            toast.textContent = message;
-            toast.style.cssText = 'background:#333;color:white;padding:12px 20px;border-radius:8px;margin-bottom:10px;animation:slideIn 0.3s ease;';
-            if (type === 'success') toast.style.background = '#28a745';
-            if (type === 'warning') toast.style.background = '#ffc107; color: #333;';
-            if (type === 'error') toast.style.background = '#dc3545';
-            container.appendChild(toast);
-            setTimeout(function() {
-                toast.style.animation = 'slideOut 0.3s ease';
-                setTimeout(function() {
-                    if (toast.parentNode) toast.parentNode.removeChild(toast);
-                }, 300);
-            }, 3000);
+        // البحث في العروض
+        function searchOffers() {
+            var query = document.getElementById('offersSearchInput').value.trim().toLowerCase();
+            var resultsDiv = document.getElementById('offersResults');
+            
+            if (!query) {
+                resultsDiv.innerHTML = '<div class="offers-empty"><div class="offers-empty-icon">🔍</div>اكتب اسم المنتج أو الباركود للبحث</div>';
+                return;
+            }
+            
+            var results = offersData.filter(function(o) {
+                return o.barcode.includes(query) || 
+                       o.name.toLowerCase().includes(query) || 
+                       o.arName.toLowerCase().includes(query) ||
+                       o.brand.toLowerCase().includes(query);
+            });
+            
+            if (results.length === 0) {
+                resultsDiv.innerHTML = '<div class="offers-empty"><div class="offers-empty-icon">😕</div>لا توجد نتائج لـ "' + query + '"</div>';
+                return;
+            }
+            
+            resultsDiv.innerHTML = results.slice(0, 50).map(function(o) {
+                return '<div class="offers-result-item">' +
+                    '<div class="offers-result-info">' +
+                        '<div class="offers-result-name">' + (o.arName || o.name) + '</div>' +
+                        '<div class="offers-result-brand">' + o.brand + ' • ' + o.barcode + '</div>' +
+                    '</div>' +
+                    '<div class="offers-result-prices">' +
+                        (o.discount ? '<span class="offers-result-discount">' + o.discount + '</span>' : '') +
+                        '<span class="offers-result-old">' + o.priceBefore + '</span> ' +
+                        '<span class="offers-result-new">' + o.priceAfter + ' ر.س</span>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+            
+            if (results.length > 50) {
+                resultsDiv.innerHTML += '<div style="text-align:center;padding:10px;color:#666;font-size:13px;">وأكثر من ' + (results.length - 50) + ' نتيجة أخرى...</div>';
+            }
         }
 
-        // ✅ جعل الروابط متاحة للسكانر
+        // جعل الروابط متاحة للسكانر
         window.getScannerSheets = function() {
             return scannerSheets.length > 0 ? scannerSheets : JSON.parse(localStorage.getItem('scannerSheets') || '[]');
         };
@@ -453,7 +378,6 @@ function doPost(e) {
         <div class="header-container">
             <img src="logo.png" alt="Rass 1" class="logo-img" onerror="this.style.display='none'">
             <h1>Rass 1 Hub</h1>
-            <button onclick="openSheetsModal()" style="position:absolute;left:15px;top:50%;transform:translateY(-50%);background:linear-gradient(135deg,#34a853 0%,#2d8e47 100%);color:white;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(52,168,83,0.3);">📊 Sheets</button>
         </div>
 
         <div class="tabs">
@@ -461,6 +385,7 @@ function doPost(e) {
             <button class="tab" data-page="orders">📦 Transfer Requests</button>
             <button class="tab" data-page="tracking">📊 Tracking</button>
             <button class="tab" data-page="reports">📈 Reports</button>
+            <button class="tab" data-page="offers" onclick="initOffersPage()">🏷️ العروض</button>
         </div>
 
         <div id="sync" class="sync sync-ok">✓ Connected to Google Sheets</div>
@@ -675,6 +600,58 @@ function doPost(e) {
                             <thead><tr><th>Item Name</th><th>Count</th></tr></thead>
                             <tbody id="topMeds"></tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Offers Page - صفحة العروض -->
+        <div id="offersPage" class="page" style="direction:rtl;text-align:right;">
+            <!-- الإحصائيات -->
+            <div class="offers-stats">
+                <div class="offers-stat">
+                    <div class="offers-stat-num" id="productCountStat">0</div>
+                    <div class="offers-stat-label">📦 منتج</div>
+                </div>
+                <div class="offers-stat green">
+                    <div class="offers-stat-num" id="sheetCountStat">0</div>
+                    <div class="offers-stat-label">📊 شيت</div>
+                </div>
+                <div class="offers-stat blue">
+                    <div class="offers-stat-num" id="sheetsStatus" class="sheets-status">⏳</div>
+                    <div class="offers-stat-label">الحالة</div>
+                </div>
+            </div>
+
+            <!-- البحث في العروض -->
+            <div class="offers-card">
+                <div class="offers-card-title">🔍 البحث في العروض</div>
+                <div class="offers-search-box">
+                    <input type="text" class="offers-search-input" id="offersSearchInput" placeholder="ابحث بالاسم أو الباركود..." onkeypress="if(event.key==='Enter')searchOffers()">
+                    <button class="offers-search-btn" onclick="searchOffers()">🔍 بحث</button>
+                </div>
+                <div class="offers-results" id="offersResults">
+                    <div class="offers-empty">
+                        <div class="offers-empty-icon">🔍</div>
+                        اكتب اسم المنتج أو الباركود للبحث
+                    </div>
+                </div>
+            </div>
+
+            <!-- إدارة الشيتات -->
+            <div class="offers-card">
+                <div class="offers-card-title">⚙️ إدارة شيتات العروض</div>
+                <div class="sheets-section">
+                    <div class="sheets-input-row">
+                        <input type="text" class="sheets-input" id="newOfferSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/...">
+                        <button class="sheets-add-btn" onclick="addOfferSheet()">➕ أضف</button>
+                    </div>
+                    <div class="sheets-list" id="offerSheetsList">
+                        <div class="sheets-empty">⏳ جاري التحميل...</div>
+                    </div>
+                    <div class="sheets-actions">
+                        <button class="sheets-refresh-btn" onclick="loadSheetsFromCloud()">🔄 تحديث</button>
+                        <button class="sheets-save-btn" id="saveOffersBtn" onclick="saveSheetsToCloud()">💾 حفظ في السحابة</button>
                     </div>
                 </div>
             </div>
