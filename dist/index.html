@@ -277,29 +277,24 @@
 
 <script>
 // INTERCEPT mailto: before anything else loads
+var _originalWindowOpen = window.open.bind(window);
 (function() {
-    var originalOpen = window.open;
     window.open = function(url) {
-        if (url && typeof url === 'string' && url.startsWith('mailto:')) {
-            console.log('Intercepted mailto window.open:', url);
-            // Parse the mailto URL
+        if (url && typeof url === 'string' && url.startsWith('mailto:') && !window._allowMailto) {
+            console.log('Intercepted mailto:', url);
             var emailMatch = url.match(/mailto:([^?]+)/);
             var subjectMatch = url.match(/subject=([^&]*)/);
             var bodyMatch = url.match(/body=([^&]*)/);
-
-            if (emailMatch) {
-                var to = decodeURIComponent(emailMatch[1]);
-                var subject = subjectMatch ? decodeURIComponent(subjectMatch[1]) : '';
-                var body = bodyMatch ? decodeURIComponent(bodyMatch[1]) : '';
-
-                // Show our modal instead
-                if (typeof showEmailModal === 'function') {
-                    showEmailModal(to, subject, body);
-                    return null;
-                }
+            if (emailMatch && typeof showEmailModal === 'function') {
+                showEmailModal(
+                    decodeURIComponent(emailMatch[1]),
+                    subjectMatch ? decodeURIComponent(subjectMatch[1]) : '',
+                    bodyMatch ? decodeURIComponent(bodyMatch[1]) : ''
+                );
+                return null;
             }
         }
-        return originalOpen.apply(window, arguments);
+        return _originalWindowOpen.apply(window, arguments);
     };
 })();
 
@@ -350,7 +345,9 @@ function copyEmailContent() {
 
 function openEmailApp() {
     if (!currentEmailData) return;
-    window.open('mailto:' + currentEmailData.to + '?subject=' + encodeURIComponent(currentEmailData.subject) + '&body=' + encodeURIComponent(currentEmailData.body));
+    window._allowMailto = true;
+    _originalWindowOpen('mailto:' + currentEmailData.to + '?subject=' + encodeURIComponent(currentEmailData.subject) + '&body=' + encodeURIComponent(currentEmailData.body));
+    window._allowMailto = false;
     document.getElementById('emailModal').style.display = 'none';
 }
 
