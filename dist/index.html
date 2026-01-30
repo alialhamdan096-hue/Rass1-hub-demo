@@ -56,6 +56,33 @@
         </div>
     </div>
 
+    <!-- Email Modal -->
+    <div class="modal-overlay" id="emailModal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:99999;">
+        <div class="modal" style="background:white;border-radius:16px;padding:25px;max-width:500px;width:95%;text-align:right;direction:rtl;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;padding-bottom:10px;border-bottom:1px solid #eee;">
+                <span style="font-size:18px;font-weight:bold;color:#561C2C;">📧 إرسال إيميل</span>
+                <button onclick="document.getElementById('emailModal').style.display='none'" style="background:none;border:none;font-size:24px;cursor:pointer;color:#999;">×</button>
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="display:block;margin-bottom:4px;font-weight:600;color:#555;font-size:13px;">إلى:</label>
+                <input type="text" id="emailTo" readonly style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px;background:#f9f9f9;">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="display:block;margin-bottom:4px;font-weight:600;color:#555;font-size:13px;">الموضوع:</label>
+                <input type="text" id="emailSubject" readonly style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px;background:#f9f9f9;">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="display:block;margin-bottom:4px;font-weight:600;color:#555;font-size:13px;">الرسالة:</label>
+                <textarea id="emailBody" rows="8" readonly style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px;background:#f9f9f9;resize:none;font-family:inherit;line-height:1.6;"></textarea>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:15px;flex-wrap:wrap;">
+                <button onclick="document.getElementById('emailModal').style.display='none'" class="btn btn-secondary" style="flex:1;">إغلاق</button>
+                <button onclick="copyEmailContent()" class="btn btn-primary" style="flex:1;">📋 نسخ</button>
+                <button onclick="openEmailApp()" class="btn btn-success" style="flex:1;">📧 فتح الإيميل</button>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <div class="header-container">
             <img src="logo.png" alt="Rass 1" class="logo-img" onerror="this.style.display='none'">
@@ -111,7 +138,7 @@
                                 <label>From Branch <span class="required">*</span></label>
                                 <select id="branch">
                                     <option value="">Select branch...</option>
-                                    <option>RASS2</option><option>RASS5</option><option>UNIZAH1</option><option>UNIZAH2</option><option>UNIZAH3</option><option>UNIZAH5</option>
+                                    <option>RASS2</option><option>RASS5</option><option>UNIZAH1</option><option>UNIZAH2</option><option>UNIZAH3</option><option>UNIZAH4</option><option>UNIZAH5</option>
                                     <option>BADAYA1</option><option>BADAYA2</option><option>BADAYA3</option><option>BADAYA5</option><option>BADAYA.MOR</option>
                                     <option>BUKAYRIAH1</option><option>BUKAYRIAH2</option><option>BUKAYRIAH.MOR</option>
                                     <option>BURIDAH1</option><option>BURIDAH2</option>
@@ -163,7 +190,7 @@
                                 <label>From Branch <span class="required">*</span></label>
                                 <select id="orderBranch">
                                     <option value="">Select...</option>
-                                    <option value="RASS2">RASS2</option><option value="RASS5">RASS5</option><option value="UNIZAH1">UNIZAH1</option><option value="UNIZAH2">UNIZAH2</option><option value="UNIZAH3">UNIZAH3</option><option value="UNIZAH5">UNIZAH5</option>
+                                    <option value="RASS2">RASS2</option><option value="RASS5">RASS5</option><option value="UNIZAH1">UNIZAH1</option><option value="UNIZAH2">UNIZAH2</option><option value="UNIZAH3">UNIZAH3</option><option value="UNIZAH4">UNIZAH4</option><option value="UNIZAH5">UNIZAH5</option>
                                     <option value="BADAYA1">BADAYA1</option><option value="BADAYA2">BADAYA2</option><option value="BADAYA3">BADAYA3</option><option value="BADAYA5">BADAYA5</option><option value="BADAYA.MOR">BADAYA.MOR</option>
                                     <option value="BUKAYRIAH1">BUKAYRIAH1</option><option value="BUKAYRIAH2">BUKAYRIAH2</option><option value="BUKAYRIAH.MOR">BUKAYRIAH.MOR</option>
                                     <option value="BURIDAH1">BURIDAH1</option><option value="BURIDAH2">BURIDAH2</option><option value="KHABRA1">KHABRA1</option><option value="MITHNAB1">MITHNAB1</option><option value="MITHNAB2">MITHNAB2</option><option value="RIYADH.KHABRA.MOR">RIYADH.KHABRA.MOR</option>
@@ -248,5 +275,200 @@
         </div>
     </div>
 
+<script>
+// INTERCEPT mailto: before anything else loads
+var _originalWindowOpen = window.open.bind(window);
+(function() {
+    window.open = function(url) {
+        if (url && typeof url === 'string' && url.startsWith('mailto:') && !window._allowMailto) {
+            console.log('Intercepted mailto:', url);
+            var emailMatch = url.match(/mailto:([^?]+)/);
+            var subjectMatch = url.match(/subject=([^&]*)/);
+            var bodyMatch = url.match(/body=([^&]*)/);
+            if (emailMatch && typeof showEmailModal === 'function') {
+                showEmailModal(
+                    decodeURIComponent(emailMatch[1]),
+                    subjectMatch ? decodeURIComponent(subjectMatch[1]) : '',
+                    bodyMatch ? decodeURIComponent(bodyMatch[1]) : ''
+                );
+                return null;
+            }
+        }
+        return _originalWindowOpen.apply(window, arguments);
+    };
+})();
+
+// Email functionality
+const BRANCH_EMAILS = {
+    'RASS2': 'rass2@alraziksa.com',
+    'RASS5': 'rass5@alraziksa.com',
+    'UNIZAH1': 'unizah1@alraziksa.com',
+    'UNIZAH2': 'unizah2@alraziksa.com',
+    'UNIZAH3': 'unizah3@alraziksa.com',
+    'UNIZAH4': 'unizah4@alraziksa.com',
+    'UNIZAH5': 'unizah5@alraziksa.com',
+    'BADAYA1': 'badaya1@alraziksa.com',
+    'BADAYA2': 'badaya2@alraziksa.com',
+    'BADAYA3': 'badaya3@alraziksa.com',
+    'BADAYA5': 'badaya5@alraziksa.com',
+    'BADAYA.MOR': 'badaya.mor@alraziksa.com',
+    'BUKAYRIAH1': 'bukayriah1@alraziksa.com',
+    'BUKAYRIAH2': 'bukayriah2@alraziksa.com',
+    'BUKAYRIAH.MOR': 'bukayriah.mor@alraziksa.com',
+    'BURIDAH1': 'buridah1@alraziksa.com',
+    'BURIDAH2': 'buridah2@alraziksa.com',
+    'KHABRA1': 'khabra1@alraziksa.com',
+    'MITHNAB1': 'mithnab1@alraziksa.com',
+    'MITHNAB2': 'mithnab2@alraziksa.com',
+    'RIYADH.KHABRA.MOR': 'riyadh.khabra.mor@alraziksa.com'
+};
+
+let currentEmailData = null;
+
+function showEmailModal(to, subject, body) {
+    currentEmailData = { to, subject, body };
+    document.getElementById('emailTo').value = to;
+    document.getElementById('emailSubject').value = subject;
+    document.getElementById('emailBody').value = body;
+    document.getElementById('emailModal').style.display = 'flex';
+}
+
+function copyEmailContent() {
+    if (!currentEmailData) return;
+    const text = 'إلى: ' + currentEmailData.to + '\nالموضوع: ' + currentEmailData.subject + '\n\n' + currentEmailData.body;
+    navigator.clipboard.writeText(text).then(function() {
+        alert('تم نسخ الإيميل! 📋');
+    }).catch(function() {
+        alert('فشل النسخ');
+    });
+}
+
+function openEmailApp() {
+    if (!currentEmailData) return;
+    window._allowMailto = true;
+    _originalWindowOpen('mailto:' + currentEmailData.to + '?subject=' + encodeURIComponent(currentEmailData.subject) + '&body=' + encodeURIComponent(currentEmailData.body));
+    window._allowMailto = false;
+    document.getElementById('emailModal').style.display = 'none';
+}
+
+// Use MutationObserver to intercept dynamically created email buttons
+function interceptEmailButton(btn) {
+    if (btn.textContent && btn.textContent.includes('Send to') && !btn.hasAttribute('data-email-intercepted')) {
+        btn.setAttribute('data-email-intercepted', 'true');
+        // Remove the original onclick
+        btn.removeAttribute('onclick');
+        btn.onclick = null;
+
+        // Add our custom click handler
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+
+            var match = this.textContent.match(/Send to (.+)/);
+            if (match) {
+                var branch = match[1].trim();
+                var items = window.State ? window.State.orderItems.filter(function(item) { return item.branch === branch; }) : [];
+
+                if (items.length === 0) {
+                    alert('لا توجد عناصر لهذا الفرع');
+                    return false;
+                }
+
+                var email = BRANCH_EMAILS[branch];
+                if (!email) {
+                    alert('لم يتم العثور على إيميل الفرع: ' + branch);
+                    return false;
+                }
+
+                var subject = 'طلب تحويل أصناف - صيدلية الرس 1';
+                var body = 'السلام عليكم\n\nنرجو تحويل الأصناف التالية:\n\n';
+                items.forEach(function(item) {
+                    body += '• ' + item.med + ' - الكمية: ' + item.qty + (item.isClient ? ' (لعميل)' : '') + '\n';
+                });
+                body += '\nوجزاكم الله خيراً\nصيدلية الرازي - الرس 1';
+
+                showEmailModal(email, subject, body);
+            }
+            return false;
+        }, true);
+
+        console.log('Intercepted email button for branch');
+    }
+}
+
+// MutationObserver to watch for new buttons
+var emailObserver = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+        mutation.addedNodes.forEach(function(node) {
+            if (node.nodeType === 1) { // Element node
+                if (node.tagName === 'BUTTON') {
+                    interceptEmailButton(node);
+                }
+                // Also check child buttons
+                var buttons = node.querySelectorAll ? node.querySelectorAll('button') : [];
+                buttons.forEach(interceptEmailButton);
+            }
+        });
+    });
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Start observing the document for new buttons
+    emailObserver.observe(document.body, { childList: true, subtree: true });
+
+    // Also intercept any existing buttons
+    document.querySelectorAll('button').forEach(interceptEmailButton);
+
+    // Also intercept clicks (backup method)
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('button');
+        if (btn && btn.textContent && btn.textContent.includes('Send to')) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            interceptEmailButton(btn);
+
+            var match = btn.textContent.match(/Send to (.+)/);
+            if (match) {
+                var branch = match[1].trim();
+                var items = window.State ? window.State.orderItems.filter(function(item) { return item.branch === branch; }) : [];
+
+                if (items.length > 0) {
+                    var email = BRANCH_EMAILS[branch];
+                    if (email) {
+                        var subject = 'طلب تحويل أصناف - صيدلية الرس 1';
+                        var body = 'السلام عليكم\n\nنرجو تحويل الأصناف التالية:\n\n';
+                        items.forEach(function(item) {
+                            body += '• ' + item.med + ' - الكمية: ' + item.qty + (item.isClient ? ' (لعميل)' : '') + '\n';
+                        });
+                        body += '\nوجزاكم الله خيراً\nصيدلية الرازي - الرس 1';
+                        showEmailModal(email, subject, body);
+                    }
+                }
+            }
+            return false;
+        }
+    }, true);
+
+    console.log('Email popup system with MutationObserver installed!');
+});
+
+// Backup function
+window.sendEmailPopup = function(branch, items) {
+    const email = BRANCH_EMAILS[branch];
+    if (!email) {
+        alert('لم يتم العثور على إيميل الفرع: ' + branch);
+        return;
+    }
+    const subject = 'طلب تحويل أصناف - صيدلية الرس 1';
+    let body = 'السلام عليكم\n\nنرجو تحويل الأصناف التالية:\n\n';
+    items.forEach(function(item) {
+        body += '• ' + item.med + ' - الكمية: ' + item.qty + (item.isClient ? ' (لعميل)' : '') + '\n';
+    });
+    body += '\nوجزاكم الله خيراً\nصيدلية الرازي - الرس 1';
+    showEmailModal(email, subject, body);
+};
+</script>
 </body>
 </html>
