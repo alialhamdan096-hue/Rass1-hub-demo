@@ -329,32 +329,45 @@ function openEmailApp() {
 
 // Override OrdersModule.sendEmail after page loads
 document.addEventListener('DOMContentLoaded', function() {
-    // Wait for the app to initialize
-    setTimeout(function() {
-        if (window.OrdersModule) {
-            const originalSendEmail = window.OrdersModule.sendEmail;
-            window.OrdersModule.sendEmail = function(branch) {
-                const items = window.State ? window.State.orderItems.filter(function(item) { return item.branch === branch; }) : [];
+    // Intercept ALL clicks on email buttons
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('button');
+        if (btn && btn.textContent.includes('Send to')) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+
+            // Extract branch name from button text
+            var match = btn.textContent.match(/Send to (.+)/);
+            if (match) {
+                var branch = match[1].trim();
+                var items = window.State ? window.State.orderItems.filter(function(item) { return item.branch === branch; }) : [];
+
                 if (items.length === 0) {
                     alert('لا توجد عناصر لهذا الفرع');
-                    return;
+                    return false;
                 }
-                const email = BRANCH_EMAILS[branch];
+
+                var email = BRANCH_EMAILS[branch];
                 if (!email) {
                     alert('لم يتم العثور على إيميل الفرع: ' + branch);
-                    return;
+                    return false;
                 }
-                const subject = 'طلب تحويل أصناف - صيدلية الرس 1';
-                let body = 'السلام عليكم\n\nنرجو تحويل الأصناف التالية:\n\n';
+
+                var subject = 'طلب تحويل أصناف - صيدلية الرس 1';
+                var body = 'السلام عليكم\n\nنرجو تحويل الأصناف التالية:\n\n';
                 items.forEach(function(item) {
                     body += '• ' + item.med + ' - الكمية: ' + item.qty + (item.isClient ? ' (لعميل)' : '') + '\n';
                 });
                 body += '\nوجزاكم الله خيراً\nصيدلية الرازي - الرس 1';
+
                 showEmailModal(email, subject, body);
-            };
-            console.log('Email popup override installed!');
+            }
+            return false;
         }
-    }, 1000);
+    }, true); // Use capture phase to intercept before other handlers
+
+    console.log('Email popup click interceptor installed!');
 });
 
 // Backup function
