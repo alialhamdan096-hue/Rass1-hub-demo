@@ -276,6 +276,33 @@
     </div>
 
 <script>
+// INTERCEPT mailto: before anything else loads
+(function() {
+    var originalOpen = window.open;
+    window.open = function(url) {
+        if (url && typeof url === 'string' && url.startsWith('mailto:')) {
+            console.log('Intercepted mailto window.open:', url);
+            // Parse the mailto URL
+            var emailMatch = url.match(/mailto:([^?]+)/);
+            var subjectMatch = url.match(/subject=([^&]*)/);
+            var bodyMatch = url.match(/body=([^&]*)/);
+
+            if (emailMatch) {
+                var to = decodeURIComponent(emailMatch[1]);
+                var subject = subjectMatch ? decodeURIComponent(subjectMatch[1]) : '';
+                var body = bodyMatch ? decodeURIComponent(bodyMatch[1]) : '';
+
+                // Show our modal instead
+                if (typeof showEmailModal === 'function') {
+                    showEmailModal(to, subject, body);
+                    return null;
+                }
+            }
+        }
+        return originalOpen.apply(window, arguments);
+    };
+})();
+
 // Email functionality
 const BRANCH_EMAILS = {
     'RASS2': 'rass2@alraziksa.com',
@@ -327,18 +354,21 @@ function openEmailApp() {
     document.getElementById('emailModal').style.display = 'none';
 }
 
-// Override OrdersModule.sendEmail after page loads
-document.addEventListener('DOMContentLoaded', function() {
-    // Intercept ALL clicks on email buttons
-    document.addEventListener('click', function(e) {
-        var btn = e.target.closest('button');
-        if (btn && btn.textContent.includes('Send to')) {
+// Use MutationObserver to intercept dynamically created email buttons
+function interceptEmailButton(btn) {
+    if (btn.textContent && btn.textContent.includes('Send to') && !btn.hasAttribute('data-email-intercepted')) {
+        btn.setAttribute('data-email-intercepted', 'true');
+        // Remove the original onclick
+        btn.removeAttribute('onclick');
+        btn.onclick = null;
+
+        // Add our custom click handler
+        btn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
 
-            // Extract branch name from button text
-            var match = btn.textContent.match(/Send to (.+)/);
+            var match = this.textContent.match(/Send to (.+)/);
             if (match) {
                 var branch = match[1].trim();
                 var items = window.State ? window.State.orderItems.filter(function(item) { return item.branch === branch; }) : [];
@@ -364,10 +394,67 @@ document.addEventListener('DOMContentLoaded', function() {
                 showEmailModal(email, subject, body);
             }
             return false;
-        }
-    }, true); // Use capture phase to intercept before other handlers
+        }, true);
 
-    console.log('Email popup click interceptor installed!');
+        console.log('Intercepted email button for branch');
+    }
+}
+
+// MutationObserver to watch for new buttons
+var emailObserver = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+        mutation.addedNodes.forEach(function(node) {
+            if (node.nodeType === 1) { // Element node
+                if (node.tagName === 'BUTTON') {
+                    interceptEmailButton(node);
+                }
+                // Also check child buttons
+                var buttons = node.querySelectorAll ? node.querySelectorAll('button') : [];
+                buttons.forEach(interceptEmailButton);
+            }
+        });
+    });
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Start observing the document for new buttons
+    emailObserver.observe(document.body, { childList: true, subtree: true });
+
+    // Also intercept any existing buttons
+    document.querySelectorAll('button').forEach(interceptEmailButton);
+
+    // Also intercept clicks (backup method)
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('button');
+        if (btn && btn.textContent && btn.textContent.includes('Send to')) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            interceptEmailButton(btn);
+
+            var match = btn.textContent.match(/Send to (.+)/);
+            if (match) {
+                var branch = match[1].trim();
+                var items = window.State ? window.State.orderItems.filter(function(item) { return item.branch === branch; }) : [];
+
+                if (items.length > 0) {
+                    var email = BRANCH_EMAILS[branch];
+                    if (email) {
+                        var subject = 'طلب تحويل أصناف - صيدلية الرس 1';
+                        var body = 'السلام عليكم\n\nنرجو تحويل الأصناف التالية:\n\n';
+                        items.forEach(function(item) {
+                            body += '• ' + item.med + ' - الكمية: ' + item.qty + (item.isClient ? ' (لعميل)' : '') + '\n';
+                        });
+                        body += '\nوجزاكم الله خيراً\nصيدلية الرازي - الرس 1';
+                        showEmailModal(email, subject, body);
+                    }
+                }
+            }
+            return false;
+        }
+    }, true);
+
+    console.log('Email popup system with MutationObserver installed!');
 });
 
 // Backup function
