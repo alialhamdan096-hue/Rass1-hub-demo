@@ -26,7 +26,7 @@ export const BRANCH_EMAILS = {
 };
 
 export const CONFIG = {
-    API_URL: 'https://script.google.com/macros/s/AKfycbzScqUsOESP_1EQZBqYvXLbkoOkNsDm2_o5twRHbU078-1e5HI7uSgmhDy_mkAmfLv-ig/exec',
+    API_URL: 'https://script.google.com/macros/s/AKfycbz3JMLUoPN35vVzOZxZoegDNlbMpAHHS4Mmfc4EN_C94D3Ic8FldoPjP1fADpM8BVLuuQ/exec',
     ITEMS_PER_PAGE: 10,
     SEARCH_DELAY: 300,
     TOAST_DURATION: 3000,
