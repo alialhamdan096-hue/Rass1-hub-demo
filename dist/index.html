@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -6,50 +7,27 @@
     <title>Rass 1 Hub</title>
     <link rel="icon" href="logo.png" type="image/png">
 
-    <script>
-    // فتح Gmail مباشرة + تخزين بيانات الإيميل (للتوافق مع كود قديم يتوقع window._currentEmail/openGmailPopup)
-    (function() {
-        var realOpen = window.open;
+```
+<script>
+// فتح Gmail مباشرة + تخزين بيانات الإيميل (للتوافق مع كود قديم يتوقع window._currentEmail/openGmailPopup)
+(function() {
+    var realOpen = window.open;
 
-        window.open = function(url) {
-            if (url && url.indexOf('mailto:') === 0) {
-                var email = url.replace('mailto:', '').split('?')[0];
-                var params = new URLSearchParams(url.split('?')[1] || '');
-                var subject = decodeURIComponent(params.get('subject') || '');
-                var body = decodeURIComponent(params.get('body') || '');
+    window.open = function(url) {
+        if (url && url.indexOf('mailto:') === 0) {
+            var email = url.replace('mailto:', '').split('?')[0];
+            var params = new URLSearchParams(url.split('?')[1] || '');
+            var subject = decodeURIComponent(params.get('subject') || '');
+            var body = decodeURIComponent(params.get('body') || '');
 
-                // ✅ للتوافق: نخزنها (حتى لو ما عندنا مودال)
-                window._currentEmail = { to: email, subject: subject, body: body };
+            // ✅ للتوافق: نخزنها (حتى لو ما عندنا مودال)
+            window._currentEmail = { to: email, subject: subject, body: body };
 
-                // فتح Gmail مباشرة في popup
-                var gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1' +
-                    '&to=' + encodeURIComponent(email) +
-                    '&su=' + encodeURIComponent(subject) +
-                    '&body=' + encodeURIComponent(body);
-
-                var width = 600, height = 600;
-                var left = (screen.width - width) / 2;
-                var top = (screen.height - height) / 2;
-
-                realOpen(gmailUrl, 'gmailCompose',
-                    'width=' + width + ',height=' + height + ',left=' + left + ',top=' + top + ',popup=yes,scrollbars=yes');
-
-                return null;
-            }
-            return realOpen.apply(this, arguments);
-        };
-
-        window._realOpen = realOpen;
-
-        // ✅ تعريف احتياطي: لو سكربت الموقع ينادي openGmailPopup()
-        window.openGmailPopup = function() {
-            var email = window._currentEmail;
-            if (!email) return;
-
+            // فتح Gmail مباشرة في popup
             var gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1' +
-                '&to=' + encodeURIComponent(email.to) +
-                '&su=' + encodeURIComponent(email.subject || '') +
-                '&body=' + encodeURIComponent(email.body || '');
+                '&to=' + encodeURIComponent(email) +
+                '&su=' + encodeURIComponent(subject) +
+                '&body=' + encodeURIComponent(body);
 
             var width = 600, height = 600;
             var left = (screen.width - width) / 2;
@@ -57,12 +35,38 @@
 
             realOpen(gmailUrl, 'gmailCompose',
                 'width=' + width + ',height=' + height + ',left=' + left + ',top=' + top + ',popup=yes,scrollbars=yes');
-        };
-    })();
-    </script>
 
-    <script type="module" crossorigin src="/assets/index-BPUQy5C5.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BLJBIK8U.css">
+            return null;
+        }
+        return realOpen.apply(this, arguments);
+    };
+
+    window._realOpen = realOpen;
+
+    // ✅ تعريف احتياطي: لو سكربت الموقع ينادي openGmailPopup()
+    window.openGmailPopup = function() {
+        var email = window._currentEmail;
+        if (!email) return;
+
+        var gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1' +
+            '&to=' + encodeURIComponent(email.to) +
+            '&su=' + encodeURIComponent(email.subject || '') +
+            '&body=' + encodeURIComponent(email.body || '');
+
+        var width = 600, height = 600;
+        var left = (screen.width - width) / 2;
+        var top = (screen.height - height) / 2;
+
+        realOpen(gmailUrl, 'gmailCompose',
+            'width=' + width + ',height=' + height + ',left=' + left + ',top=' + top + ',popup=yes,scrollbars=yes');
+    };
+})();
+</script>
+
+<script type="module" crossorigin src="/assets/index-BPUQy5C5.js"></script>
+<link rel="stylesheet" crossorigin href="/assets/index-BLJBIK8U.css">
+```
+
 </head>
 
 <body>
@@ -72,590 +76,774 @@
         <div class="loading-text">Loading...</div>
     </div>
 
-    <div class="modal-overlay" id="confirmModal">
-        <div class="modal">
-            <div class="modal-icon" id="modalIcon">⚠️</div>
-            <div class="modal-title" id="modalTitle">Confirm</div>
-            <div class="modal-message" id="modalMessage">Are you sure?</div>
-            <div class="modal-actions">
-                <button class="modal-cancel" id="modalCancelBtn">Cancel</button>
-                <button class="modal-confirm" id="modalConfirm">Confirm</button>
-            </div>
+```
+<div class="modal-overlay" id="confirmModal">
+    <div class="modal">
+        <div class="modal-icon" id="modalIcon">⚠️</div>
+        <div class="modal-title" id="modalTitle">Confirm</div>
+        <div class="modal-message" id="modalMessage">Are you sure?</div>
+        <div class="modal-actions">
+            <button class="modal-cancel" id="modalCancelBtn">Cancel</button>
+            <button class="modal-confirm" id="modalConfirm">Confirm</button>
         </div>
     </div>
+</div>
 
-    <div class="modal-overlay" id="historyModal">
-        <div class="modal history-modal">
-            <div class="history-header">
-                <div class="history-title">📋 سجل المريض</div>
-                <button class="history-close" id="historyCloseBtn">×</button>
-            </div>
-            <div class="history-patient-info">
-                <div class="history-patient-name" id="historyPatientName"></div>
-                <div class="history-patient-phone" id="historyPatientPhone"></div>
-                <div class="history-patient-med" id="historyPatientMed"></div>
-            </div>
-            <div class="history-content" id="historyContent"></div>
+<div class="modal-overlay" id="historyModal">
+    <div class="modal history-modal">
+        <div class="history-header">
+            <div class="history-title">📋 سجل المريض</div>
+            <button class="history-close" id="historyCloseBtn">×</button>
+        </div>
+        <div class="history-patient-info">
+            <div class="history-patient-name" id="historyPatientName"></div>
+            <div class="history-patient-phone" id="historyPatientPhone"></div>
+            <div class="history-patient-med" id="historyPatientMed"></div>
+        </div>
+        <div class="history-content" id="historyContent"></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="labelModal">
+    <div class="modal label-modal">
+        <div class="label-header">
+            <div class="label-title">🏷️ طباعة ملصق</div>
+            <button class="label-close" id="labelCloseBtn">×</button>
+        </div>
+        <div class="label-preview" id="labelPreview"></div>
+        <div class="label-actions">
+            <button class="btn btn-secondary" id="labelCancelBtn">إغلاق</button>
+            <button class="btn btn-primary" id="labelPrintBtn">🖨️ طباعة</button>
         </div>
     </div>
+</div>
 
-    <div class="modal-overlay" id="labelModal">
-        <div class="modal label-modal">
-            <div class="label-header">
-                <div class="label-title">🏷️ طباعة ملصق</div>
-                <button class="label-close" id="labelCloseBtn">×</button>
-            </div>
-            <div class="label-preview" id="labelPreview"></div>
-            <div class="label-actions">
-                <button class="btn btn-secondary" id="labelCancelBtn">إغلاق</button>
-                <button class="btn btn-primary" id="labelPrintBtn">🖨️ طباعة</button>
-            </div>
-        </div>
-    </div>
+<!-- ✅ Email placeholders (مخفية) للتوافق لو ملف JS يتوقعها -->
+<div id="emailModal" style="display:none;">
+    <div id="emailTo"></div>
+    <div id="emailSubject"></div>
+    <div id="emailBody"></div>
+</div>
 
-    <!-- ✅ Email placeholders (مخفية) للتوافق لو ملف JS يتوقعها -->
-    <div id="emailModal" style="display:none;">
-        <div id="emailTo"></div>
-        <div id="emailSubject"></div>
-        <div id="emailBody"></div>
-    </div>
+<style>
+    /* ===== أنماط صفحة العروض ===== */
+    .offers-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
+    .offers-stat { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; padding: 20px; text-align: center; color: white; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); }
+    .offers-stat.green { background: linear-gradient(135deg, #34a853 0%, #2d8e47 100%); box-shadow: 0 4px 15px rgba(52, 168, 83, 0.3); }
+    .offers-stat.blue { background: linear-gradient(135deg, #4285f4 0%, #3367d6 100%); box-shadow: 0 4px 15px rgba(66, 133, 244, 0.3); }
+    .offers-stat-num { font-size: 2.5rem; font-weight: 700; }
+    .offers-stat-label { font-size: 0.9rem; opacity: 0.9; margin-top: 5px; }
+    
+    .offers-card { background: white; border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+    .offers-card-title { font-size: 1.1rem; font-weight: 600; color: #333; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+    
+    .offers-search-box { display: flex; gap: 10px; margin-bottom: 15px; }
+    .offers-search-input { flex: 1; padding: 14px 16px; border: 2px solid #e9ecef; border-radius: 12px; font-size: 15px; transition: all 0.2s; }
+    .offers-search-input:focus { border-color: #667eea; outline: none; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+    .offers-search-btn { padding: 14px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .offers-search-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); }
+    
+    .offers-results { max-height: 300px; overflow-y: auto; }
+    .offers-result-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: #f8f9fa; border-radius: 10px; margin-bottom: 8px; transition: all 0.2s; }
+    .offers-result-item:hover { background: #e9ecef; transform: translateX(-5px); }
+    .offers-result-info { flex: 1; }
+    .offers-result-name { font-weight: 600; color: #333; margin-bottom: 3px; }
+    .offers-result-brand { font-size: 0.8rem; color: #666; }
+    .offers-result-prices { text-align: left; direction: ltr; }
+    .offers-result-old { text-decoration: line-through; color: #999; font-size: 0.85rem; }
+    .offers-result-new { color: #34a853; font-weight: 700; font-size: 1.1rem; }
+    .offers-result-discount { background: #dc3545; color: white; padding: 2px 8px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; margin-right: 8px; }
+    .offers-empty { text-align: center; padding: 40px; color: #999; }
+    .offers-empty-icon { font-size: 3rem; margin-bottom: 10px; }
+    
+    .sheets-section { margin-top: 10px; }
+    .sheets-input-row { display: flex; gap: 10px; margin-bottom: 12px; }
+    .sheets-input { flex: 1; padding: 12px 14px; border: 2px solid #e9ecef; border-radius: 10px; font-size: 14px; direction: ltr; }
+    .sheets-input:focus { border-color: #34a853; outline: none; }
+    .sheets-add-btn { padding: 12px 20px; background: #34a853; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .sheets-add-btn:hover { background: #2d8e47; }
+    .sheets-list { max-height: 180px; overflow-y: auto; margin-bottom: 15px; }
+    .sheets-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: #f8f9fa; border-radius: 8px; margin-bottom: 6px; direction: ltr; }
+    .sheets-item-url { flex: 1; font-size: 12px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-left: 10px; }
+    .sheets-item-del { background: #dc3545; color: white; border: none; width: 26px; height: 26px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+    .sheets-item-del:hover { background: #c82333; }
+    .sheets-actions { display: flex; gap: 10px; }
+    .sheets-save-btn { flex: 1; padding: 12px; background: linear-gradient(135deg, #34a853 0%, #2d8e47 100%); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; }
+    .sheets-save-btn:disabled { background: #ccc; cursor: not-allowed; }
+    .sheets-refresh-btn { padding: 12px 18px; background: #4285f4; color: white; border: none; border-radius: 10px; cursor: pointer; }
+    .sheets-refresh-btn:disabled { background: #ccc; cursor: not-allowed; }
+    .sheets-empty { text-align: center; padding: 20px; color: #999; font-size: 14px; }
+    .sheets-status { font-size: 12px; padding: 6px 12px; border-radius: 20px; display: inline-block; margin-bottom: 10px; }
+    .sheets-status.connected { background: #d4edda; color: #155724; }
+    .sheets-status.disconnected { background: #f8d7da; color: #721c24; }
+    .sheets-status.loading { background: #fff3cd; color: #856404; }
+</style>
 
-    <style>
-        /* ===== أنماط صفحة العروض ===== */
-        .offers-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
-        .offers-stat { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; padding: 20px; text-align: center; color: white; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); }
-        .offers-stat.green { background: linear-gradient(135deg, #34a853 0%, #2d8e47 100%); box-shadow: 0 4px 15px rgba(52, 168, 83, 0.3); }
-        .offers-stat.blue { background: linear-gradient(135deg, #4285f4 0%, #3367d6 100%); box-shadow: 0 4px 15px rgba(66, 133, 244, 0.3); }
-        .offers-stat-num { font-size: 2.5rem; font-weight: 700; }
-        .offers-stat-label { font-size: 0.9rem; opacity: 0.9; margin-top: 5px; }
-        
-        .offers-card { background: white; border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
-        .offers-card-title { font-size: 1.1rem; font-weight: 600; color: #333; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
-        
-        .offers-search-box { display: flex; gap: 10px; margin-bottom: 15px; }
-        .offers-search-input { flex: 1; padding: 14px 16px; border: 2px solid #e9ecef; border-radius: 12px; font-size: 15px; transition: all 0.2s; }
-        .offers-search-input:focus { border-color: #667eea; outline: none; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
-        .offers-search-btn { padding: 14px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-        .offers-search-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); }
-        
-        .offers-results { max-height: 300px; overflow-y: auto; }
-        .offers-result-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: #f8f9fa; border-radius: 10px; margin-bottom: 8px; transition: all 0.2s; }
-        .offers-result-item:hover { background: #e9ecef; transform: translateX(-5px); }
-        .offers-result-info { flex: 1; }
-        .offers-result-name { font-weight: 600; color: #333; margin-bottom: 3px; }
-        .offers-result-brand { font-size: 0.8rem; color: #666; }
-        .offers-result-prices { text-align: left; direction: ltr; }
-        .offers-result-old { text-decoration: line-through; color: #999; font-size: 0.85rem; }
-        .offers-result-new { color: #34a853; font-weight: 700; font-size: 1.1rem; }
-        .offers-result-discount { background: #dc3545; color: white; padding: 2px 8px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; margin-right: 8px; }
-        .offers-empty { text-align: center; padding: 40px; color: #999; }
-        .offers-empty-icon { font-size: 3rem; margin-bottom: 10px; }
-        
-        .sheets-section { margin-top: 10px; }
-        .sheets-input-row { display: flex; gap: 10px; margin-bottom: 12px; }
-        .sheets-input { flex: 1; padding: 12px 14px; border: 2px solid #e9ecef; border-radius: 10px; font-size: 14px; direction: ltr; }
-        .sheets-input:focus { border-color: #34a853; outline: none; }
-        .sheets-add-btn { padding: 12px 20px; background: #34a853; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-        .sheets-add-btn:hover { background: #2d8e47; }
-        .sheets-list { max-height: 180px; overflow-y: auto; margin-bottom: 15px; }
-        .sheets-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: #f8f9fa; border-radius: 8px; margin-bottom: 6px; direction: ltr; }
-        .sheets-item-url { flex: 1; font-size: 12px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-left: 10px; }
-        .sheets-item-del { background: #dc3545; color: white; border: none; width: 26px; height: 26px; border-radius: 6px; cursor: pointer; font-size: 12px; }
-        .sheets-item-del:hover { background: #c82333; }
-        .sheets-actions { display: flex; gap: 10px; }
-        .sheets-save-btn { flex: 1; padding: 12px; background: linear-gradient(135deg, #34a853 0%, #2d8e47 100%); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; }
-        .sheets-save-btn:disabled { background: #ccc; cursor: not-allowed; }
-        .sheets-refresh-btn { padding: 12px 18px; background: #4285f4; color: white; border: none; border-radius: 10px; cursor: pointer; }
-        .sheets-refresh-btn:disabled { background: #ccc; cursor: not-allowed; }
-        .sheets-empty { text-align: center; padding: 20px; color: #999; font-size: 14px; }
-        .sheets-status { font-size: 12px; padding: 6px 12px; border-radius: 20px; display: inline-block; margin-bottom: 10px; }
-        .sheets-status.connected { background: #d4edda; color: #155724; }
-        .sheets-status.disconnected { background: #f8d7da; color: #721c24; }
-        .sheets-status.loading { background: #fff3cd; color: #856404; }
-    </style>
+<script>
+    // =====================================================
+    // 🏷️ نظام إدارة العروض - تخزين سحابي
+    // =====================================================
+    var CLOUD_CONFIG_URL = 'https://script.google.com/macros/s/AKfycbwRn2gbYehvxImxkLAjLRmFeXW89UL3Eoo_lmo2LKQvfqLOQECYLJwSB_usPk12bvW-_w/exec';
+    var scannerSheets = [];
+    var offersData = [];
+    var offersLoading = false;
 
-    <script>
-        // =====================================================
-        // 🏷️ نظام إدارة العروض - تخزين سحابي
-        // =====================================================
-        var CLOUD_CONFIG_URL = 'https://script.google.com/macros/s/AKfycbwRn2gbYehvxImxkLAjLRmFeXW89UL3Eoo_lmo2LKQvfqLOQECYLJwSB_usPk12bvW-_w/exec';
-        var scannerSheets = [];
-        var offersData = [];
-        var offersLoading = false;
+    // تحميل البيانات عند فتح صفحة العروض
+    function initOffersPage() {
+        loadSheetsFromCloud();
+    }
 
-        // تحميل البيانات عند فتح صفحة العروض
-        function initOffersPage() {
-            loadSheetsFromCloud();
-        }
-
-        function loadSheetsFromCloud() {
-            updateSheetsStatus('loading', '⏳ جاري التحميل...');
-            fetch(CLOUD_CONFIG_URL)
-                .then(function(r) { return r.json(); })
-                .then(function(data) {
-                    scannerSheets = Array.isArray(data) ? data : [];
-                    localStorage.setItem('scannerSheets', JSON.stringify(scannerSheets));
-                    updateSheetsStatus('connected', '✅ متصل');
-                    renderSheetsList();
-                    loadAllOffers();
-                })
-                .catch(function(e) {
-                    console.error('Load error:', e);
-                    scannerSheets = JSON.parse(localStorage.getItem('scannerSheets') || '[]');
-                    updateSheetsStatus('disconnected', '❌ غير متصل');
-                    renderSheetsList();
-                    loadAllOffers();
-                });
-        }
-
-        function saveSheetsToCloud() {
-            updateSheetsStatus('loading', '⏳ جاري الحفظ...');
-            document.getElementById('saveOffersBtn').disabled = true;
-            fetch(CLOUD_CONFIG_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ urls: scannerSheets })
+    function loadSheetsFromCloud() {
+        updateSheetsStatus('loading', '⏳ جاري التحميل...');
+        fetch(CLOUD_CONFIG_URL)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                scannerSheets = Array.isArray(data) ? data : [];
+                localStorage.setItem('scannerSheets', JSON.stringify(scannerSheets));
+                updateSheetsStatus('connected', '✅ متصل');
+                renderSheetsList();
+                loadAllOffers();
             })
-                .then(function() {
-                    localStorage.setItem('scannerSheets', JSON.stringify(scannerSheets));
-                    updateSheetsStatus('connected', '✅ تم الحفظ');
-                    loadAllOffers();
-                })
-                .catch(function(e) {
-                    console.error('Save error:', e);
-                    updateSheetsStatus('disconnected', '❌ خطأ');
-                })
-                .finally(function() {
-                    document.getElementById('saveOffersBtn').disabled = false;
-                });
-        }
-
-        function updateSheetsStatus(status, text) {
-            var el = document.getElementById('sheetsStatus');
-            if (el) {
-                el.className = 'sheets-status ' + status;
-                el.textContent = text;
-            }
-        }
-
-        function renderSheetsList() {
-            var list = document.getElementById('offerSheetsList');
-            if (!list) return;
-            document.getElementById('sheetCountStat').textContent = scannerSheets.length;
-            if (scannerSheets.length === 0) {
-                list.innerHTML = '<div class="sheets-empty">📭 لا توجد شيتات مضافة</div>';
-                return;
-            }
-            list.innerHTML = scannerSheets.map(function(url, i) {
-                var short = url.length > 50 ? url.substring(0, 50) + '...' : url;
-                return '<div class="sheets-item"><span class="sheets-item-url" title="' + url + '">' + short + '</span><button class="sheets-item-del" onclick="removeOfferSheet(' + i + ')">🗑️</button></div>';
-            }).join('');
-        }
-
-        function addOfferSheet() {
-            var input = document.getElementById('newOfferSheetUrl');
-            var url = input.value.trim();
-            if (!url) return;
-            if (!url.includes('docs.google.com/spreadsheets')) {
-                alert('❌ الرجاء إدخال رابط Google Sheets صحيح');
-                return;
-            }
-            if (scannerSheets.includes(url)) {
-                alert('⚠️ هذا الرابط موجود مسبقاً');
-                return;
-            }
-            scannerSheets.push(url);
-            input.value = '';
-            renderSheetsList();
-        }
-
-        function removeOfferSheet(index) {
-            scannerSheets.splice(index, 1);
-            renderSheetsList();
-        }
-
-        // تحميل بيانات العروض من جميع الشيتات
-        async function loadAllOffers() {
-            if (offersLoading) return;
-            offersLoading = true;
-            offersData = [];
-            document.getElementById('productCountStat').textContent = '⏳';
-            
-            var urls = scannerSheets.length > 0 ? scannerSheets : [
-                'https://docs.google.com/spreadsheets/d/1-_6mN6DpmuUbpgy3q3h-RXRjPepfhhcdIx2K3oybCzw/edit#gid=682108686',
-                'https://docs.google.com/spreadsheets/d/1xd6gpkII3lxnr1h1mbGTYiomR3Q1HpAZltHD8nDXCI0/edit#gid=0'
-            ];
-
-            for (var i = 0; i < urls.length; i++) {
-                try {
-                    var url = urls[i];
-                    var idMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-                    var gidMatch = url.match(/gid=(\d+)/);
-                    if (!idMatch) continue;
-                    
-                    var id = idMatch[1];
-                    var gid = gidMatch ? gidMatch[1] : '0';
-                    
-                    var res = await fetch('https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:json&gid=' + gid);
-                    var txt = await res.text();
-                    var json = txt.match(/setResponse\(([\s\S]*)\);?/);
-                    if (json && json[1]) {
-                        var data = JSON.parse(json[1]);
-                        var rows = data.table.rows.slice(1);
-                        rows.forEach(function(r) {
-                            var c = r.c;
-                            if (c[0] && c[0].v) {
-                                offersData.push({
-                                    barcode: String(c[0].v).replace(/[^\d]/g, ''),
-                                    name: c[1]?.v || '',
-                                    brand: c[2]?.v || '',
-                                    discount: c[3]?.f || c[3]?.v || '',
-                                    priceBefore: c[4]?.f || c[4]?.v || '',
-                                    priceAfter: c[6]?.f || c[6]?.v || '',
-                                    arName: c[10]?.v || ''
-                                });
-                            }
-                        });
-                    }
-                } catch (e) {
-                    console.error('Error loading sheet:', e);
-                }
-            }
-            
-            document.getElementById('productCountStat').textContent = offersData.length;
-            offersLoading = false;
-        }
-
-        // البحث في العروض
-        function searchOffers() {
-            var query = document.getElementById('offersSearchInput').value.trim().toLowerCase();
-            var resultsDiv = document.getElementById('offersResults');
-            
-            if (!query) {
-                resultsDiv.innerHTML = '<div class="offers-empty"><div class="offers-empty-icon">🔍</div>اكتب اسم المنتج أو الباركود للبحث</div>';
-                return;
-            }
-            
-            var results = offersData.filter(function(o) {
-                return o.barcode.includes(query) || 
-                       o.name.toLowerCase().includes(query) || 
-                       o.arName.toLowerCase().includes(query) ||
-                       o.brand.toLowerCase().includes(query);
+            .catch(function(e) {
+                console.error('Load error:', e);
+                scannerSheets = JSON.parse(localStorage.getItem('scannerSheets') || '[]');
+                updateSheetsStatus('disconnected', '❌ غير متصل');
+                renderSheetsList();
+                loadAllOffers();
             });
-            
-            if (results.length === 0) {
-                resultsDiv.innerHTML = '<div class="offers-empty"><div class="offers-empty-icon">😕</div>لا توجد نتائج لـ "' + query + '"</div>';
-                return;
-            }
-            
-            resultsDiv.innerHTML = results.slice(0, 50).map(function(o) {
-                return '<div class="offers-result-item">' +
-                    '<div class="offers-result-info">' +
-                        '<div class="offers-result-name">' + (o.arName || o.name) + '</div>' +
-                        '<div class="offers-result-brand">' + o.brand + ' • ' + o.barcode + '</div>' +
-                    '</div>' +
-                    '<div class="offers-result-prices">' +
-                        (o.discount ? '<span class="offers-result-discount">' + o.discount + '</span>' : '') +
-                        '<span class="offers-result-old">' + o.priceBefore + '</span> ' +
-                        '<span class="offers-result-new">' + o.priceAfter + ' ر.س</span>' +
-                    '</div>' +
-                '</div>';
-            }).join('');
-            
-            if (results.length > 50) {
-                resultsDiv.innerHTML += '<div style="text-align:center;padding:10px;color:#666;font-size:13px;">وأكثر من ' + (results.length - 50) + ' نتيجة أخرى...</div>';
+    }
+
+    function saveSheetsToCloud() {
+        updateSheetsStatus('loading', '⏳ جاري الحفظ...');
+        document.getElementById('saveOffersBtn').disabled = true;
+        fetch(CLOUD_CONFIG_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ urls: scannerSheets })
+        })
+            .then(function() {
+                localStorage.setItem('scannerSheets', JSON.stringify(scannerSheets));
+                updateSheetsStatus('connected', '✅ تم الحفظ');
+                loadAllOffers();
+            })
+            .catch(function(e) {
+                console.error('Save error:', e);
+                updateSheetsStatus('disconnected', '❌ خطأ');
+            })
+            .finally(function() {
+                document.getElementById('saveOffersBtn').disabled = false;
+            });
+    }
+
+    function updateSheetsStatus(status, text) {
+        var el = document.getElementById('sheetsStatus');
+        if (el) {
+            el.className = 'sheets-status ' + status;
+            el.textContent = text;
+        }
+    }
+
+    function renderSheetsList() {
+        var list = document.getElementById('offerSheetsList');
+        if (!list) return;
+        document.getElementById('sheetCountStat').textContent = scannerSheets.length;
+        if (scannerSheets.length === 0) {
+            list.innerHTML = '<div class="sheets-empty">📭 لا توجد شيتات مضافة</div>';
+            return;
+        }
+        list.innerHTML = scannerSheets.map(function(url, i) {
+            var short = url.length > 50 ? url.substring(0, 50) + '...' : url;
+            return '<div class="sheets-item"><span class="sheets-item-url" title="' + url + '">' + short + '</span><button class="sheets-item-del" onclick="removeOfferSheet(' + i + ')">🗑️</button></div>';
+        }).join('');
+    }
+
+    function addOfferSheet() {
+        var input = document.getElementById('newOfferSheetUrl');
+        var url = input.value.trim();
+        if (!url) return;
+        if (!url.includes('docs.google.com/spreadsheets')) {
+            alert('❌ الرجاء إدخال رابط Google Sheets صحيح');
+            return;
+        }
+        if (scannerSheets.includes(url)) {
+            alert('⚠️ هذا الرابط موجود مسبقاً');
+            return;
+        }
+        scannerSheets.push(url);
+        input.value = '';
+        renderSheetsList();
+    }
+
+    function removeOfferSheet(index) {
+        scannerSheets.splice(index, 1);
+        renderSheetsList();
+    }
+
+    // تحميل بيانات العروض من جميع الشيتات
+    async function loadAllOffers() {
+        if (offersLoading) return;
+        offersLoading = true;
+        offersData = [];
+        document.getElementById('productCountStat').textContent = '⏳';
+        
+        var urls = scannerSheets.length > 0 ? scannerSheets : [
+            'https://docs.google.com/spreadsheets/d/1-_6mN6DpmuUbpgy3q3h-RXRjPepfhhcdIx2K3oybCzw/edit#gid=682108686',
+            'https://docs.google.com/spreadsheets/d/1xd6gpkII3lxnr1h1mbGTYiomR3Q1HpAZltHD8nDXCI0/edit#gid=0'
+        ];
+
+        for (var i = 0; i < urls.length; i++) {
+            try {
+                var url = urls[i];
+                var idMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                var gidMatch = url.match(/gid=(\d+)/);
+                if (!idMatch) continue;
+                
+                var id = idMatch[1];
+                var gid = gidMatch ? gidMatch[1] : '0';
+                
+                var res = await fetch('https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:json&gid=' + gid);
+                var txt = await res.text();
+                var json = txt.match(/setResponse\(([\s\S]*)\);?/);
+                if (json && json[1]) {
+                    var data = JSON.parse(json[1]);
+                    var rows = data.table.rows.slice(1);
+                    rows.forEach(function(r) {
+                        var c = r.c;
+                        if (c[0] && c[0].v) {
+                            offersData.push({
+                                barcode: String(c[0].v).replace(/[^\d]/g, ''),
+                                name: c[1]?.v || '',
+                                brand: c[2]?.v || '',
+                                discount: c[3]?.f || c[3]?.v || '',
+                                priceBefore: c[4]?.f || c[4]?.v || '',
+                                priceAfter: c[6]?.f || c[6]?.v || '',
+                                arName: c[10]?.v || ''
+                            });
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error('Error loading sheet:', e);
             }
         }
+        
+        document.getElementById('productCountStat').textContent = offersData.length;
+        offersLoading = false;
+    }
 
-        // جعل الروابط متاحة للسكانر
-        window.getScannerSheets = function() {
-            return scannerSheets.length > 0 ? scannerSheets : JSON.parse(localStorage.getItem('scannerSheets') || '[]');
-        };
-    </script>
+    // البحث في العروض
+    function searchOffers() {
+        var query = document.getElementById('offersSearchInput').value.trim().toLowerCase();
+        var resultsDiv = document.getElementById('offersResults');
+        
+        if (!query) {
+            resultsDiv.innerHTML = '<div class="offers-empty"><div class="offers-empty-icon">🔍</div>اكتب اسم المنتج أو الباركود للبحث</div>';
+            return;
+        }
+        
+        var results = offersData.filter(function(o) {
+            return o.barcode.includes(query) || 
+                   o.name.toLowerCase().includes(query) || 
+                   o.arName.toLowerCase().includes(query) ||
+                   o.brand.toLowerCase().includes(query);
+        });
+        
+        if (results.length === 0) {
+            resultsDiv.innerHTML = '<div class="offers-empty"><div class="offers-empty-icon">😕</div>لا توجد نتائج لـ "' + query + '"</div>';
+            return;
+        }
+        
+        resultsDiv.innerHTML = results.slice(0, 50).map(function(o) {
+            return '<div class="offers-result-item">' +
+                '<div class="offers-result-info">' +
+                    '<div class="offers-result-name">' + (o.arName || o.name) + '</div>' +
+                    '<div class="offers-result-brand">' + o.brand + ' • ' + o.barcode + '</div>' +
+                '</div>' +
+                '<div class="offers-result-prices">' +
+                    (o.discount ? '<span class="offers-result-discount">' + o.discount + '</span>' : '') +
+                    '<span class="offers-result-old">' + o.priceBefore + '</span> ' +
+                    '<span class="offers-result-new">' + o.priceAfter + ' ر.س</span>' +
+                '</div>' +
+            '</div>';
+        }).join('');
+        
+        if (results.length > 50) {
+            resultsDiv.innerHTML += '<div style="text-align:center;padding:10px;color:#666;font-size:13px;">وأكثر من ' + (results.length - 50) + ' نتيجة أخرى...</div>';
+        }
+    }
 
-    <div class="container">
-        <div class="header-container">
-            <img src="logo.png" alt="Rass 1" class="logo-img" onerror="this.style.display='none'">
-            <h1>Rass 1 Hub</h1>
+    // جعل الروابط متاحة للسكانر
+    window.getScannerSheets = function() {
+        return scannerSheets.length > 0 ? scannerSheets : JSON.parse(localStorage.getItem('scannerSheets') || '[]');
+    };
+</script>
+
+<div class="container">
+    <div class="header-container">
+        <img src="logo.png" alt="Rass 1" class="logo-img" onerror="this.style.display='none'">
+        <h1>Rass 1 Hub</h1>
+    </div>
+
+    <div class="tabs">
+        <button class="tab active" data-page="patients">💊 Records</button>
+        <button class="tab" data-page="orders">📦 Transfer Requests</button>
+        <button class="tab" data-page="tracking">📊 Tracking</button>
+        <button class="tab" data-page="reports">📈 Reports</button>
+        <button class="tab" data-page="offers" onclick="initOffersPage()">🏷️ العروض</button>
+    </div>
+
+    <div id="sync" class="sync sync-ok">✓ Connected to Google Sheets</div>
+    <div class="alert-banner hidden" id="alertBanner">
+        <span class="alert-banner-icon">🔔</span>
+        <span class="alert-banner-text" id="alertText"></span>
+        <button class="alert-banner-close" onclick="document.getElementById('alertBanner').classList.add('hidden')">×</button>
+    </div>
+
+    <!-- Patients Page -->
+    <div id="patientsPage" class="page active">
+        <div class="stats">
+            <div class="stat total"><div class="stat-num" id="total">0</div><div class="stat-label">Records</div></div>
+            <div class="stat w"><div class="stat-num" id="warn">0</div><div class="stat-label">Soon</div></div>
+            <div class="stat d"><div class="stat-num" id="over">0</div><div class="stat-label">Overdue</div></div>
+            <div class="stat orders"><div class="stat-num" id="pendingOrders">0</div><div class="stat-label">📦 Pending</div></div>
         </div>
-
-        <div class="tabs">
-            <button class="tab active" data-page="patients">💊 Records</button>
-            <button class="tab" data-page="orders">📦 Transfer Requests</button>
-            <button class="tab" data-page="tracking">📊 Tracking</button>
-            <button class="tab" data-page="reports">📈 Reports</button>
-            <button class="tab" data-page="offers" onclick="initOffersPage()">🏷️ العروض</button>
-        </div>
-
-        <div id="sync" class="sync sync-ok">✓ Connected to Google Sheets</div>
-        <div class="alert-banner hidden" id="alertBanner">
-            <span class="alert-banner-icon">🔔</span>
-            <span class="alert-banner-text" id="alertText"></span>
-            <button class="alert-banner-close" onclick="document.getElementById('alertBanner').classList.add('hidden')">×</button>
-        </div>
-
-        <!-- Patients Page -->
-        <div id="patientsPage" class="page active">
-            <div class="stats">
-                <div class="stat total"><div class="stat-num" id="total">0</div><div class="stat-label">Records</div></div>
-                <div class="stat w"><div class="stat-num" id="warn">0</div><div class="stat-label">Soon</div></div>
-                <div class="stat d"><div class="stat-num" id="over">0</div><div class="stat-label">Overdue</div></div>
-                <div class="stat orders"><div class="stat-num" id="pendingOrders">0</div><div class="stat-label">📦 Pending</div></div>
-            </div>
-            <div class="grid">
-                <div class="card">
-                    <h3 class="card-title" id="formTitle">➕ Add New</h3>
-                    <div class="type-selector">
-                        <button type="button" class="type-btn active refill" data-type="refill">
-                            <div class="type-btn-icon">💊</div><div class="type-btn-label">Refill</div>
-                        </button>
-                        <button type="button" class="type-btn order" data-type="order">
-                            <div class="type-btn-icon">📦</div><div class="type-btn-label">Order</div>
-                        </button>
-                    </div>
-                    <form id="patientForm" novalidate>
-                        <input type="hidden" id="entryType" value="refill">
-                        <div class="form-group"><label>Customer Name (Optional)</label><input type="text" id="name" placeholder="Enter name"></div>
-                        <div class="form-group"><label>Phone <span class="required">*</span></label><input type="tel" id="phone" placeholder="966512345678"><div class="error-message" id="phoneError">Please enter a valid phone</div></div>
-                        <div class="form-group"><label id="medLabel">Medication <span class="required">*</span></label><input type="text" id="med" placeholder="Medication name"><div class="error-message" id="medError">Please enter medication</div></div>
-                        <div id="refillFields">
-                            <div class="row">
-                                <div class="form-group"><label>Dispense Date <span class="required">*</span></label><input type="date" id="date"><div class="error-message" id="dateError">Please select date</div></div>
-                                <div class="form-group"><label>Duration (days) <span class="required">*</span></label><input type="number" id="days" value="30" min="1" max="365"><div class="error-message" id="daysError">Enter 1-365</div></div>
-                            </div>
-                        </div>
-                        <div id="orderFields" style="display:none">
-                            <div class="form-group">
-                                <label>From Branch <span class="required">*</span></label>
-                                <select id="branch">
-                                    <option value="">Select branch...</option>
-                                    <option>RASS2</option><option>RASS5</option><option>UNIZAH1</option><option>UNIZAH2</option><option>UNIZAH3</option><option>UNIZAH4</option><option>UNIZAH5</option>
-                                    <option>BADAYA1</option><option>BADAYA2</option><option>BADAYA3</option><option>BADAYA5</option><option>BADAYA.MOR</option>
-                                    <option>BUKAYRIAH1</option><option>BUKAYRIAH2</option><option>BUKAYRIAH.MOR</option>
-                                    <option>BURIDAH1</option><option>BURIDAH2</option>
-                                    <option>KHABRA1</option><option>MITHNAB1</option><option>MITHNAB2</option><option>RIYADH.KHABRA.MOR</option>
-                                </select>
-                                <div class="error-message" id="branchError">Please select branch</div>
-                            </div>
-                            <div class="form-group">
-                                <label>Pickup Date (Optional)</label>
-                                <select id="pickupDate">
-                                    <option value="">Not specified</option><option value="today">Today</option><option value="tomorrow">Tomorrow</option><option value="custom">Custom...</option>
-                                </select>
-                            </div>
-                            <div class="form-group" id="customDateGroup" style="display:none"><label>Custom Date</label><input type="date" id="customPickupDate"></div>
-                        </div>
-                        <div class="form-group"><label>Notes</label><input type="text" id="notes" placeholder="Additional notes"></div>
-                        <button type="submit" class="btn btn-primary" id="submitBtn"><span>➕</span> Add</button>
-                        <button type="button" class="btn btn-secondary" id="cancelBtn" onclick="window.resetForm()">Cancel</button>
-                    </form>
+        <div class="grid">
+            <div class="card">
+                <h3 class="card-title" id="formTitle">➕ Add New</h3>
+                <div class="type-selector">
+                    <button type="button" class="type-btn active refill" data-type="refill">
+                        <div class="type-btn-icon">💊</div><div class="type-btn-label">Refill</div>
+                    </button>
+                    <button type="button" class="type-btn order" data-type="order">
+                        <div class="type-btn-icon">📦</div><div class="type-btn-label">Order</div>
+                    </button>
                 </div>
-
-                <div class="card">
-                    <h3 class="card-title">📋 Records</h3>
-                    <div class="filters-row">
-                        <input type="text" id="search" placeholder="🔍 Search...">
-                        <select id="typeFilter"><option value="all">All Types</option><option value="refill">💊 Refill</option><option value="order">📦 Orders</option></select>
-                        <select id="statusFilter"><option value="all">All Status</option><option value="overdue">🔴 Overdue</option><option value="soon">🟡 Soon</option><option value="ok">🟢 OK</option><option value="waiting">🔵 Waiting</option><option value="pending">⏳ Pending</option></select>
-                    </div>
-                    <div class="table-container">
-                        <table>
-                            <thead><tr><th>Type</th><th>Customer</th><th>Item / Med</th><th>Added</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
-                            <tbody id="patientsTbody"></tbody>
-                        </table>
-                    </div>
-                    <div class="pagination" id="pagination"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Orders Page -->
-        <div id="ordersPage" class="page">
-            <div class="grid">
-                <div class="card">
-                    <h3 class="card-title">➕ Add Item</h3>
-                    <form id="orderForm" novalidate>
-                        <div class="form-group"><label>Item Name <span class="required">*</span></label><input type="text" id="orderMed" placeholder="Product name"><div class="error-message" id="orderMedError">Please enter item name</div></div>
+                <form id="patientForm" novalidate>
+                    <input type="hidden" id="entryType" value="refill">
+                    <div class="form-group"><label>Customer Name (Optional)</label><input type="text" id="name" placeholder="Enter name"></div>
+                    <div class="form-group"><label>Phone <span class="required">*</span></label><input type="tel" id="phone" placeholder="966512345678"><div class="error-message" id="phoneError">Please enter a valid phone</div></div>
+                    <div class="form-group"><label id="medLabel">Medication <span class="required">*</span></label><input type="text" id="med" placeholder="Medication name"><div class="error-message" id="medError">Please enter medication</div></div>
+                    <div id="refillFields">
                         <div class="row">
-                            <div class="form-group"><label>Quantity <span class="required">*</span></label><input type="number" id="orderQty" value="1" min="1"></div>
-                            <div class="form-group">
-                                <label>From Branch <span class="required">*</span></label>
-                                <select id="orderBranch">
-                                    <option value="">Select...</option>
-                                    <option value="RASS2">RASS2</option><option value="RASS5">RASS5</option><option value="UNIZAH1">UNIZAH1</option><option value="UNIZAH2">UNIZAH2</option><option value="UNIZAH3">UNIZAH3</option><option value="UNIZAH4">UNIZAH4</option><option value="UNIZAH5">UNIZAH5</option>
-                                    <option value="BADAYA1">BADAYA1</option><option value="BADAYA2">BADAYA2</option><option value="BADAYA3">BADAYA3</option><option value="BADAYA5">BADAYA5</option><option value="BADAYA.MOR">BADAYA.MOR</option>
-                                    <option value="BUKAYRIAH1">BUKAYRIAH1</option><option value="BUKAYRIAH2">BUKAYRIAH2</option><option value="BUKAYRIAH.MOR">BUKAYRIAH.MOR</option>
-                                    <option value="BURIDAH1">BURIDAH1</option><option value="BURIDAH2">BURIDAH2</option><option value="KHABRA1">KHABRA1</option><option value="MITHNAB1">MITHNAB1</option><option value="MITHNAB2">MITHNAB2</option><option value="RIYADH.KHABRA.MOR">RIYADH.KHABRA.MOR</option>
-                                </select>
-                                <div class="error-message" id="orderBranchError">Please select branch</div>
-                            </div>
+                            <div class="form-group"><label>Dispense Date <span class="required">*</span></label><input type="date" id="date"><div class="error-message" id="dateError">Please select date</div></div>
+                            <div class="form-group"><label>Duration (days) <span class="required">*</span></label><input type="number" id="days" value="30" min="1" max="365"><div class="error-message" id="daysError">Enter 1-365</div></div>
                         </div>
-                        <div class="checkbox-wrapper"><input type="checkbox" id="orderClient"><label for="orderClient">🔴 لعميل (For Client)</label></div>
-                        <button type="submit" class="btn btn-primary">➕ Add to List</button>
-                    </form>
-                </div>
-
-                <div class="card">
-                    <h3 class="card-title">📋 Transfer List</h3>
-                    <div id="ordersList"></div>
-                    <button class="btn btn-danger btn-sm" id="clearAllBtn" style="margin-top:10px;display:none;">🗑️ Clear All</button>
-
-                    <div class="send-section" id="sendSection" style="display:none">
-                        <h3 class="card-title">📧 Ready to Send</h3>
-                        <div id="groupedOrders"></div>
-
-                        <!-- ✅ رجعناه للتوافق (مخفي) حتى لا يطيّح addEventListener -->
-                        <button class="btn btn-success" id="sendAllBtn" style="margin-top:10px; display:none;">
-                            📧 Send All Emails
-                        </button>
                     </div>
-                </div>
+                    <div id="orderFields" style="display:none">
+                        <div class="form-group">
+                            <label>From Branch <span class="required">*</span></label>
+                            <select id="branch">
+                                <option value="">Select branch...</option>
+                                <option>RASS2</option><option>RASS5</option><option>UNIZAH1</option><option>UNIZAH2</option><option>UNIZAH3</option><option>UNIZAH4</option><option>UNIZAH5</option>
+                                <option>BADAYA1</option><option>BADAYA2</option><option>BADAYA3</option><option>BADAYA5</option><option>BADAYA.MOR</option>
+                                <option>BUKAYRIAH1</option><option>BUKAYRIAH2</option><option>BUKAYRIAH.MOR</option>
+                                <option>BURIDAH1</option><option>BURIDAH2</option>
+                                <option>KHABRA1</option><option>MITHNAB1</option><option>MITHNAB2</option><option>RIYADH.KHABRA.MOR</option>
+                            </select>
+                            <div class="error-message" id="branchError">Please select branch</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Pickup Date (Optional)</label>
+                            <select id="pickupDate">
+                                <option value="">Not specified</option><option value="today">Today</option><option value="tomorrow">Tomorrow</option><option value="custom">Custom...</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="customDateGroup" style="display:none"><label>Custom Date</label><input type="date" id="customPickupDate"></div>
+                    </div>
+                    <div class="form-group"><label>Notes</label><input type="text" id="notes" placeholder="Additional notes"></div>
+                    <button type="submit" class="btn btn-primary" id="submitBtn"><span>➕</span> Add</button>
+                    <button type="button" class="btn btn-secondary" id="cancelBtn" onclick="window.resetForm()">Cancel</button>
+                </form>
             </div>
-        </div>
 
-        <!-- Tracking Page -->
-        <div id="trackingPage" class="page">
-            <div class="stats">
-                <div class="stat total"><div class="stat-num" id="tSent">0</div><div class="stat-label">Sent</div></div>
-                <div class="stat s"><div class="stat-num" id="tConverted">0</div><div class="stat-label">Converted</div></div>
-                <div class="stat" style="border-left:4px solid var(--primary)"><div class="stat-num" id="tRate">0%</div><div class="stat-label">Rate</div></div>
-            </div>
             <div class="card">
-                <div class="header-row">
-                    <h3 class="card-title" style="margin:0">📊 Track Conversions</h3>
-                    <select id="trackFilter" style="width:auto;min-width:140px"><option value="all">All</option><option value="waiting">⏳ Waiting</option><option value="converted">✅ Converted</option></select>
+                <h3 class="card-title">📋 Records</h3>
+                <div class="filters-row">
+                    <input type="text" id="search" placeholder="🔍 Search...">
+                    <select id="typeFilter"><option value="all">All Types</option><option value="refill">💊 Refill</option><option value="order">📦 Orders</option></select>
+                    <select id="statusFilter"><option value="all">All Status</option><option value="overdue">🔴 Overdue</option><option value="soon">🟡 Soon</option><option value="ok">🟢 OK</option><option value="waiting">🔵 Waiting</option><option value="pending">⏳ Pending</option></select>
                 </div>
-                <div class="track-grid" id="trackGrid"></div>
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>Type</th><th>Customer</th><th>Item / Med</th><th>Added</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody id="patientsTbody"></tbody>
+                    </table>
+                </div>
+                <div class="pagination" id="pagination"></div>
             </div>
         </div>
+    </div>
 
-        <!-- Reports Page -->
-        <div id="reportsPage" class="page">
+    <!-- Orders Page -->
+    <div id="ordersPage" class="page">
+        <div class="grid">
             <div class="card">
-                <div class="header-row">
-                    <h3 class="card-title" style="margin:0">📈 Monthly Report</h3>
-                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                        <select id="reportMonth" style="width:auto"></select>
-                        <select id="reportYear" style="width:auto"></select>
-                        <button class="btn btn-secondary btn-sm" onclick="window.print()">🖨️</button>
+                <h3 class="card-title">➕ Add Item</h3>
+                <form id="orderForm" novalidate>
+                    <div class="form-group"><label>Item Name <span class="required">*</span></label><input type="text" id="orderMed" placeholder="Product name"><div class="error-message" id="orderMedError">Please enter item name</div></div>
+                    <div class="row">
+                        <div class="form-group"><label>Quantity <span class="required">*</span></label><input type="number" id="orderQty" value="1" min="1"></div>
+                        <div class="form-group">
+                            <label>From Branch <span class="required">*</span></label>
+                            <select id="orderBranch">
+                                <option value="">Select...</option>
+                                <option value="RASS2">RASS2</option><option value="RASS5">RASS5</option><option value="UNIZAH1">UNIZAH1</option><option value="UNIZAH2">UNIZAH2</option><option value="UNIZAH3">UNIZAH3</option><option value="UNIZAH4">UNIZAH4</option><option value="UNIZAH5">UNIZAH5</option>
+                                <option value="BADAYA1">BADAYA1</option><option value="BADAYA2">BADAYA2</option><option value="BADAYA3">BADAYA3</option><option value="BADAYA5">BADAYA5</option><option value="BADAYA.MOR">BADAYA.MOR</option>
+                                <option value="BUKAYRIAH1">BUKAYRIAH1</option><option value="BUKAYRIAH2">BUKAYRIAH2</option><option value="BUKAYRIAH.MOR">BUKAYRIAH.MOR</option>
+                                <option value="BURIDAH1">BURIDAH1</option><option value="BURIDAH2">BURIDAH2</option><option value="KHABRA1">KHABRA1</option><option value="MITHNAB1">MITHNAB1</option><option value="MITHNAB2">MITHNAB2</option><option value="RIYADH.KHABRA.MOR">RIYADH.KHABRA.MOR</option>
+                            </select>
+                            <div class="error-message" id="orderBranchError">Please select branch</div>
+                        </div>
                     </div>
-                </div>
-                <div class="report-tabs">
-                    <button class="report-tab active" data-report="refill">💊 Refill</button>
-                    <button class="report-tab" data-report="orders">📦 Transfers</button>
-                </div>
+                    <div class="checkbox-wrapper"><input type="checkbox" id="orderClient"><label for="orderClient">🔴 لعميل (For Client)</label></div>
+                    <button type="submit" class="btn btn-primary">➕ Add to List</button>
+                </form>
             </div>
 
-            <div id="refillReport" class="report-section active">
-                <div class="report-grid">
-                    <div class="report-card"><div class="report-value" id="rSent">0</div><div class="report-label">📤 Sent</div></div>
-                    <div class="report-card"><div class="report-value" style="color:var(--accent)" id="rConverted">0</div><div class="report-label">✅ Converted</div></div>
-                    <div class="report-card"><div class="report-value" style="color:var(--primary)" id="rRate">0%</div><div class="report-label">📊 Rate</div><div class="progress"><div class="progress-bar" id="rBar" style="width:0%;background:var(--accent)"></div></div></div>
-                </div>
+            <div class="card">
+                <h3 class="card-title">📋 Transfer List</h3>
+                <div id="ordersList"></div>
+                <button class="btn btn-danger btn-sm" id="clearAllBtn" style="margin-top:10px;display:none;">🗑️ Clear All</button>
 
-                <div class="card">
-                    <h3 class="card-title">📋 Summary</h3>
-                    <div class="table-container">
-                        <table>
-                            <thead><tr><th>Metric</th><th>Count</th><th>%</th></tr></thead>
-                            <tbody id="summaryTb"></tbody>
-                        </table>
-                    </div>
-                </div>
+                <div class="send-section" id="sendSection" style="display:none">
+                    <h3 class="card-title">📧 Ready to Send</h3>
+                    <div id="groupedOrders"></div>
 
-                <div class="card">
-                    <h3 class="card-title">✅ Converted Patients</h3>
-                    <div class="table-container">
-                        <table>
-                            <thead><tr><th>Patient</th><th>Phone</th><th>Medication</th><th>Reminder</th><th>Converted</th></tr></thead>
-                            <tbody id="convList"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div id="ordersReport" class="report-section">
-                <div class="report-grid">
-                    <div class="report-card"><div class="report-value" style="color:var(--info)" id="oTotal">0</div><div class="report-label">📦 Total</div></div>
-                    <div class="report-card"><div class="report-value" style="color:var(--accent)" id="oDelivered">0</div><div class="report-label">✅ Delivered</div></div>
-                    <div class="report-card"><div class="report-value" style="color:var(--warning)" id="oNotDelivered">0</div><div class="report-label">⏳ Pending</div></div>
-                    <div class="report-card"><div class="report-value" style="color:var(--primary)" id="oRate">0%</div><div class="report-label">📊 Rate</div><div class="progress"><div class="progress-bar" id="oBar" style="width:0%;background:var(--info)"></div></div></div>
-                </div>
-
-                <div class="card">
-                    <h3 class="card-title">🏢 By Branch</h3>
-                    <div class="table-container">
-                        <table>
-                            <thead><tr><th>Branch</th><th>Total</th><th>Delivered</th><th>Pending</th></tr></thead>
-                            <tbody id="branchSummary"></tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <h3 class="card-title">📦 Top Items</h3>
-                    <div class="table-container">
-                        <table>
-                            <thead><tr><th>Item Name</th><th>Count</th></tr></thead>
-                            <tbody id="topMeds"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Offers Page - صفحة العروض -->
-        <div id="offersPage" class="page" style="direction:rtl;text-align:right;">
-            <!-- الإحصائيات -->
-            <div class="offers-stats">
-                <div class="offers-stat">
-                    <div class="offers-stat-num" id="productCountStat">0</div>
-                    <div class="offers-stat-label">📦 منتج</div>
-                </div>
-                <div class="offers-stat green">
-                    <div class="offers-stat-num" id="sheetCountStat">0</div>
-                    <div class="offers-stat-label">📊 شيت</div>
-                </div>
-                <div class="offers-stat blue">
-                    <div class="offers-stat-num" id="sheetsStatus" class="sheets-status">⏳</div>
-                    <div class="offers-stat-label">الحالة</div>
-                </div>
-            </div>
-
-            <!-- البحث في العروض -->
-            <div class="offers-card">
-                <div class="offers-card-title">🔍 البحث في العروض</div>
-                <div class="offers-search-box">
-                    <input type="text" class="offers-search-input" id="offersSearchInput" placeholder="ابحث بالاسم أو الباركود..." onkeypress="if(event.key==='Enter')searchOffers()">
-                    <button class="offers-search-btn" onclick="searchOffers()">🔍 بحث</button>
-                </div>
-                <div class="offers-results" id="offersResults">
-                    <div class="offers-empty">
-                        <div class="offers-empty-icon">🔍</div>
-                        اكتب اسم المنتج أو الباركود للبحث
-                    </div>
-                </div>
-            </div>
-
-            <!-- إدارة الشيتات -->
-            <div class="offers-card">
-                <div class="offers-card-title">⚙️ إدارة شيتات العروض</div>
-                <div class="sheets-section">
-                    <div class="sheets-input-row">
-                        <input type="text" class="sheets-input" id="newOfferSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/...">
-                        <button class="sheets-add-btn" onclick="addOfferSheet()">➕ أضف</button>
-                    </div>
-                    <div class="sheets-list" id="offerSheetsList">
-                        <div class="sheets-empty">⏳ جاري التحميل...</div>
-                    </div>
-                    <div class="sheets-actions">
-                        <button class="sheets-refresh-btn" onclick="loadSheetsFromCloud()">🔄 تحديث</button>
-                        <button class="sheets-save-btn" id="saveOffersBtn" onclick="saveSheetsToCloud()">💾 حفظ في السحابة</button>
-                    </div>
+                    <!-- ✅ رجعناه للتوافق (مخفي) حتى لا يطيّح addEventListener -->
+                    <button class="btn btn-success" id="sendAllBtn" style="margin-top:10px; display:none;">
+                        📧 Send All Emails
+                    </button>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Tracking Page -->
+    <div id="trackingPage" class="page">
+        <div class="stats">
+            <div class="stat total"><div class="stat-num" id="tSent">0</div><div class="stat-label">Sent</div></div>
+            <div class="stat s"><div class="stat-num" id="tConverted">0</div><div class="stat-label">Converted</div></div>
+            <div class="stat" style="border-left:4px solid var(--primary)"><div class="stat-num" id="tRate">0%</div><div class="stat-label">Rate</div></div>
+        </div>
+        <div class="card">
+            <div class="header-row">
+                <h3 class="card-title" style="margin:0">📊 Track Conversions</h3>
+                <select id="trackFilter" style="width:auto;min-width:140px"><option value="all">All</option><option value="waiting">⏳ Waiting</option><option value="converted">✅ Converted</option></select>
+            </div>
+            <div class="track-grid" id="trackGrid"></div>
+        </div>
+    </div>
+
+    <!-- Reports Page -->
+    <div id="reportsPage" class="page">
+        <div class="card">
+            <div class="header-row">
+                <h3 class="card-title" style="margin:0">📈 Monthly Report</h3>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <select id="reportMonth" style="width:auto"></select>
+                    <select id="reportYear" style="width:auto"></select>
+                    <button class="btn btn-secondary btn-sm" onclick="window.print()">🖨️</button>
+                </div>
+            </div>
+            <div class="report-tabs">
+                <button class="report-tab active" data-report="refill">💊 Refill</button>
+                <button class="report-tab" data-report="orders">📦 Transfers</button>
+            </div>
+        </div>
+
+        <div id="refillReport" class="report-section active">
+            <div class="report-grid">
+                <div class="report-card"><div class="report-value" id="rSent">0</div><div class="report-label">📤 Sent</div></div>
+                <div class="report-card"><div class="report-value" style="color:var(--accent)" id="rConverted">0</div><div class="report-label">✅ Converted</div></div>
+                <div class="report-card"><div class="report-value" style="color:var(--primary)" id="rRate">0%</div><div class="report-label">📊 Rate</div><div class="progress"><div class="progress-bar" id="rBar" style="width:0%;background:var(--accent)"></div></div></div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">📋 Summary</h3>
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>Metric</th><th>Count</th><th>%</th></tr></thead>
+                        <tbody id="summaryTb"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">✅ Converted Patients</h3>
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>Patient</th><th>Phone</th><th>Medication</th><th>Reminder</th><th>Converted</th></tr></thead>
+                        <tbody id="convList"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="ordersReport" class="report-section">
+            <div class="report-grid">
+                <div class="report-card"><div class="report-value" style="color:var(--info)" id="oTotal">0</div><div class="report-label">📦 Total</div></div>
+                <div class="report-card"><div class="report-value" style="color:var(--accent)" id="oDelivered">0</div><div class="report-label">✅ Delivered</div></div>
+                <div class="report-card"><div class="report-value" style="color:var(--warning)" id="oNotDelivered">0</div><div class="report-label">⏳ Pending</div></div>
+                <div class="report-card"><div class="report-value" style="color:var(--primary)" id="oRate">0%</div><div class="report-label">📊 Rate</div><div class="progress"><div class="progress-bar" id="oBar" style="width:0%;background:var(--info)"></div></div></div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">🏢 By Branch</h3>
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>Branch</th><th>Total</th><th>Delivered</th><th>Pending</th></tr></thead>
+                        <tbody id="branchSummary"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">📦 Top Items</h3>
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>Item Name</th><th>Count</th></tr></thead>
+                        <tbody id="topMeds"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Offers Page - صفحة العروض -->
+    <div id="offersPage" class="page" style="direction:rtl;text-align:right;">
+        <!-- الإحصائيات -->
+        <div class="offers-stats">
+            <div class="offers-stat">
+                <div class="offers-stat-num" id="productCountStat">0</div>
+                <div class="offers-stat-label">📦 منتج</div>
+            </div>
+            <div class="offers-stat green">
+                <div class="offers-stat-num" id="sheetCountStat">0</div>
+                <div class="offers-stat-label">📊 شيت</div>
+            </div>
+            <div class="offers-stat blue">
+                <div class="offers-stat-num" id="sheetsStatus" class="sheets-status">⏳</div>
+                <div class="offers-stat-label">الحالة</div>
+            </div>
+        </div>
+
+        <!-- البحث في العروض -->
+        <div class="offers-card">
+            <div class="offers-card-title">🔍 البحث في العروض</div>
+            <div class="offers-search-box">
+                <input type="text" class="offers-search-input" id="offersSearchInput" placeholder="ابحث بالاسم أو الباركود..." onkeypress="if(event.key==='Enter')searchOffers()">
+                <button class="offers-search-btn" onclick="searchOffers()">🔍 بحث</button>
+            </div>
+            <div class="offers-results" id="offersResults">
+                <div class="offers-empty">
+                    <div class="offers-empty-icon">🔍</div>
+                    اكتب اسم المنتج أو الباركود للبحث
+                </div>
+            </div>
+        </div>
+
+        <!-- إدارة الشيتات -->
+        <div class="offers-card">
+            <div class="offers-card-title">⚙️ إدارة شيتات العروض</div>
+            <div class="sheets-section">
+                <div class="sheets-input-row">
+                    <input type="text" class="sheets-input" id="newOfferSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/...">
+                    <button class="sheets-add-btn" onclick="addOfferSheet()">➕ أضف</button>
+                </div>
+                <div class="sheets-list" id="offerSheetsList">
+                    <div class="sheets-empty">⏳ جاري التحميل...</div>
+                </div>
+                <div class="sheets-actions">
+                    <button class="sheets-refresh-btn" onclick="loadSheetsFromCloud()">🔄 تحديث</button>
+                    <button class="sheets-save-btn" id="saveOffersBtn" onclick="saveSheetsToCloud()">💾 حفظ في السحابة</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+```
+
+<!-- ===== Rass1 Hub Patches ===== -->
+
+<script>
+(function() {
+    'use strict';
+    
+    // ===== Transfer Requests API =====
+    var TRANSFER_API = 'https://script.google.com/macros/s/AKfycbyj6GG2OZbhZfDUFxP4U4zeABEfliBDl-O7vdgEeo8-R58ToZyeoVqINHSMCvGppIQy/exec';
+
+    // ===== 1. إضافة UNIZAH4 للإيميلات =====
+    var COMPLETE_BRANCH_EMAILS = {
+        RASS2: "rass2@alraziksa.com",
+        RASS5: "rass5@alraziksa.com",
+        UNIZAH1: "unizah1@alraziksa.com",
+        UNIZAH2: "unizah2@alraziksa.com",
+        UNIZAH3: "unizah3@alraziksa.com",
+        UNIZAH4: "unizah4@alraziksa.com",
+        UNIZAH5: "unizah5@alraziksa.com",
+        BADAYA1: "badaya1@alraziksa.com",
+        BADAYA2: "badaya2@alraziksa.com",
+        BADAYA3: "badaya3@alraziksa.com",
+        BADAYA5: "badaya5@alraziksa.com",
+        "BADAYA.MOR": "badaya.mor@alraziksa.com",
+        BUKAYRIAH1: "bukayriah1@alraziksa.com",
+        BUKAYRIAH2: "bukayriah2@alraziksa.com",
+        "BUKAYRIAH.MOR": "bukayriah.mor@alraziksa.com",
+        BURIDAH1: "buridah1@alraziksa.com",
+        BURIDAH2: "buridah2@alraziksa.com",
+        KHABRA1: "khabra1@alraziksa.com",
+        MITHNAB1: "mithnab1@alraziksa.com",
+        MITHNAB2: "mithnab2@alraziksa.com",
+        "RIYADH.KHABRA.MOR": "riyadh.khabra.mor@alraziksa.com"
+    };
+
+    // ===== State للتعديلات =====
+    window._sentBranches = JSON.parse(localStorage.getItem('rass1_sentBranches') || '{}');
+    window._transferItems = JSON.parse(localStorage.getItem('rass1_transfers') || '[]');
+
+    // ===== 2. حذف الطلبات القديمة (أكثر من 12 ساعة) =====
+    function cleanOldTransfers() {
+        const now = Date.now();
+        const TWELVE_HOURS = 12 * 60 * 60 * 1000;
+        
+        window._transferItems = window._transferItems.filter(item => {
+            if (!item.createdAt) return true;
+            return (now - item.createdAt) < TWELVE_HOURS;
+        });
+        localStorage.setItem('rass1_transfers', JSON.stringify(window._transferItems));
+    }
+
+    // ===== 3. Override OrdersModule بعد التحميل =====
+    window.addEventListener('load', function() {
+        // ننتظر شوي عشان الكود الأصلي يتحمل
+        setTimeout(patchOrdersModule, 500);
+        
+        // تنظيف دوري كل دقيقة
+        cleanOldTransfers();
+        setInterval(cleanOldTransfers, 60000);
+    });
+
+    function patchOrdersModule() {
+        if (!window.OrdersModule) {
+            console.log('OrdersModule not found, retrying...');
+            setTimeout(patchOrdersModule, 500);
+            return;
+        }
+
+        console.log('✅ Patching OrdersModule...');
+
+        // === Override sendEmail ===
+        const originalSendEmail = window.OrdersModule.sendEmail;
+        window.OrdersModule.sendEmail = function(branch) {
+            const email = COMPLETE_BRANCH_EMAILS[branch];
+            
+            if (!email) {
+                alert('❌ لم يتم العثور على إيميل لـ ' + branch);
+                return;
+            }
+
+            // نجلب الطلبات من الـ DOM لأن الـ state الداخلي مخفي
+            const items = getItemsForBranch(branch);
+            
+            if (items.length === 0) {
+                alert('❌ لا توجد طلبات لـ ' + branch);
+                return;
+            }
+
+            const subject = "طلب تحويل أصناف - صيدلية الرس 1";
+            let body = `السلام عليكم
+
+صيدلية الرازي الرس 1
+
+نرجو تحويل الأصناف التالية:
+
+`;
+            items.forEach(item => {
+                body += `• ${item.med} - الكمية: ${item.qty}${item.isClient ? " (لعميل)" : ""}\n`;
+            });
+
+            body += `
+وجزاكم الله خيراً
+صيدلية الرازي - الرس 1`;
+
+            // فتح الإيميل
+            window.open(`mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+            
+            // === تغيير لون الزر ===
+            markBranchAsSent(branch);
+        };
+
+        // === Override renderOrders لإضافة حالة الإرسال ===
+        const originalRenderOrders = window.OrdersModule.renderOrders;
+        window.OrdersModule.renderOrders = function() {
+            originalRenderOrders.call(this);
+            
+            // بعد الرندر، نعدل الأزرار
+            setTimeout(updateSentButtons, 100);
+        };
+
+        console.log('✅ OrdersModule patched successfully!');
+    }
+
+    // === دالة لجلب الطلبات من DOM ===
+    function getItemsForBranch(branch) {
+        const items = [];
+        const ordersList = document.getElementById('ordersList');
+        if (!ordersList) return items;
+
+        const orderItems = ordersList.querySelectorAll('.order-item');
+        orderItems.forEach(item => {
+            const branchEl = item.querySelector('.order-item-branch');
+            if (branchEl && branchEl.textContent.includes(branch)) {
+                const medEl = item.querySelector('.order-item-med');
+                const detailsEl = item.querySelector('.order-item-details');
+                
+                items.push({
+                    med: medEl ? medEl.textContent.replace(/لعميل/g, '').trim() : '',
+                    qty: detailsEl ? parseInt(detailsEl.textContent.replace(/\D/g, '')) || 1 : 1,
+                    isClient: medEl ? medEl.textContent.includes('لعميل') : false
+                });
+            }
+        });
+        return items;
+    }
+
+    // === تحديد الفرع كـ "تم الإرسال" ===
+    function markBranchAsSent(branch) {
+        window._sentBranches[branch] = Date.now();
+        localStorage.setItem('rass1_sentBranches', JSON.stringify(window._sentBranches));
+        updateSentButtons();
+    }
+
+    // === تحديث أزرار الإرسال ===
+    function updateSentButtons() {
+        Object.keys(window._sentBranches).forEach(branch => {
+            const btns = document.querySelectorAll(`button[onclick*="sendEmail('${branch}')"]`);
+            btns.forEach(btn => {
+                if (window._sentBranches[branch]) {
+                    btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                    btn.style.borderColor = '#10b981';
+                    btn.innerHTML = '✅ Sent to ' + branch;
+                }
+            });
+        });
+    }
+
+    // === مسح حالة الإرسال عند مسح الكل ===
+    const originalClearAllBtn = document.getElementById('clearAllBtn');
+    if (originalClearAllBtn) {
+        originalClearAllBtn.addEventListener('click', function() {
+            // ننتظر شوي بعد المسح
+            setTimeout(() => {
+                window._sentBranches = {};
+                localStorage.setItem('rass1_sentBranches', '{}');
+            }, 500);
+        }, true);
+    }
+
+})();
+</script>
+
 </body>
 </html>
