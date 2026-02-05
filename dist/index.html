@@ -840,6 +840,62 @@
     }
 
 })();
+
+    // ===== 4. Override Label Print لطلبات التحويل =====
+    window.addEventListener('load', function() {
+        setTimeout(function() {
+            if (window.LabelPrint) {
+                var originalShow = window.LabelPrint.show;
+                window.LabelPrint.show = function(id) {
+                    var patients = JSON.parse(localStorage.getItem('patients_rass1') || '[]');
+                    var patient = patients.find(function(p) { return p.id === id; });
+                    if (!patient) return;
+
+                    var isOrder = patient.type === 'order';
+                    var today = new Date().toLocaleDateString('ar-SA', {year:'numeric',month:'long',day:'numeric'});
+
+                    var labelPreview = document.getElementById('labelPreview');
+                    if (isOrder) {
+                        // Label خاص بطلبات التحويل - يظهر اسم الفرع فقط
+                        labelPreview.innerHTML = '<div class="label-card" id="labelContent" style="width:60mm;height:30mm;padding:8px;border:2px solid #333;border-radius:6px;font-family:Arial,sans-serif;direction:rtl;">' +
+                            '<div style="text-align:center;font-size:18px;font-weight:bold;color:#1e40af;margin-bottom:6px;">📦 ' + (patient.branch || 'غير محدد') + '</div>' +
+                            '<div style="text-align:center;font-size:12px;font-weight:bold;margin-bottom:4px;">' + (patient.med || '') + '</div>' +
+                            '<div style="display:flex;justify-content:space-between;font-size:9px;color:#666;">' +
+                                '<span>#' + String(patient.id).slice(-6) + '</span>' +
+                                '<span>' + today + '</span>' +
+                            '</div>' +
+                        '</div>';
+                    } else {
+                        // استخدم الدالة الأصلية للـ refill
+                        originalShow.call(window.LabelPrint, id);
+                        return;
+                    }
+                    document.getElementById('labelModal').classList.add('active');
+                };
+
+                // Override print function للمقاس 3x6
+                var originalPrint = window.LabelPrint.print;
+                window.LabelPrint.print = function() {
+                    var labelContent = document.getElementById('labelContent');
+                    if (!labelContent) return;
+
+                    var printWindow = window.open('', '_blank', 'width=400,height=300');
+                    printWindow.document.write('<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>طباعة</title><style>' +
+                        '* { margin:0; padding:0; box-sizing:border-box; }' +
+                        'body { display:flex; justify-content:center; align-items:center; min-height:100vh; }' +
+                        '@page { size: 60mm 30mm; margin: 0; }' +
+                        '@media print { body { padding: 0; } }' +
+                        '.label-card { width:60mm !important; height:30mm !important; }' +
+                    '</style></head><body>' + labelContent.outerHTML + '<script>window.onload=function(){window.print();setTimeout(function(){window.close();},500);}<\/script></body></html>');
+                    printWindow.document.close();
+                };
+
+                console.log('✅ LabelPrint patched for 3x6cm labels');
+            }
+        }, 1000);
+    });
+
+})();
 </script>
 
 </body>
